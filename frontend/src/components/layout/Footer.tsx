@@ -115,7 +115,7 @@ export default function Footer() {
           <p className="text-xs">
             &copy; {year} SabiStore. All rights reserved.
           </p>
-          <p className="text-xs">Made with ❤️ for Nigerian fashion vendors.</p>
+          <p className="text-xs">Made by Pharez</p>
         </div>
       </div>
     </footer>
