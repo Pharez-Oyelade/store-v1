@@ -116,9 +116,12 @@ const Features = () => {
         />
       </div>
 
-      <article id="case-article" className="h-auto flex gap-20 mt-10">
+      <article
+        id="case-article"
+        className="h-auto flex flex-col md:flex-row gap-20 mt-10"
+      >
         {/* section tags - left side */}
-        <aside className="w-1/3">
+        <aside className="w-full md:w-1/3">
           <div className="sticky top-[15%]">
             <div className="flex flex-col border-x border-gray-400 border-t">
               {tabs.map((tab) => (
