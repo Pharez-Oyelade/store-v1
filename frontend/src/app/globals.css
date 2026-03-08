@@ -4,6 +4,7 @@
 
 @theme {
   --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-cursive: "Great Vibes", cursive;
 
   --color-brand-50: #f0fdf4;
   --color-brand-100: #dcfce7;
