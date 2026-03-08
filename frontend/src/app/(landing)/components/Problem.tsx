@@ -53,7 +53,7 @@ const Problem = () => {
       </div>
 
       {/* Problem cards */}
-      <div className="mt-10 grid grid-cols-2 gap-3 h-auto">
+      <div className="mt-10 grid md:grid-cols-2 gap-3 h-auto">
         {problems.map((problem) => (
           <div
             key={problem.id}
