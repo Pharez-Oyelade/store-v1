@@ -47,3 +47,20 @@ export const useAuthStore = create<AuthState>()(
     },
   ),
 );
+
+// SELECTOR HOOKS - for selecting specific pieces of state in components, to avoid unnecessary re-renders when other parts of the state change
+
+// return logged in vendor's info
+export const useCurrentVendor = () => useAuthStore((state) => state.vendor);
+
+// Return true if user is logged in
+export const useIsAuthenticated = () =>
+  useAuthStore((state) => state.isAuthenticated);
+
+// Return true after /me check completed
+export const useIsIitialized = () =>
+  useAuthStore((state) => state.isInitialized);
+
+// Return subscription plan of logged in vendor, or null if free tier or not logged in
+export const useSubscriptionPlan = (): SubscriptionPlan | null =>
+  useAuthStore((state) => state.vendor?.subscription?.plan ?? null);
