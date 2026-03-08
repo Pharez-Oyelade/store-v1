@@ -4,12 +4,14 @@ import Input from "@/components/ui/Input";
 import Navbar from "@/components/layout/Navbar";
 import Hero from "./components/Hero";
 import Marquee from "./components/Marquee";
+import Problem from "./components/Problem";
 
 const page = () => {
   return (
     <>
       <Hero />
       <Marquee />
+      <Problem />
     </>
   );
 };
