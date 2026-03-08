@@ -39,11 +39,11 @@ const Process = () => {
         />
       </div>
 
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-5 mt-10">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:md:grid-cols-4 gap-5 mt-10">
         {processData.map((pd) => (
           <div
             key={pd.id}
-            className="space-y-4 border border-gray-400 hover:bg-accent-50 hover:border-accent-300 hover:-translate-y-2 transition-all duration-300 ease-in-out p-4 shadow-lg"
+            className="space-y-4 border border-gray-400 hover:bg-accent-50 hover:border-accent-300 hover:-translate-y-2 transition-all duration-300 ease-in-out p-4 shadow-lg rounded-xl"
           >
             <span className="w-12 h-12 inline-flex items-center justify-center rounded-full border-2 font-cursive text-4xl font-bold border-gray-400 p-3">
               {pd.id}
