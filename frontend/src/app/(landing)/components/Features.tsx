@@ -116,6 +116,7 @@ const Features = () => {
         />
       </div>
 
+      {/* Features article */}
       <article
         id="case-article"
         className="h-auto flex flex-col md:flex-row gap-20 mt-10"
@@ -144,6 +145,7 @@ const Features = () => {
           </div>
         </aside>
 
+        {/* Dynamic right side display corresponding to selected tab option */}
         <div className="w-full">
           <div className="bg-gray-600 p-10 space-y-3">
             <span className="uppercase font-bold text-sm text-accent-600">
