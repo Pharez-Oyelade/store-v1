@@ -76,11 +76,11 @@ const Hero = () => {
       </div>
 
       {/* faded product name */}
-      <div className="absolute bottom-0 left-0">
-        <h1 className="text-[150px] -z-50 outline-text opacity-6 px-20">
+      {/* <div className="absolute bottom-0 left-0">
+        <h1 className="text-[150px] -z-99 outline-text opacity-6 px-20 pointer-events-none">
           SABI
         </h1>
-      </div>
+      </div> */}
     </section>
   );
 };
