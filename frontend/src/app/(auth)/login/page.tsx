@@ -15,9 +15,9 @@ import toast from "react-hot-toast";
 
 const loginSchema = z.object({
   email: z
-    .string()
-    .min(1, "Email is required")
-    .email("please enter a valid email address"),
+    .email("please enter a valid email address")
+    .min(1, "Email is required"),
+  // .email("please enter a valid email address"),
   password: z
     .string()
     .min(1, "password is required")

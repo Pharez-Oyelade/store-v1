@@ -11,7 +11,7 @@ export default function AuthLayout({
       {/* Logo */}
       <Link
         href="/"
-        className="fixed top-0 left-0 w-full z-50 px-20 py-2 bg-white/50 backdrop-blur-sm font-bold text-2xl text-gray-900 mb-8"
+        className="fixed top-0 left-0 w-full z-50 px-20 py-2 bg-white/50 backdrop-blur-sm font-bold text-2xl text-gray-900 mb-8 flex gap-2 items-center"
       >
         <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-700 text-white">
           <Store size={20} />
