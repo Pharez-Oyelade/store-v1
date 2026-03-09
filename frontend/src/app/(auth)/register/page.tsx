@@ -15,7 +15,6 @@ import {
   MapPin,
   Lock,
   Subtitles,
-  Building,
 } from "lucide-react";
 import Button from "@/components/ui/Button";
 import Input from "@/components/ui/Input";
@@ -214,7 +213,7 @@ export default function RegisterPage() {
                   label="Business Name"
                   placeholder="Eri's Fashion House"
                   error={errors.businessName?.message}
-                  leftElement={<Building size={16} />}
+                  leftElement={<Building2 size={16} />}
                   {...register("businessName")}
                 />
 
