@@ -98,7 +98,7 @@ const Navbar = () => {
             </ul>
 
             {/* CTA */}
-            <Link href={isAuthenticated ? "/dashboard" : "/login"}>
+            <Link href={isAuthenticated ? "/dashboard" : "/register"}>
               <Button variant="primary" size="small">
                 {isAuthenticated
                   ? vendor?.businessName || "Dashboard"
