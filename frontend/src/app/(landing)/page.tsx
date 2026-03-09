@@ -7,6 +7,7 @@ import Marquee from "./components/Marquee";
 import Problem from "./components/Problem";
 import Features from "./components/Features";
 import Process from "./components/Process";
+import Testimonials from "./components/Testimonials";
 
 const page = () => {
   return (
@@ -16,6 +17,7 @@ const page = () => {
       <Problem />
       <Features />
       <Process />
+      <Testimonials />
     </>
   );
 };
