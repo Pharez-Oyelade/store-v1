@@ -8,6 +8,7 @@ import Problem from "./components/Problem";
 import Features from "./components/Features";
 import Process from "./components/Process";
 import Testimonials from "./components/Testimonials";
+import Newsletter from "./components/Newsletter";
 
 const page = () => {
   return (
@@ -18,6 +19,7 @@ const page = () => {
       <Features />
       <Process />
       <Testimonials />
+      <Newsletter />
     </>
   );
 };
