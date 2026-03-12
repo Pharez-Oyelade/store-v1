@@ -53,7 +53,7 @@ export default function LoginPage() {
 
   return (
     <div className="flex gap-20 items-center h-full overflow-hidden">
-      <div className="relative w-full h-full overflow-hidden">
+      <div className="relative hidden md:block w-full h-full overflow-hidden">
         <div className="absolute w-full h-full bg-black/80" />
         <Image
           src="/storefront.jpg"
@@ -66,7 +66,7 @@ export default function LoginPage() {
       {/* Header */}
 
       <div className="mb-6 w-full px-12">
-        <div className="text-center">
+        <div className="text-center mb-5">
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-sm text-gray-500 mt-1">
             Sign in to your SabiStore dashboard

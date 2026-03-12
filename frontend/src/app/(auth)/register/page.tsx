@@ -179,7 +179,7 @@ export default function RegisterPage() {
       <div className="w-full">
         <div className="flex flex-col items-center justify-center mb-1">
           <div className="text-center">
-            <h1 className="text-xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-gray-900">
               {stepTitles[currentStep - 1].title}
             </h1>
             <p className="text-sm text-gray-500">
@@ -189,7 +189,7 @@ export default function RegisterPage() {
           <span className="text-sm text-gray-400 font-medium">
             {currentStep} / {TOTAL_STEPS}
           </span>
-          <div className="w-1/3 py-2">
+          <div className="w-1/2 py-2">
             {/* progress bar */}
             <div className="flex gap-1.5">
               {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
@@ -204,7 +204,7 @@ export default function RegisterPage() {
           <form
             onSubmit={handleSubmit(onSubmit)}
             noValidate
-            className="py-2 w-1/2"
+            className="py-2 w-full md:w-2/3 px-10"
           >
             {/* STEP 1 - Business Info */}
             {currentStep === 1 && (
@@ -266,6 +266,7 @@ export default function RegisterPage() {
                   options={nigerianStates}
                   placeholder="Select your state"
                   error={errors.state?.message}
+                  defaultValue="Select state"
                   {...register("state")}
                 />
 
@@ -401,7 +402,7 @@ export default function RegisterPage() {
       </div>
 
       {/* IMAGE */}
-      <div className="relative w-full h-full overflow-hidden">
+      <div className="relative hidden md:block w-full h-full overflow-hidden">
         <div className="absolute w-full h-full bg-black/80" />
         <Image
           src="/storefront.jpg"
