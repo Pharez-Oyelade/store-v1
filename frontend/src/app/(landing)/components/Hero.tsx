@@ -55,7 +55,7 @@ const Hero = () => {
           <Image
             width={700}
             height={700}
-            src="/dashboard_mockup.png"
+            src="/sabi_screenshot.png"
             alt="Hero Image"
             className="w-full h-full rounded-xl group:hover:scale-90 transition-transform duration-300"
           />
