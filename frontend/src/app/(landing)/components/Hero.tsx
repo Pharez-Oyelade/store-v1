@@ -1,6 +1,9 @@
+"use client";
+
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import Image from "next/image";
+import { easeIn, motion } from "framer-motion";
 import React from "react";
 
 const Hero = () => {
@@ -9,32 +12,52 @@ const Hero = () => {
       {/* Hero content */}
       <div className="w-full md:w-1/2 space-y-8">
         {/* Eyebrow */}
-        <div className="flex items-center gap-2">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ duration: 0.3, ease: "easeIn" }}
+          className="flex items-center gap-2"
+        >
           <div className="w-10 h-0.5 bg-accent-600" />
           <span className="text-accent-600 text-xs md:text-sm font-bold uppercase">
             Built for Nigerian Fashion Vendors
           </span>
-        </div>
+        </motion.div>
 
         {/* Heading */}
-        <h1 className="text-6xl md:text-8xl font-bold tracking-tight">
+        <motion.h1
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2, duration: 0.3, ease: "easeIn" }}
+          className="text-6xl md:text-8xl font-bold tracking-tight"
+        >
           Your Store. <br />
           <span className="text-accent-900 font-cursive text-6xl md:text-9xl">
             Finally
           </span>{" "}
           <br />
           under control.
-        </h1>
+        </motion.h1>
 
         {/* text */}
-        <p className="max-w-lg text-base text-gray-600">
+        <motion.p
+          initial={{ opacity: 0, y: 30 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.3, duration: 0.3, ease: "easeIn" }}
+          className="max-w-lg text-base text-gray-600"
+        >
           Stop managing orders in DMs and inventory in notebooks. Sabi Store
           gives fashion vendors one clean dashboard for everything — stock,
           orders, customers, and sales. Built for the Nigerian market.
-        </p>
+        </motion.p>
 
         {/* CTAs */}
-        <div className="flex flex-col sm:flex-row items-start sm:items-center gap-4">
+        <motion.div
+          initial={{ opacity: 0, x: -20 }}
+          animate={{ opacity: 1, x: 0 }}
+          transition={{ delayChildren: 0.3, delay: 0.5, ease: "easeIn" }}
+          className="flex flex-col sm:flex-row items-start sm:items-center gap-4"
+        >
           <Link href="/login">
             <Button size="large" variant="primary">
               Get Started
@@ -46,11 +69,16 @@ const Hero = () => {
               Learn how it works →
             </Button>
           </Link>
-        </div>
+        </motion.div>
       </div>
 
       {/* Hero Image */}
-      <div className="relative w-full md:w-1/2">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.5 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.5, duration: 0.5, ease: "circIn" }}
+        className="relative w-full md:w-1/2"
+      >
         <div className="w-full p-4 border-2 border-brand-400 rounded-lg overflow-hidden group shadow-lg">
           <Image
             width={700}
@@ -73,7 +101,7 @@ const Hero = () => {
             <p className="text-xs text-gray-500">Vendors using SabiStore</p>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* faded product name */}
       {/* <div className="absolute bottom-0 left-0">
