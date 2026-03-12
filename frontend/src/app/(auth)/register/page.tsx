@@ -380,10 +380,9 @@ export default function RegisterPage() {
                   type="submit"
                   variant="primary"
                   className="flex-1"
-                  size="large"
                   isLoading={isSubmitting}
                 >
-                  Create My Free Account
+                  Register
                 </Button>
               )}
             </div>
