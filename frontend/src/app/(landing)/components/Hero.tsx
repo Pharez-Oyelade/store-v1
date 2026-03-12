@@ -3,12 +3,12 @@
 import Button from "@/components/ui/Button";
 import Link from "next/link";
 import Image from "next/image";
-import { easeIn, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import React from "react";
 
 const Hero = () => {
   return (
-    <section className="relative px-4 md:px-15 py-24 md:py-20 flex flex-col md:flex-row items-center justify-between gap-8 md:gap-0 min-h-dvh">
+    <section className="relative px-4 md:px-15 py-15 md:py-20 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-0 min-h-dvh">
       {/* Hero content */}
       <div className="w-full md:w-1/2 space-y-8">
         {/* Eyebrow */}
