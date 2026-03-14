@@ -126,19 +126,32 @@ const Features = () => {
           <div className="sticky top-[15%]">
             <div className="flex flex-col border-x border-gray-400 border-t">
               {tabs.map((tab) => (
-                <div
-                  key={tab.label}
-                  onClick={() => setTabOption(tab.label)}
-                  className={cn(
-                    "flex items-center gap-5 p-5 border-b border-gray-400",
-                    "cursor-pointer",
-                    tabOption === tab.label
-                      ? "bg-accent-100 border-l-3 border-l-accent-400"
-                      : "bg-transparent",
+                <div key={tab.label} onClick={() => setTabOption(tab.label)}>
+                  <div
+                    className={cn(
+                      "flex items-center gap-5 p-5 border-b border-gray-400",
+                      "cursor-pointer",
+                      tabOption === tab.label
+                        ? "bg-accent-100 border-l-3 border-l-accent-400"
+                        : "bg-transparent",
+                    )}
+                  >
+                    {tab.icon}
+                    <span>{tab.label}</span>
+                  </div>
+
+                  {/* ................ MOBILE ACCORDION CONTENT ................ */}
+                  {tab.label === tabOption && (
+                    <div className="md:hidden border-b border-gray-400 py-3 px-5 space-y-1">
+                      <span className="uppercase font-bold text-xs text-accent-600">
+                        {activeTab?.content.tagline}
+                      </span>
+                      <h2 className="text-2xl font-bold tracking-tight capitalize">
+                        {activeTab?.content.heading}
+                      </h2>
+                      <p>{activeTab?.content.paragraph}</p>
+                    </div>
                   )}
-                >
-                  {tab.icon}
-                  <span>{tab.label}</span>
                 </div>
               ))}
             </div>
@@ -146,7 +159,7 @@ const Features = () => {
         </aside>
 
         {/* Dynamic right side display corresponding to selected tab option */}
-        <div className="w-full">
+        <div className="hidden md:block w-full">
           <div className="bg-gray-600 p-10 space-y-3">
             <span className="uppercase font-bold text-sm text-accent-600">
               {activeTab?.content.tagline}
