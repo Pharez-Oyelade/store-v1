@@ -4,6 +4,7 @@ import { Switch } from "@/components/ui/switch";
 import { Title } from "@/components/ui/Title";
 import { formatCurrency } from "@/lib/utils";
 import { cn } from "@/lib/utils";
+import { Check, X } from "lucide-react";
 import React, { useState } from "react";
 
 const Plans = [
@@ -142,9 +143,224 @@ const page = () => {
             </div>
 
             {/* CTA */}
-            <button className="border py-3 w-full px-5 hover:bg-accent-500 hover:border-accent-500 hover:text-white">
+            <button
+              className={cn(
+                "border py-3 w-full px-5 hover:bg-accent-500 hover:border-accent-500 hover:text-white",
+                plan.isPopular ? "border-accent-400 text-accent-500" : "",
+              )}
+            >
               {plan.monthlyPrice ? "START FREE TRIAL" : "BOOK A CALL"}
             </button>
+
+            {/* PRICING OPTION DETAILS */}
+            <div className="border-t border-t-gray-400 mt-10 py-3">
+              {plan.tier === "01" && (
+                <div className="space-y-5 text-sm">
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>
+                      Up to <b>50</b> products
+                    </span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>20 orders per month</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Basic customer list (up to 50)</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Basic sales summary & analytics</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Email support</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <X color="#808080" size={18} />{" "}
+                    <span>Customer purchase history</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <X color="#808080" size={18} /> <span>Low stock alert</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <X color="#808080" size={18} />{" "}
+                    <span>Public storefront / discovery listing</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 2 */}
+              {plan.tier === "02" && (
+                <div className="space-y-5 text-sm">
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>
+                      Up to <b>200</b> products
+                    </span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>500 orders per month</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Customer list (up to 1000)</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Weekly & monthly revenue summary</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Email + WhatsApp support</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Customer purchase history</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Low stock alert</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Public storefront / discovery listing</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Up to 3 staff accounts</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <X color="#808080" size={18} />{" "}
+                    <span>Multi-currency display</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <X color="#808080" size={18} />{" "}
+                    <span>Abandoned order follow-up</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 3 */}
+              {plan.tier === "03" && (
+                <div className="space-y-5 text-sm">
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited products</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited orders</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited customers</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Full revenue dashboard</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Priority WhatsApp + call support</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Full purchase history & notes</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Low stock alert + auto-reorder drafts</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Branded storefront + custom domain</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Up to 10 staff accounts</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Multi-currency display</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Abandoned order follow-up</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Multi-location warehouses</span>
+                  </div>
+                </div>
+              )}
+
+              {/* 4 */}
+
+              {plan.tier === "04" && (
+                <div className="space-y-5 text-sm">
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited products across multiple brands</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>All order channels + API access</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited customers across brands</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Cross-brand performance dashboard</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Dedicated account manager</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Full CRM with segmentation</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Low stock alert + auto-reorder drafts</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Multiple storefronts per brand</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited staff accounts</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Multi-currency + diaspora pricing</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Advanced abandoned cart recovery</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Unlimited locations and warehouses</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Custom onboarding and data migration</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Custom report builder</span>
+                  </div>
+                </div>
+              )}
+            </div>
 
             {/* popular tag */}
             {plan.isPopular && (
