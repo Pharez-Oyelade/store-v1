@@ -20,6 +20,17 @@
   --color-brand-900: #14532d;
   --color-brand-950: #052e16;
 
+  /* --color-brand-50:  #eef1ff;
+  --color-brand-100: #dfe5ff;
+  --color-brand-200: #c2ccff;
+  --color-brand-300: #9cadff;
+  --color-brand-400: #6f86f5;
+  --color-brand-500: #4361ee;
+  --color-brand-600: #3c57d6;
+  --color-brand-700: #3248b2;
+  --color-brand-800: #293a8e;
+  --color-brand-900: #1b2760; */
+
   --color-accent-50: #fffbeb;
   --color-accent-100: #fef3c7;
   --color-accent-200: #fde68a;
@@ -206,6 +217,10 @@ button {
 .outline-text {
   color: transparent;
   -webkit-text-stroke: 2px black;
+}
+
+@view-transition {
+  navigation: auto;
 }
 
 @keyframes marquee {

@@ -1,5 +1,8 @@
+"use client";
+
 import Eyebrow from "@/components/ui/Eyebrow";
 import { Title } from "@/components/ui/Title";
+import { motion } from "framer-motion";
 import React from "react";
 import {
   Package,
@@ -39,9 +42,28 @@ const problems = [
   },
 ];
 
+const containerVariants = {
+  hidden: { opacity: 0 },
+  show: {
+    opacity: 1,
+    transition: { staggerChildren: 0.1 },
+  },
+};
+
+const itemVariants = {
+  hidden: { opacity: 0, y: 20 },
+  show: { opacity: 1, y: 0, transition: { duration: 0.5, ease: "easeOut" } },
+};
+
 const Problem = () => {
   return (
-    <section className="px-5 md:px-15 py-20">
+    <motion.section
+      variants={containerVariants}
+      initial="hidden"
+      whileInView="show"
+      viewport={{ once: true }}
+      className="px-5 md:px-15 py-20"
+    >
       <div>
         <Title
           headingStart="Running a fashion brand through DMs"
@@ -55,7 +77,10 @@ const Problem = () => {
       {/* Problem cards */}
       <div className="mt-10 grid md:grid-cols-2 gap-3 h-auto">
         {problems.map((problem) => (
-          <div
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5, ease: "easeOut" }}
             key={problem.id}
             className="relative p-10 space-y-3 bg-white shadow-card border border-gray-400 rounded-md overflow-hidden hover:border-accent-500 hover:bg-accent-50 hover:-translate-y-1 transition-all duration-300"
           >
@@ -70,10 +95,10 @@ const Problem = () => {
             <div className="absolute -top-25 right-2 outline-text text-[200px] opacity-10">
               {problem.id}
             </div>
-          </div>
+          </motion.div>
         ))}
       </div>
-    </section>
+    </motion.section>
   );
 };
 

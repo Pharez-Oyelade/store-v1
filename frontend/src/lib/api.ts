@@ -58,3 +58,33 @@ api.interceptors.response.use(
     return Promise.reject(new Error(message));
   },
 );
+
+export async function apiGet<T>(url: string, config?: object): Promise<T> {
+  return api.get(url, config) as unknown as Promise<T>;
+}
+export async function apiPost<T>(
+  url: string,
+  data?: unknown,
+  config?: object,
+): Promise<T> {
+  return api.post(url, data, config) as unknown as Promise<T>;
+}
+export async function apiPut<T>(
+  url: string,
+  data?: unknown,
+  config?: object,
+): Promise<T> {
+  return api.put(url, data, config) as unknown as Promise<T>;
+}
+export async function apiPatch<T>(
+  url: string,
+  data?: unknown,
+  config?: object,
+): Promise<T> {
+  return api.patch(url, data, config) as unknown as Promise<T>;
+}
+export async function apiDelete<T>(url: string, config?: object): Promise<T> {
+  return api.delete(url, config) as unknown as Promise<T>;
+}
+
+export default api;

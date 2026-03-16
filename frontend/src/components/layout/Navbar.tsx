@@ -73,7 +73,7 @@ const Navbar = () => {
               <Store size={18} />
             </span>
             <span>
-              Sabi<span className="text-brand-700">Store</span>
+              Vend<span className="text-brand-700">ra</span>
             </span>
           </Link>
 
