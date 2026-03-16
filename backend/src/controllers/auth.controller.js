@@ -141,3 +141,15 @@ export const login = asyncHandler(async (req, res) => {
     `Welcome back, ${vendor.businessName}`,
   );
 });
+
+/* -------------- Logout ---------------- */
+export const logout = asyncHandler(async (req, res) => {
+  res.cookie(COOKIE_NAME, "", {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 0, // Expire immediately
+  });
+
+  return sendSuccess(res, null, "signed out successfully");
+});
