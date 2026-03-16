@@ -91,3 +91,53 @@ export const register = asyncHandler(async (req, res) => {
     201,
   );
 });
+
+/* ---------- login ------------------- */
+export const login = asyncHandler(async (req, res) => {
+  const { credential, password } = req.body;
+
+  // accepting either email or phone as credential
+  const isEmail = validator.isEmail(credential);
+
+  // use .select("+password") since password as select: false in schema
+  const query = isEmail
+    ? { email: credential.toLowerCase() }
+    : { phone: credential };
+  const vendor = await Vendor.findOne(query).select("+password");
+
+  if (!vendor) {
+    return sendError(
+      res,
+      "Invalid credentials. Please check your details",
+      401,
+    );
+  }
+
+  if (!vendor.isActive) {
+    return sendError(
+      res,
+      "Your account has been deactivated. Please contact support.",
+      403,
+    );
+  }
+
+  // compare password (comparePassword method in schema)
+
+  const isPasswordCorrect = await vendor.comparePassword(password);
+
+  if (!isPasswordCorrect) {
+    return sendError(
+      res,
+      "Invalid credentials. Please check your details.",
+      401,
+    );
+  }
+
+  signTokenAndSetCookie(res, vendor._id);
+
+  return sendSuccess(
+    res,
+    buildAuthUserResponse(vendor),
+    `Welcome back, ${vendor.businessName}`,
+  );
+});

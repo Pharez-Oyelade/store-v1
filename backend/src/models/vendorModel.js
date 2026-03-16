@@ -131,7 +131,7 @@ vendorSchema.pre("save", async function () {
 });
 
 /* ── Instance Method: Compare Password ─────────────────────── */
-vendorSchema.methods.comparePasswords = async function (candidatePassword) {
+vendorSchema.methods.comparePassword = async function (candidatePassword) {
   return bcrypt.compare(candidatePassword, this.password);
 };
 
