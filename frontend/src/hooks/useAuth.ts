@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/router";
+import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -33,16 +33,21 @@ export function useLogin() {
   const router = useRouter();
 
   return useMutation({
-    mutationFn: (credentials: LoginCredentials) =>
-      apiPost<AuthUser>("/auth/login", credentials),
+    mutationFn: (credentials: LoginCredentials) => {
+      const payload = {
+        credential: credentials.email,
+        password: credentials.password,
+      };
+      return apiPost<AuthUser>("/auth/login", payload);
+    },
 
     onSuccess: (vendor) => {
       setVendor(vendor);
       setInitialized(true);
 
       queryClient.setQueryData(AUTH_QUERY_KEYS.me, vendor);
-      toast.success("Welcome back, ${vendor.businessName)!");
-      router.push("dashboard");
+      toast.success(`Welcome back, ${vendor.businessName}!`);
+      router.push("/dashboard");
     },
 
     onError: (error: Error) => {

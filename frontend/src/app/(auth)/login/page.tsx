@@ -12,6 +12,7 @@ import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/ui/Button";
 import toast from "react-hot-toast";
+import { useLogin } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
   email: z
@@ -29,26 +30,20 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
+  // ✅ Hook called at the top level of the component (Rules of Hooks)
+  const loginMutation = useLogin();
+
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     mode: "onTouched",
   });
 
-  const onSubmit = async (data: LoginFormValues) => {
-    try {
-      //TODO: replace with useLogin() hook when built
-      setTimeout(() => {
-        console.log("Login attempt", data);
-        toast.success("Login scuccessful!");
-      }, 2000);
-      // router.push("/dashboard") - uncommented when hook exists
-    } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Login failed");
-    }
+  const onSubmit = (data: LoginFormValues) => {
+    loginMutation.mutate(data);
   };
 
   return (
@@ -126,7 +121,7 @@ export default function LoginPage() {
             type="submit"
             variant="primary"
             className="w-full"
-            isLoading={isSubmitting}
+            isLoading={loginMutation.isPending}
           >
             Sign In
           </Button>

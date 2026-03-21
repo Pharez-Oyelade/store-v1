@@ -2,7 +2,6 @@
 TYPESCRIPT TYPES AND INTERFACES
 */
 
-
 export enum OrderStatus {
   Pending = "pending",
   Confirmed = "confirmed",
@@ -165,7 +164,6 @@ export interface Order {
   updatedAt: string;
 }
 
-
 // analytics
 export interface RevenueDataPoint {
   date: string; //ISO date string e.g "2024-06-01"
@@ -191,8 +189,6 @@ export interface TopProduct {
   image?: string;
 }
 
-
-
 // AUTH TYPES
 export interface RegisterPayload {
   businessName: string;
@@ -200,7 +196,7 @@ export interface RegisterPayload {
   phone: string;
   email?: string;
   password: string;
-  location: {
+  location?: {
     state: string;
     city: string;
     area?: string;
@@ -213,7 +209,17 @@ export interface LoginCredentials {
 }
 
 //User object stored in the auth state (vendor subset)
-export type AuthUser = Pick<Vendor, "_id" | "businessName" | "handle" | "email" | "phone" | "logo" | "subscription" | "role">;
+export type AuthUser = Pick<
+  Vendor,
+  | "_id"
+  | "businessName"
+  | "handle"
+  | "email"
+  | "phone"
+  | "logo"
+  | "subscription"
+  | "role"
+>;
 /*
  * What is Pick<>?
  * Pick<Type, Keys> creates a new type that only includes the
@@ -241,7 +247,7 @@ export interface PaginatedResponse<T> {
   data: T[];
   pagination: {
     total: number; // total items across all pages
-    page: number;  // current page number
+    page: number; // current page number
     limit: number; // items per page
     totalPages: number; // total pages = Math.ceil(total / limit)
     hasNextPage: boolean;
@@ -249,12 +255,11 @@ export interface PaginatedResponse<T> {
   };
 }
 
-
 // Error Type - used to surface readable messages from the axios error interceptor
 export interface ApiError {
   success: false;
   message: string;
-  errors?: Record<string, string>
+  errors?: Record<string, string>;
   /*
    * Record<string, string> means: "an object with string keys
    * and string values" — like { email: "Email is required" }
@@ -316,19 +321,18 @@ export interface OrderFormValues {
   source: OrderSource;
 }
 
-
 // Subscription plan config - rendering plan cards in pricing page (UI config only)
 export interface PlanConfig {
   plan: SubscriptionPlan;
   name: string;
-  price: number;           // in Naira. 0 = free
-  priceDisplay: string;    // "Free" or "₦3,500/mo"
+  price: number; // in Naira. 0 = free
+  priceDisplay: string; // "Free" or "₦3,500/mo"
   description: string;
   features: string[];
   limits: {
     products: number | "unlimited";
-    orders: number | "unlimited";  // per month
+    orders: number | "unlimited"; // per month
     staff: number;
   };
-  highlighted?: boolean;   // true = "Most Popular" badge
+  highlighted?: boolean; // true = "Most Popular" badge
 }
