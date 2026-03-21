@@ -10,7 +10,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Eye, EyeOff, Lock, Mail } from "lucide-react";
 import Input from "@/components/ui/Input";
-import Button from "@/components/ui/Button";
+import Button from "@/components/custom/Button";
 import toast from "react-hot-toast";
 import { useLogin } from "@/hooks/useAuth";
 

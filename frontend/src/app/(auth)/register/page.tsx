@@ -16,7 +16,7 @@ import {
   Lock,
   Subtitles,
 } from "lucide-react";
-import Button from "@/components/ui/Button";
+import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import toast from "react-hot-toast";
