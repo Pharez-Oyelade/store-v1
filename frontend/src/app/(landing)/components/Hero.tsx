@@ -8,7 +8,7 @@ import React from "react";
 
 const Hero = () => {
   return (
-    <section className="relative px-4 md:px-15 py-15 md:py-20 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-0 min-h-dvh">
+    <section className="relative px-4 md:px-15 py-30 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-0 min-h-dvh">
       {/* Hero content */}
       <div className="w-full md:w-1/2 space-y-8">
         {/* Eyebrow */}
@@ -46,9 +46,9 @@ const Hero = () => {
           transition={{ delay: 0.3, duration: 0.3, ease: "easeIn" }}
           className="max-w-lg text-base text-gray-600"
         >
-          Stop managing orders in DMs and inventory in notebooks. Sabi Store
-          gives fashion vendors one clean dashboard for everything — stock,
-          orders, customers, and sales. Built for the Nigerian market.
+          Stop managing orders in DMs and inventory in notebooks. Vendra gives
+          fashion vendors one clean dashboard for everything — stock, orders,
+          customers, and sales. Built for the Nigerian market.
         </motion.p>
 
         {/* CTAs */}

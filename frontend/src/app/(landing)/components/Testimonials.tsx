@@ -6,7 +6,7 @@ import { Quote, Dot } from "lucide-react";
 const testimonialData = [
   {
     comment:
-      "Before Sabi Store I was using three WhatsApp groups and a notebook to track everything. I lost at least two big orders a week. Now everything is in one place and I actually know my numbers.",
+      "Before Vendra I was using three WhatsApp groups and a notebook to track everything. I lost at least two big orders a week. Now everything is in one place and I actually know my numbers.",
     name: "Temi Okonkwo",
     handle: "temi_closet",
     location: "Ogbomoso",

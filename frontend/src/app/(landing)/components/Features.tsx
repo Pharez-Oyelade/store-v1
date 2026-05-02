@@ -93,7 +93,7 @@ const tabs = [
       paragraph:
         "Every vendor gets a clean, fast, shareable store page. Share the link in your Instagram bio and let buyers browse what's in stock — no DM required to check availability.",
       list: [
-        "Your own link: sabistore.ng/yourname — shareable anywhere",
+        "Your own link: vendra.ng/yourname — shareable anywhere",
         "Shows real-time available products, sizes, and prices",
       ],
     },

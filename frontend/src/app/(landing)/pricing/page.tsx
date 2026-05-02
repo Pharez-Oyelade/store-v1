@@ -55,7 +55,7 @@ const page = () => {
           headingStart="Pick your"
           headingSpan="level."
           headingEnd="Grow your brand."
-          text="From your first stocked rack to a multi-channel empire — Sabi Store has a plan built for every stage of the Nigerian fashion business"
+          text="From your first stocked rack to a multi-channel empire — Vendra has a plan built for every stage of the Nigerian fashion business"
         />
 
         <div className="flex items-center gap-4 mt-5">

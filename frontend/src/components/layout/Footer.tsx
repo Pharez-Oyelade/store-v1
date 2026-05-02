@@ -34,7 +34,7 @@ export default function Footer() {
               <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-700">
                 <Store size={18} />
               </span>
-              Sabi<span className="text-brand-400">Store</span>
+              Vendra
             </Link>
             <p className="text-sm leading-relaxed max-w-xs">
               Organize Nigeria&apos;s unorganized fashion ecosystem into a
