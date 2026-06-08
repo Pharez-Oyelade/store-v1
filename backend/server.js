@@ -9,65 +9,91 @@ import rateLimit from "express-rate-limit";
 import dns from "node:dns";
 
 import connectDB from "./src/config/db.js";
+
+/* ── Route Imports ──────────────────────────────────────────────── */
 import authRouter from "./src/routes/auth.routes.js";
+import vendorRouter from "./src/routes/vendor.routes.js";
+import productRouter from "./src/routes/product.routes.js";
+import orderRouter from "./src/routes/order.routes.js";
+import customerRouter from "./src/routes/customer.routes.js";
+import analyticsRouter from "./src/routes/analytics.routes.js";
+import storefrontRouter from "./src/routes/storefront.routes.js";
 
+/* ── Error Handling ─────────────────────────────────────────────── */
+import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
+dns.setServers(["8.8.8.8", "8.8.4.4"]);
 connectDB();
-
-const app = express();
 
 // dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
-app.use(helmet()); //set security HTTP headers automatically
+const app = express();
+
+/* ── Security ───────────────────────────────────────────────────── */
+app.use(helmet());
 
 app.use(
   cors({
     origin: process.env.FRONTEND_URL || "http://localhost:3000",
-    credentials: true, //allow cookies, auth headers
+    credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"],
   }),
 );
 
-// Rate limit
-const limiter = rateLimit({
+// Rate limiters
+const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: "Too many requests, Please slow down." },
 });
-app.use("/api", limiter);
 
-// General Middleware
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20, // Stricter for auth endpoints
+  message: {
+    success: false,
+    message: "Too many login attempts. Try again later.",
+  },
+});
+
+/* ── Body Parsing ───────────────────────────────────────────────── */
 app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb " }));
-
-// cookie-parser - cookies vailable as req.cookies
+app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-
-// mongo-sanitize - remove keys starting with $ or containing . from req.body, req.query, req.params - prevent operator injection attacks
 // app.use(mongoSanitize());
 
-// morgan - log HTTP request - only log in dev
-if (process.env.NODE_ENV === "production") {
+/* ── Logging ────────────────────────────────────────────────────── */
+if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
 
-// Health check
+/* ── Health Check ───────────────────────────────────────────────── */
 app.get("/health", (req, res) => {
   res.json({
     success: true,
-    message: "API is running",
+    message: "Vendra API is running",
     env: process.env.NODE_ENV,
   });
 });
 
-// API Routes
-app.use("/api/auth", authRouter);
+/* ── API Routes ─────────────────────────────────────────────────── */
+app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/vendor", apiLimiter, vendorRouter);
+app.use("/api/products", apiLimiter, productRouter);
+app.use("/api/orders", apiLimiter, orderRouter);
+app.use("/api/customers", apiLimiter, customerRouter);
+app.use("/api/analytics", apiLimiter, analyticsRouter);
+app.use("/api/storefront", storefrontRouter); // Public — no rate limit
 
-// start server
+/* ── Error Handling (must be LAST) ──────────────────────────────── */
+app.use(notFound);
+app.use(errorHandler);
+
+/* ── Start Server ───────────────────────────────────────────────── */
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
 app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  console.log(`✅ Vendra API running on http://localhost:${PORT}`);
 });
 
 export default app;

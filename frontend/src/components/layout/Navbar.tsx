@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Menu, X, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Button from "@/components/ui/Button";
+import Button from "@/components/custom/Button";
 import { useIsAuthenticated, useCurrentVendor } from "@/store/authStore";
 
 const navLinks = [

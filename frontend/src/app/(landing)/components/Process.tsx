@@ -24,7 +24,7 @@ const processData = [
     id: 4,
     title: "Share your storefront",
     subtitle:
-      "Put your sabistore.ng link in your bio. Buyers can browse what's in stock and enquire directly — no DM needed to check availability.",
+      "Put your vendra.ng link in your bio. Buyers can browse what's in stock and enquire directly — no DM needed to check availability.",
   },
 ];
 

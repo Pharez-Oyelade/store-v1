@@ -16,11 +16,12 @@ import {
   Lock,
   Subtitles,
 } from "lucide-react";
-import Button from "@/components/ui/Button";
+import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import Select from "@/components/ui/Select";
 import toast from "react-hot-toast";
 import { generateSlug } from "@/lib/utils";
+import { useRegister } from "@/hooks/useAuth";
 
 // ZOD SCHEMA
 // .regex() validates against regular expression pattern
@@ -129,6 +130,8 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
 
+  const registerMutation = useRegister();
+
   const {
     register,
     handleSubmit,
@@ -163,8 +166,7 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      console.log("Registration data:", data);
-      toast.success("Account created! Redirecting to dashboard...");
+      registerMutation.mutate(data);
       // useRegister() when auth is built
     } catch (error) {
       toast.error(
