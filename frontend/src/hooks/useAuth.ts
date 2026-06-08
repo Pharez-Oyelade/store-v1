@@ -35,7 +35,7 @@ export function useLogin() {
   return useMutation({
     mutationFn: (credentials: LoginCredentials) => {
       const payload = {
-        credential: credentials.email,
+        credential: credentials.credential,
         password: credentials.password,
       };
       return apiPost<AuthUser>("/auth/login", payload);
@@ -70,7 +70,7 @@ export function useRegister() {
       setVendor(vendor);
       setInitialized(true);
       queryClient.setQueryData(AUTH_QUERY_KEYS.me, vendor);
-      toast.success("Account created! Welcome to SabiStore");
+      toast.success("Account created! Welcome to Vendra");
       router.push("/dashboard");
     },
 

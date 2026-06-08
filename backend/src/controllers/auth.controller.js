@@ -1,4 +1,5 @@
 import jwt from "jsonwebtoken";
+import crypto from "node:crypto";
 import Vendor from "../models/vendorModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
@@ -152,4 +153,110 @@ export const logout = asyncHandler(async (req, res) => {
   });
 
   return sendSuccess(res, null, "signed out successfully");
+});
+
+/* -------------- Get Me (current vendor) ---------------- */
+export const getMe = asyncHandler(async (req, res) => {
+  /*
+   * req.vendor is attached by the `protect` middleware.
+   * We return a fresh copy with only the fields the client needs.
+   */
+  return sendSuccess(res, buildAuthUserResponse(req.vendor), "Authenticated");
+});
+
+/* -------------- Forgot Password ---------------- */
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const { credential } = req.body;
+
+  if (!credential) {
+    return sendError(res, "Email or phone number is required", 400);
+  }
+
+  const isEmail = validator.isEmail(credential);
+  const query = isEmail
+    ? { email: credential.toLowerCase() }
+    : { phone: credential };
+
+  const vendor = await Vendor.findOne(query);
+
+  /*
+   * Always return 200 even if vendor not found.
+   * This prevents user enumeration attacks.
+   */
+  if (!vendor) {
+    return sendSuccess(
+      res,
+      null,
+      "If an account with that credential exists, a reset link has been sent.",
+    );
+  }
+
+  // Generate a random reset token (32 bytes → 64-char hex string)
+  const resetToken = crypto.randomBytes(32).toString("hex");
+
+  // Hash the token before storing (we store the hash, send the raw token)
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(resetToken)
+    .digest("hex");
+
+  // Store the hash + expiry on the vendor document
+  vendor.passwordResetToken = hashedToken;
+  vendor.passwordResetExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
+  await vendor.save({ validateBeforeSave: false });
+
+  /*
+   * TODO: Send the reset token via email or SMS.
+   * For now, returning it in the response for development.
+   * In production, remove the token from the response and send via Termii/email.
+   */
+  return sendSuccess(
+    res,
+    { resetToken }, // REMOVE in production — send via email/SMS instead
+    "Password reset token generated",
+  );
+});
+
+/* -------------- Reset Password ---------------- */
+export const resetPassword = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { password } = req.body;
+
+  if (!token || !password) {
+    return sendError(res, "Reset token and new password are required", 400);
+  }
+
+  if (password.length < 8) {
+    return sendError(res, "Password must be at least 8 characters", 400);
+  }
+
+  // Hash the incoming token to compare against stored hash
+  const hashedToken = crypto
+    .createHash("sha256")
+    .update(token)
+    .digest("hex");
+
+  const vendor = await Vendor.findOne({
+    passwordResetToken: hashedToken,
+    passwordResetExpires: { $gt: Date.now() }, // Must not be expired
+  });
+
+  if (!vendor) {
+    return sendError(res, "Invalid or expired reset token", 400);
+  }
+
+  // Update password and clear reset token fields
+  vendor.password = password;
+  vendor.passwordResetToken = undefined;
+  vendor.passwordResetExpires = undefined;
+  await vendor.save(); // Pre-save hook will hash the new password
+
+  // Sign in the vendor immediately after reset
+  signTokenAndSetCookie(res, vendor._id);
+
+  return sendSuccess(
+    res,
+    buildAuthUserResponse(vendor),
+    "Password reset successfully. You are now signed in.",
+  );
 });

@@ -19,9 +19,10 @@ export enum ProductStatus {
 }
 
 export enum SubscriptionPlan {
+  Free = "free",
   Starter = "starter",
   Growth = "growth",
-  Pro = "pro",
+  Agency = "agency",
 }
 
 export enum SubscriptionStatus {
@@ -173,17 +174,19 @@ export interface RevenueDataPoint {
 
 export interface AnalyticsOverview {
   revenueToday: number;
+  ordersToday: number;
   revenueThisWeek: number;
+  ordersThisWeek: number;
   revenueThisMonth: number;
-  totalOrders: number;
-  pendingOrders: number;
-  totalDebt: number; // total balance owed across all orders
-  lowStockCount: number; // number of product variants below lowStockThreshold
+  ordersThisMonth: number;
+  totalDebt: number;
+  debtOrderCount: number;
+  lowStockCount: number;
 }
 
 export interface TopProduct {
   productId: string;
-  name: string;
+  productName: string;
   totalSold: number;
   totalRevenue: number;
   image?: string;
@@ -204,7 +207,7 @@ export interface RegisterPayload {
 }
 
 export interface LoginCredentials {
-  email: string; //email or phone - backend will accept both
+  credential: string; // email or phone — backend accepts both
   password: string;
 }
 

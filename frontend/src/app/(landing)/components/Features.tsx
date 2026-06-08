@@ -124,13 +124,13 @@ const Features = () => {
         {/* section tags - left side */}
         <aside className="w-full md:w-1/3">
           <div className="sticky top-[15%]">
-            <div className="flex flex-col border-x border-gray-400 border-t">
+            <div className="flex flex-col border-x border-gray-400 border-t rounded-lg">
               {tabs.map((tab) => (
                 <div key={tab.label} onClick={() => setTabOption(tab.label)}>
                   <div
                     className={cn(
                       "flex items-center gap-5 p-5 border-b border-gray-400",
-                      "cursor-pointer",
+                      "cursor-pointer rounded-lg",
                       tabOption === tab.label
                         ? "bg-accent-100 border-l-3 border-l-accent-400"
                         : "bg-transparent",
@@ -160,7 +160,7 @@ const Features = () => {
 
         {/* Dynamic right side display corresponding to selected tab option */}
         <div className="hidden md:block w-full">
-          <div className="bg-gray-600 p-10 space-y-3">
+          <div className="bg-gray-600 p-10 space-y-3 rounded-tr-lg rounded-tl-lg">
             <span className="uppercase font-bold text-sm text-accent-600">
               {activeTab?.content.tagline}
             </span>
@@ -172,7 +172,7 @@ const Features = () => {
             </p>
           </div>
 
-          <ul className="border-2 border-gray-400 p-10 ">
+          <ul className="border-2 border-gray-400 p-10 rounded-bl-lg rounded-br-lg">
             {activeTab?.content.list?.map((l, index) => (
               <li
                 key={index}

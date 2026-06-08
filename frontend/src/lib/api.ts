@@ -23,10 +23,16 @@ api.interceptors.request.use(
   },
 );
 
-// Respnse Interceptors - run after every response arrives, handle errors globally
+// Response Interceptors - run after every response arrives, handle errors globally
 api.interceptors.response.use(
   (response) => {
-    return response.data;
+    /*
+     * The backend wraps all responses as { success, data, message }.
+     * We unwrap here so hooks receive the actual data payload directly.
+     * e.g. apiGet<Product>('/products/123') returns the Product object,
+     * not the { success: true, data: Product, message: "..." } envelope.
+     */
+    return response.data?.data !== undefined ? response.data.data : response.data;
   },
   (error: AxiosError<ApiError>) => {
     const status = error.response?.status;

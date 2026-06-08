@@ -99,14 +99,25 @@ const vendorSchema = new mongoose.Schema(
     /* ── Subscription (populated later) ──────────────── */
     subscriptionPlan: {
       type: String,
-      enum: ["starter", "growth", "pro"],
-      default: "starter",
+      enum: ["free", "starter", "growth", "agency"],
+      default: "free",
     },
 
     subscriptionStatus: {
       type: String,
       enum: ["active", "inactive", "past_due"],
       default: "active",
+    },
+
+    /* ── Password Reset ───────────────────────────────────── */
+    passwordResetToken: {
+      type: String,
+      select: false, // Never returned in queries
+    },
+
+    passwordResetExpires: {
+      type: Date,
+      select: false,
     },
   },
   {
