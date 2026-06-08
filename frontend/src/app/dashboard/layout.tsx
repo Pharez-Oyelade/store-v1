@@ -1,12 +1,3 @@
-import Navbar from "@/components/layout/Navbar";
-import Footer from "@/components/layout/Footer";
-import { TooltipProvider } from "@/components/ui/tooltip";
-import {
-  Sidebar,
-  SidebarProvider,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { AppSidebar } from "@/components/layout/AppSidebar";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 
 export default function DashboardLayout({
@@ -15,17 +6,11 @@ export default function DashboardLayout({
   children: React.ReactNode;
 }) {
   return (
-    <>
-      {/* <TooltipProvider> */}
-      {/* <SidebarProvider> */}
-      {/* <AppSidebar /> */}
-      <main className="flex gap-10">
-        {/* <SidebarTrigger /> */}
-        <DashboardSidebar />
+    <main className="min-h-screen bg-surface-base lg:flex">
+      <DashboardSidebar />
+      <section className="min-w-0 flex-1 px-4 pb-10 pt-20 lg:px-8 lg:pt-8">
         {children}
-      </main>
-      {/* </SidebarProvider> */}
-      {/* </TooltipProvider> */}
-    </>
+      </section>
+    </main>
   );
 }

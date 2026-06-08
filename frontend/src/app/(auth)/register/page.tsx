@@ -166,7 +166,18 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      registerMutation.mutate(data);
+      registerMutation.mutate({
+        businessName: data.businessName,
+        handle: data.handle,
+        phone: data.phone,
+        email: data.email,
+        password: data.password,
+        location: {
+          state: data.state,
+          city: data.city,
+          area: data.area,
+        },
+      });
       // useRegister() when auth is built
     } catch (error) {
       toast.error(

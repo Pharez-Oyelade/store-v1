@@ -15,10 +15,7 @@ import toast from "react-hot-toast";
 import { useLogin } from "@/hooks/useAuth";
 
 const loginSchema = z.object({
-  email: z
-    .email("please enter a valid email address")
-    .min(1, "Email is required"),
-  // .email("please enter a valid email address"),
+  credential: z.string().min(1, "Email or phone number is required"),
   password: z
     .string()
     .min(1, "password is required")
@@ -76,13 +73,13 @@ export default function LoginPage() {
         >
           {/* Email */}
           <Input
-            label="Email address"
-            type="email"
-            placeholder="eri@example.com"
-            autoComplete="email"
+            label="Email or phone number"
+            type="text"
+            placeholder="eri@example.com or 08012345678"
+            autoComplete="username"
             leftElement={<Mail size={16} />}
-            error={errors.email?.message}
-            {...register("email")}
+            error={errors.credential?.message}
+            {...register("credential")}
           />
 
           {/* Password */}

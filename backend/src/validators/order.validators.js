@@ -1,5 +1,16 @@
 import { body } from "express-validator";
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 /* ── Order Validators ───────────────────────────────────────────── */
 
 export const createOrderValidators = [
@@ -14,10 +25,12 @@ export const createOrderValidators = [
     .withMessage("Customer phone is required"),
 
   body("items")
+    .customSanitizer(parseJsonArray)
     .isArray({ min: 1 })
     .withMessage("At least one item is required"),
 
   body("items.*.productName")
+    .optional()
     .trim()
     .notEmpty()
     .withMessage("Each item must have a product name"),
@@ -28,6 +41,7 @@ export const createOrderValidators = [
     .withMessage("Each item must have a variant label"),
 
   body("items.*.price")
+    .optional()
     .isFloat({ min: 0 })
     .withMessage("Each item must have a valid price"),
 

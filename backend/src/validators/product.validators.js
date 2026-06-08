@@ -1,5 +1,16 @@
 import { body } from "express-validator";
 
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  if (typeof value !== "string") return value;
+
+  try {
+    return JSON.parse(value);
+  } catch {
+    return value;
+  }
+}
+
 /* ── Product Validators ─────────────────────────────────────────── */
 
 export const createProductValidators = [
@@ -23,6 +34,7 @@ export const createProductValidators = [
     .withMessage("Category cannot exceed 100 characters"),
 
   body("variants")
+    .customSanitizer(parseJsonArray)
     .isArray({ min: 1 })
     .withMessage("At least one variant is required"),
 
@@ -62,6 +74,7 @@ export const updateProductValidators = [
 
   body("variants")
     .optional()
+    .customSanitizer(parseJsonArray)
     .isArray({ min: 1 })
     .withMessage("At least one variant is required"),
 

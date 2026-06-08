@@ -8,6 +8,7 @@ import {
   Package,
   ShoppingCart,
   Users,
+  Handshake,
   BarChart3,
   Store,
   Settings,
@@ -27,6 +28,7 @@ const NAV_ITEMS = [
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
+  { label: "Suppliers", href: "/dashboard/suppliers", icon: Handshake },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Storefront", href: "/dashboard/storefront", icon: Store },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
@@ -100,7 +102,7 @@ export default function DashboardSidebar() {
                 {vendor?.businessName || "Vendor"}
               </p>
               <p className="text-xs text-gray-500 truncate capitalize">
-                {vendor?.subscription?.plan || "free"} plan
+                {vendor?.subscriptionPlan || vendor?.subscription?.plan || "free"} plan
               </p>
             </div>
           )}

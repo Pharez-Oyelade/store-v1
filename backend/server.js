@@ -18,6 +18,7 @@ import orderRouter from "./src/routes/order.routes.js";
 import customerRouter from "./src/routes/customer.routes.js";
 import analyticsRouter from "./src/routes/analytics.routes.js";
 import storefrontRouter from "./src/routes/storefront.routes.js";
+import supplierRouter from "./src/routes/supplier.routes.js";
 
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
@@ -82,6 +83,7 @@ app.use("/api/vendor", apiLimiter, vendorRouter);
 app.use("/api/products", apiLimiter, productRouter);
 app.use("/api/orders", apiLimiter, orderRouter);
 app.use("/api/customers", apiLimiter, customerRouter);
+app.use("/api/suppliers", apiLimiter, supplierRouter);
 app.use("/api/analytics", apiLimiter, analyticsRouter);
 app.use("/api/storefront", storefrontRouter); // Public — no rate limit
 
