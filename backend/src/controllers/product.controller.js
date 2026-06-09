@@ -2,7 +2,7 @@ import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImages } from "../services/cloudinary.service.js";
-import { uploadToCloudinary } from "../middleware/upload.js";
+import { uploadToCloudinary } from "../middleware/upload.middleware.js";
 
 /* ── GET /api/products ──────────────────────────────────────────── */
 export const getProducts = asyncHandler(async (req, res) => {
