@@ -2,6 +2,7 @@ import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImages } from "../services/cloudinary.service.js";
+import { uploadToCloudinary } from "../middleware/upload.js";
 
 /* ── GET /api/products ──────────────────────────────────────────── */
 export const getProducts = asyncHandler(async (req, res) => {
@@ -71,17 +72,23 @@ export const getProduct = asyncHandler(async (req, res) => {
 
 /* ── POST /api/products ─────────────────────────────────────────── */
 export const createProduct = asyncHandler(async (req, res) => {
-  const { name, description, category, tags, variants, status, lowStockThreshold } =
-    req.body;
+  const {
+    name,
+    description,
+    category,
+    tags,
+    variants,
+    status,
+    lowStockThreshold,
+  } = req.body;
 
-  /*
-   * req.files is set by the upload middleware (multer + Cloudinary).
-   * Each file object has { path: "cloudinary_url", filename: "public_id" }
-   */
-  const images = (req.files || []).map((file) => ({
-    url: file.path,
-    publicId: file.filename,
-  }));
+  // Upload each file buffer to Cloudinary manually
+  const images = await Promise.all(
+    (req.files || []).map(async (file) => {
+      const result = await uploadToCloudinary(file.buffer);
+      return { url: result.secure_url, publicId: result.public_id };
+    }),
+  );
 
   // Parse variants — may come as JSON string in FormData
   let parsedVariants = variants;
@@ -98,7 +105,8 @@ export const createProduct = asyncHandler(async (req, res) => {
     name,
     description,
     category,
-    tags: typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags,
+    tags:
+      typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags,
     images,
     variants: parsedVariants,
     status: status || "draft",
@@ -131,16 +139,22 @@ export const updateProduct = asyncHandler(async (req, res) => {
   } = req.body;
 
   // Process new uploaded images
-  const newImages = (req.files || []).map((file) => ({
-    url: file.path,
-    publicId: file.filename,
-  }));
+  const newImages = await Promise.all(
+    (req.files || []).map(async (file) => {
+      const result = await uploadToCloudinary(file.buffer);
+      return { url: result.secure_url, publicId: result.public_id };
+    }),
+  );
 
   // Remove specific images if requested
   if (removeImageIds) {
-    const idsToRemove = Array.isArray(removeImageIds) ? removeImageIds : [removeImageIds];
+    const idsToRemove = Array.isArray(removeImageIds)
+      ? removeImageIds
+      : [removeImageIds];
     await deleteImages(idsToRemove);
-    product.images = product.images.filter((img) => !idsToRemove.includes(img.publicId));
+    product.images = product.images.filter(
+      (img) => !idsToRemove.includes(img.publicId),
+    );
   }
 
   // Append new images (respecting max 5)
@@ -153,13 +167,16 @@ export const updateProduct = asyncHandler(async (req, res) => {
   if (description !== undefined) product.description = description;
   if (category !== undefined) product.category = category;
   if (tags !== undefined) {
-    product.tags = typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags;
+    product.tags =
+      typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags;
   }
   if (variants !== undefined) {
-    product.variants = typeof variants === "string" ? JSON.parse(variants) : variants;
+    product.variants =
+      typeof variants === "string" ? JSON.parse(variants) : variants;
   }
   if (status !== undefined) product.status = status;
-  if (lowStockThreshold !== undefined) product.lowStockThreshold = lowStockThreshold;
+  if (lowStockThreshold !== undefined)
+    product.lowStockThreshold = lowStockThreshold;
 
   await product.save();
 
@@ -196,7 +213,11 @@ export const bulkAction = asyncHandler(async (req, res) => {
 
   const validActions = ["archive", "activate", "delete"];
   if (!validActions.includes(action)) {
-    return sendError(res, `Invalid action. Must be one of: ${validActions.join(", ")}`, 400);
+    return sendError(
+      res,
+      `Invalid action. Must be one of: ${validActions.join(", ")}`,
+      400,
+    );
   }
 
   // Ensure all products belong to this vendor
@@ -204,14 +225,22 @@ export const bulkAction = asyncHandler(async (req, res) => {
 
   if (action === "delete") {
     const products = await Product.find(filter).select("images");
-    const allPublicIds = products.flatMap((p) => p.images.map((img) => img.publicId));
+    const allPublicIds = products.flatMap((p) =>
+      p.images.map((img) => img.publicId),
+    );
     await deleteImages(allPublicIds);
     await Product.deleteMany(filter);
     return sendSuccess(res, null, `${products.length} products deleted`);
   }
 
   const statusMap = { archive: "archived", activate: "active" };
-  const result = await Product.updateMany(filter, { status: statusMap[action] });
+  const result = await Product.updateMany(filter, {
+    status: statusMap[action],
+  });
 
-  return sendSuccess(res, { modified: result.modifiedCount }, `Products ${action}d successfully`);
+  return sendSuccess(
+    res,
+    { modified: result.modifiedCount },
+    `Products ${action}d successfully`,
+  );
 });

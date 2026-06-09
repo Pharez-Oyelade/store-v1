@@ -11,22 +11,15 @@ export const getProfile = asyncHandler(async (req, res) => {
 
 /* ── PUT /api/vendor/profile ────────────────────────────────────── */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const {
-    businessName,
-    bio,
-    state,
-    city,
-    area,
-    instagram,
-    whatsapp,
-    email,
-  } = req.body;
+  const { businessName, bio, state, city, area, instagram, whatsapp, email } =
+    req.body;
 
   const vendor = await Vendor.findById(req.vendor._id);
 
   if (businessName !== undefined) vendor.businessName = businessName.trim();
   if (bio !== undefined) vendor.bio = bio;
-  if (email !== undefined) vendor.email = email?.toLowerCase().trim() || undefined;
+  if (email !== undefined)
+    vendor.email = email?.toLowerCase().trim() || undefined;
 
   // Location fields (update individual sub-fields)
   if (state !== undefined) vendor.location.state = state;
@@ -50,14 +43,15 @@ export const updateLogo = asyncHandler(async (req, res) => {
 
   const vendor = await Vendor.findById(req.vendor._id);
 
-  // Delete old logo from Cloudinary (non-blocking on failure)
   if (vendor.logo?.publicId) {
     await deleteImage(vendor.logo.publicId);
   }
 
+  const result = await uploadToCloudinary(req.file.buffer);
+
   vendor.logo = {
-    url: req.file.path,
-    publicId: req.file.filename,
+    url: result.secure_url,
+    publicId: result.public_id,
   };
 
   await vendor.save();
