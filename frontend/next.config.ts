@@ -6,7 +6,7 @@ const nextConfig: NextConfig = {
     return [
       {
         source: "/api/:path*",
-        destination: "https://your-actual-app.onrender.com/api/:path*",
+        destination: "https://vendra-d480.onrender.com/api/:path*",
       },
     ];
   },
