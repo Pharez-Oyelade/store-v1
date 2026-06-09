@@ -2,6 +2,7 @@ import Vendor from "../models/vendorModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImage } from "../services/cloudinary.service.js";
+import { uploadToCloudinary } from "../middleware/upload.middleware.js";
 
 /* ── GET /api/vendor/profile ────────────────────────────────────── */
 export const getProfile = asyncHandler(async (req, res) => {
