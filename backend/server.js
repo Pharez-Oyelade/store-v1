@@ -22,7 +22,7 @@ import supplierRouter from "./src/routes/supplier.routes.js";
 
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
-dns.setServers(["8.8.8.8", "8.8.4.4"]);
+// dns.setServers(["8.8.8.8", "8.8.4.4"]);
 connectDB();
 
 // dns.setServers(["8.8.8.8", "8.8.4.4"]);
