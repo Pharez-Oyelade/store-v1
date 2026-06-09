@@ -119,8 +119,14 @@ export const createOrder = asyncHandler(async (req, res) => {
     });
   }
 
-  // Compute total from items
-  const totalAmount = items.reduce(
+  const normalizedItems = await normalizeOrderItems(items, vendorId);
+
+  if (normalizedItems.error) {
+    return sendError(res, normalizedItems.error, 400);
+  }
+
+  // Compute total from normalized item snapshots
+  const totalAmount = normalizedItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
@@ -133,7 +139,7 @@ export const createOrder = asyncHandler(async (req, res) => {
       phone: customerPhone,
       email: customerEmail,
     },
-    items,
+    items: normalizedItems,
     totalAmount,
     depositPaid,
     notes,
@@ -203,6 +209,59 @@ export const deleteOrder = asyncHandler(async (req, res) => {
 });
 
 /* ==== Private helpers ============================================= */
+
+async function normalizeOrderItems(items, vendorId) {
+  const normalized = [];
+
+  for (const item of items) {
+    const productRef = item.product || item.productId || null;
+    const quantity = Number(item.quantity);
+
+    if (!Number.isInteger(quantity) || quantity < 1) {
+      normalized.error = "Each item quantity must be at least 1";
+      return normalized;
+    }
+
+    if (!productRef) {
+      if (!item.productName || !item.variantLabel || item.price === undefined) {
+        normalized.error =
+          "Custom order items require productName, variantLabel, price and quantity";
+        return normalized;
+      }
+
+      normalized.push({
+        product: null,
+        productName: item.productName,
+        variantLabel: item.variantLabel,
+        price: Number(item.price),
+        quantity,
+      });
+      continue;
+    }
+
+    const product = await Product.findOne({ _id: productRef, vendor: vendorId });
+    if (!product) {
+      normalized.error = "One or more products were not found";
+      return normalized;
+    }
+
+    const variant = product.variants.find((v) => v.label === item.variantLabel);
+    if (!variant) {
+      normalized.error = `${product.name} does not have variant ${item.variantLabel}`;
+      return normalized;
+    }
+
+    normalized.push({
+      product: product._id,
+      productName: product.name,
+      variantLabel: variant.label,
+      price: item.price !== undefined ? Number(item.price) : variant.price,
+      quantity,
+    });
+  }
+
+  return normalized;
+}
 
 /**
  * Decrement product variant quantities when an order is confirmed.

@@ -63,4 +63,7 @@ export const useIsIitialized = () =>
 
 // Return subscription plan of logged in vendor, or null if free tier or not logged in
 export const useSubscriptionPlan = (): SubscriptionPlan | null =>
-  useAuthStore((state) => state.vendor?.subscription?.plan ?? null);
+  useAuthStore(
+    (state) =>
+      state.vendor?.subscriptionPlan ?? state.vendor?.subscription?.plan ?? null,
+  );

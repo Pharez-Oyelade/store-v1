@@ -42,7 +42,7 @@ api.interceptors.response.use(
 
     if (status === 401) {
       if (
-        typeof Window !== "undefined" &&
+        typeof window !== "undefined" &&
         !window.location.pathname.startsWith("/login")
       ) {
         window.location.href = "/login";

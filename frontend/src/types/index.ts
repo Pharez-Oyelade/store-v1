@@ -38,6 +38,22 @@ export enum OrderSource {
   Storefront = "storefront",
 }
 
+export enum SupplierCategory {
+  Fabric = "fabric",
+  Trim = "trim",
+  Tailoring = "tailoring",
+  Packaging = "packaging",
+  Tools = "tools",
+  Logistics = "logistics",
+  Other = "other",
+}
+
+export enum SupplierStatus {
+  Active = "active",
+  Preferred = "preferred",
+  Inactive = "inactive",
+}
+
 //  Cloudinary Image
 export interface CloudinaryImage {
   url: string;
@@ -112,9 +128,49 @@ export interface Vendor {
   };
   isActive: boolean;
   subscription?: Subscription;
+  subscriptionPlan?: SubscriptionPlan;
+  subscriptionStatus?: SubscriptionStatus;
   role: "vendor" | "admin";
   createdAt: string;
   updatedAt: string;
+}
+
+export interface Supplier {
+  _id: string;
+  vendor: string;
+  name: string;
+  category: SupplierCategory;
+  contactName?: string;
+  phone: string;
+  email?: string;
+  instagram?: string;
+  whatsapp?: string;
+  location?: string;
+  materials: string[];
+  notes?: string;
+  status: SupplierStatus;
+  lastPurchaseAmount: number;
+  outstandingBalance: number;
+  lastPurchaseDate?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface SupplierFormValues {
+  name: string;
+  category: SupplierCategory;
+  contactName?: string;
+  phone: string;
+  email?: string;
+  instagram?: string;
+  whatsapp?: string;
+  location?: string;
+  materials?: string;
+  notes?: string;
+  status: SupplierStatus;
+  lastPurchaseAmount?: number;
+  outstandingBalance?: number;
+  lastPurchaseDate?: string;
 }
 
 // customer (CRM)
@@ -221,6 +277,8 @@ export type AuthUser = Pick<
   | "phone"
   | "logo"
   | "subscription"
+  | "subscriptionPlan"
+  | "subscriptionStatus"
   | "role"
 >;
 /*
@@ -292,6 +350,14 @@ export interface CustomerQeryParams {
   search?: string;
 }
 
+export interface SupplierQueryParams {
+  page?: number;
+  limit?: number;
+  status?: SupplierStatus;
+  category?: SupplierCategory;
+  search?: string;
+}
+
 // FORM TYPES (separate from API types because they often have different requirements, e.g. optional fields, different naming, etc.)
 export interface ProductFormValues {
   name: string;
@@ -313,8 +379,10 @@ export interface ProductFormValues {
 export interface OrderFormValues {
   customerPhone: string;
   customerName: string;
+  customerEmail?: string;
   items: {
     productId: string;
+    productName?: string;
     variantLabel: string;
     price: number;
     quantity: number;
