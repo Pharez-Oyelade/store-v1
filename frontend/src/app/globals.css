@@ -5,10 +5,10 @@
 @custom-variant dark (&:is(.dark *));
 
 @theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-cursive: "Great Vibes", cursive;
+  --font-sans: var(--font-inter), ui-sans-serif, sans-serif;
+  --font-cursive: var(--font-great-vibes), cursive;
 
-  --color-brand-50: #f0fdf4;
+  /* --color-brand-50: #f0fdf4;
   --color-brand-100: #dcfce7;
   --color-brand-200: #bbf7d0;
   --color-brand-300: #86efac;
@@ -18,7 +18,7 @@
   --color-brand-700: #15803d;
   --color-brand-800: #166534;
   --color-brand-900: #14532d;
-  --color-brand-950: #052e16;
+  --color-brand-950: #052e16; */
 
   /* --color-brand-50:  #eef1ff;
   --color-brand-100: #dfe5ff;
@@ -30,6 +30,18 @@
   --color-brand-700: #3248b2;
   --color-brand-800: #293a8e;
   --color-brand-900: #1b2760; */
+
+   --color-brand-50: #f1f0fd;
+  --color-brand-100: #dedcfc;
+  --color-brand-200: #bdbbf7;
+  --color-brand-300: #8a86ef;
+  --color-brand-400: #4f4ade;
+  --color-brand-500: #2722c5;
+  --color-brand-600: #2616a3;
+  --color-brand-700: #231580;
+  --color-brand-800: #1e1665;
+  --color-brand-900: #161453;
+  --color-brand-950: #09052e;
 
   --color-accent-50: #fffbeb;
   --color-accent-100: #fef3c7;
@@ -129,7 +141,8 @@ html {
 }
 
 body {
-  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  /* font-family: var(--font-sans); */
+  font-family: var(--font-inter);
   background-color: var(--bg-page);
   color: var(--text-primary);
   /* antialiased makes text render crisply on modern screens */

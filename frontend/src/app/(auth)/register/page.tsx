@@ -234,7 +234,7 @@ export default function RegisterPage() {
                   <Input
                     label="store Handle"
                     placeholder="eris-fashion-house"
-                    helper="Your storefront URL: sabistore.ng/store/your-handle"
+                    helper="Your storefront URL: vendra.ng/store/your-handle"
                     error={errors.handle?.message}
                     leftElement={
                       <span className="text-xs text-gray-400 whitespace-nowrap">

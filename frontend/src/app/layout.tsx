@@ -1,5 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Great_Vibes } from "next/font/google";
+// Ignore missing type declarations for side-effect global CSS import
+// TypeScript may complain about modules without declarations; this import is intentional.
+// @ts-ignore
 import "./globals.css";
 import Providers from "@/components/Providers";
 

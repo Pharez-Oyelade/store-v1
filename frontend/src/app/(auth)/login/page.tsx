@@ -27,7 +27,7 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
 
-  // ✅ Hook called at the top level of the component (Rules of Hooks)
+  // Hook called at the top level of the component (Rules of Hooks)
   const loginMutation = useLogin();
 
   const {
@@ -61,7 +61,7 @@ export default function LoginPage() {
         <div className="text-center mb-5">
           <h1 className="text-2xl font-bold text-gray-900">Welcome back</h1>
           <p className="text-sm text-gray-500 mt-1">
-            Sign in to your SabiStore dashboard
+            Sign in to your Vendra dashboard
           </p>
         </div>
 

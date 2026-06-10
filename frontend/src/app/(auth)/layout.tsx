@@ -16,7 +16,7 @@ export default function AuthLayout({
         <span className="flex items-center justify-center w-10 h-10 rounded-xl bg-brand-700 text-white">
           <Store size={20} />
         </span>
-        Sabi<span className="text-brand-700">Store</span>
+        Vendra
       </Link>
 
       {/* Auth card */}

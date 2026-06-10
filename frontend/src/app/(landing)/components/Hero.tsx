@@ -29,10 +29,10 @@ const Hero = () => {
           initial={{ opacity: 0, y: 30 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2, duration: 0.3, ease: "easeIn" }}
-          className="text-6xl md:text-8xl font-bold tracking-tight"
+          className="text-6xl md:text-8xl font-bold tracking-tight font-sans"
         >
           Your Store. <br />
-          <span className="text-accent-900 font-cursive text-6xl md:text-9xl">
+          <span className="text-accent-700 font-cursive text-6xl md:text-9xl">
             Finally
           </span>{" "}
           <br />
@@ -98,7 +98,7 @@ const Hero = () => {
 
           <div className="hidden md:block absolute top-40 -left-30 border border-gray-300 bg-white p-4 rounded-lg shadow-lg w-64 pointer-events-none group-hover:translate-x-1.5 transform transition-transform duration-400">
             <h3 className="text-sm font-bold text-gray-800">340+</h3>
-            <p className="text-xs text-gray-500">Vendors using SabiStore</p>
+            <p className="text-xs text-gray-500">Vendors using Vendra</p>
           </div>
         </div>
       </motion.div>
