@@ -34,8 +34,8 @@ export default function OrdersPage() {
             href="/dashboard/orders/new"
             className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
           >
-            <Plus className="size-4" />
-            New order
+            <Plus className="size-4 text-white" />
+            <span className="text-white">New order</span>
           </Link>
         }
       />

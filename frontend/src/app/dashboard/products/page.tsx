@@ -11,14 +11,21 @@ import {
   StatusBadge,
   TableShell,
 } from "@/components/dashboard/DashboardPrimitives";
-import { useDeleteProduct, useProducts, useUpdateProduct } from "@/hooks/useProducts";
+import {
+  useDeleteProduct,
+  useProducts,
+  useUpdateProduct,
+} from "@/hooks/useProducts";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ProductStatus, type Product } from "@/types";
 
 export default function ProductsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProductStatus | "">("");
-  const params = useMemo(() => ({ page: 1, limit: 50, search, status: status || undefined }), [search, status]);
+  const params = useMemo(
+    () => ({ page: 1, limit: 50, search, status: status || undefined }),
+    [search, status],
+  );
   const products = useProducts(params);
   const deleteProduct = useDeleteProduct();
 
@@ -30,9 +37,12 @@ export default function ProductsPage() {
         title="Products"
         description="Manage fashion inventory, variants, stock levels and storefront availability."
         action={
-          <Link href="/dashboard/products/new" className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800">
-            <PackagePlus className="size-4" />
-            Add product
+          <Link
+            href="/dashboard/products/new"
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
+          >
+            <PackagePlus className="size-4 text-white" />
+            <span className="text-white">Add product</span>
           </Link>
         }
       />
@@ -44,10 +54,17 @@ export default function ProductsPage() {
           onChange={(event) => setSearch(event.target.value)}
           leftElement={<Search className="size-4" />}
         />
-        <NativeSelect value={status} onChange={(event) => setStatus(event.target.value as ProductStatus | "")}>
+        <NativeSelect
+          value={status}
+          onChange={(event) =>
+            setStatus(event.target.value as ProductStatus | "")
+          }
+        >
           <option value="">All statuses</option>
           {Object.values(ProductStatus).map((value) => (
-            <option key={value} value={value}>{value.replace("_", " ")}</option>
+            <option key={value} value={value}>
+              {value.replace("_", " ")}
+            </option>
           ))}
         </NativeSelect>
       </div>
@@ -71,7 +88,8 @@ export default function ProductsPage() {
                   key={product._id}
                   product={product}
                   onDelete={() => {
-                    if (confirm(`Delete ${product.name}?`)) deleteProduct.mutate(product._id);
+                    if (confirm(`Delete ${product.name}?`))
+                      deleteProduct.mutate(product._id);
                   }}
                 />
               ))}
@@ -90,10 +108,21 @@ export default function ProductsPage() {
   );
 }
 
-function ProductRow({ product, onDelete }: { product: Product; onDelete: () => void }) {
+function ProductRow({
+  product,
+  onDelete,
+}: {
+  product: Product;
+  onDelete: () => void;
+}) {
   const updateProduct = useUpdateProduct(product._id);
-  const stock = product.variants.reduce((sum, variant) => sum + variant.quantity, 0);
-  const isLow = product.variants.some((variant) => variant.quantity <= product.lowStockThreshold);
+  const stock = product.variants.reduce(
+    (sum, variant) => sum + variant.quantity,
+    0,
+  );
+  const isLow = product.variants.some(
+    (variant) => variant.quantity <= product.lowStockThreshold,
+  );
 
   function updateStatus(nextStatus: ProductStatus) {
     const formData = new FormData();
@@ -106,29 +135,54 @@ function ProductRow({ product, onDelete }: { product: Product; onDelete: () => v
     <tr className="hover:bg-gray-50">
       <td className="px-4 py-3">
         <p className="font-medium text-gray-950">{product.name}</p>
-        <p className="text-xs text-gray-500">{product.category || "Uncategorized"} · {product.variants.length} variants</p>
+        <p className="text-xs text-gray-500">
+          {product.category || "Uncategorized"} · {product.variants.length}{" "}
+          variants
+        </p>
       </td>
       <td className="px-4 py-3">
-        <span className={isLow ? "font-semibold text-accent-700" : "text-gray-700"}>{stock} units</span>
+        <span
+          className={isLow ? "font-semibold text-accent-700" : "text-gray-700"}
+        >
+          {stock} units
+        </span>
       </td>
       <td className="px-4 py-3">{formatCurrency(product.basePrice)}</td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
           <StatusBadge value={product.status} />
-          <NativeSelect className="h-8 w-28" value={product.status} onChange={(event) => updateStatus(event.target.value as ProductStatus)}>
+          <NativeSelect
+            className="h-8 w-28"
+            value={product.status}
+            onChange={(event) =>
+              updateStatus(event.target.value as ProductStatus)
+            }
+          >
             {Object.values(ProductStatus).map((value) => (
-              <option key={value} value={value}>{value.replace("_", " ")}</option>
+              <option key={value} value={value}>
+                {value.replace("_", " ")}
+              </option>
             ))}
           </NativeSelect>
         </div>
       </td>
-      <td className="px-4 py-3 text-gray-500">{formatDate(product.updatedAt)}</td>
+      <td className="px-4 py-3 text-gray-500">
+        {formatDate(product.updatedAt)}
+      </td>
       <td className="px-4 py-3">
         <div className="flex justify-end gap-2">
-          <Link href={`/dashboard/products/${product._id}/edit`} className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50" aria-label="Edit product">
+          <Link
+            href={`/dashboard/products/${product._id}/edit`}
+            className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-gray-600 hover:bg-gray-50"
+            aria-label="Edit product"
+          >
             <Edit className="size-4" />
           </Link>
-          <button onClick={onDelete} className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50" aria-label="Delete product">
+          <button
+            onClick={onDelete}
+            className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50"
+            aria-label="Delete product"
+          >
             <Trash2 className="size-4" />
           </button>
         </div>

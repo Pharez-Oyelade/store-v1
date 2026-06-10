@@ -19,7 +19,11 @@ import {
   TableShell,
 } from "@/components/dashboard/DashboardPrimitives";
 import RevenueChart from "@/components/dashboard/RevenueChart";
-import { useAnalyticsOverview, useRevenueSeries, useTopCustomers } from "@/hooks/useAnalytics";
+import {
+  useAnalyticsOverview,
+  useRevenueSeries,
+  useTopCustomers,
+} from "@/hooks/useAnalytics";
 import { useOrders } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useProducts";
 import { useSupplierSummary } from "@/hooks/useSuppliers";
@@ -35,7 +39,9 @@ export default function DashboardPage() {
 
   const productList = products.data?.products ?? [];
   const lowStockProducts = productList.filter((product) =>
-    product.variants.some((variant) => variant.quantity <= product.lowStockThreshold),
+    product.variants.some(
+      (variant) => variant.quantity <= product.lowStockThreshold,
+    ),
   );
 
   return (
@@ -49,7 +55,7 @@ export default function DashboardPage() {
               href="/dashboard/orders/new"
               className="inline-flex h-9 items-center rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
             >
-              New order
+              <span className="text-white">New order</span>
             </Link>
             <Link
               href="/dashboard/products/new"
@@ -108,10 +114,17 @@ export default function DashboardPage() {
         <section className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
             <div>
-              <h2 className="text-base font-semibold text-gray-950">Revenue trend</h2>
-              <p className="text-sm text-gray-500">Completed order revenue over the last 14 days.</p>
+              <h2 className="text-base font-semibold text-gray-950">
+                Revenue trend
+              </h2>
+              <p className="text-sm text-gray-500">
+                Completed order revenue over the last 14 days.
+              </p>
             </div>
-            <Link href="/dashboard/analytics" className="text-sm font-medium text-brand-700">
+            <Link
+              href="/dashboard/analytics"
+              className="text-sm font-medium text-brand-700"
+            >
               Analytics
             </Link>
           </div>
@@ -120,7 +133,9 @@ export default function DashboardPage() {
 
         <section className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-950">Operations</h2>
+            <h2 className="text-base font-semibold text-gray-950">
+              Operations
+            </h2>
             <Boxes className="size-4 text-gray-400" />
           </div>
           <div className="space-y-4">
@@ -151,8 +166,13 @@ export default function DashboardPage() {
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-950">Recent orders</h2>
-            <Link href="/dashboard/orders" className="text-sm font-medium text-brand-700">
+            <h2 className="text-base font-semibold text-gray-950">
+              Recent orders
+            </h2>
+            <Link
+              href="/dashboard/orders"
+              className="text-sm font-medium text-brand-700"
+            >
               View all
             </Link>
           </div>
@@ -172,15 +192,28 @@ export default function DashboardPage() {
                   {orders.data.orders.map((order) => (
                     <tr key={order._id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <Link href={`/dashboard/orders/${order._id}`} className="font-medium text-gray-950">
+                        <Link
+                          href={`/dashboard/orders/${order._id}`}
+                          className="font-medium text-gray-950"
+                        >
                           {order.customerSnapshot.name}
                         </Link>
-                        <p className="text-xs text-gray-500">{order.customerSnapshot.phone}</p>
+                        <p className="text-xs text-gray-500">
+                          {order.customerSnapshot.phone}
+                        </p>
                       </td>
-                      <td className="px-4 py-3">{formatCurrency(order.totalAmount)}</td>
-                      <td className="px-4 py-3">{formatCurrency(order.balanceOwed)}</td>
-                      <td className="px-4 py-3"><StatusBadge value={order.status} /></td>
-                      <td className="px-4 py-3 text-gray-500">{formatDate(order.createdAt)}</td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(order.totalAmount)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(order.balanceOwed)}
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge value={order.status} />
+                      </td>
+                      <td className="px-4 py-3 text-gray-500">
+                        {formatDate(order.createdAt)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -199,7 +232,10 @@ export default function DashboardPage() {
         <section>
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-950">Low stock</h2>
-            <Link href="/dashboard/products" className="text-sm font-medium text-brand-700">
+            <Link
+              href="/dashboard/products"
+              className="text-sm font-medium text-brand-700"
+            >
               Inventory
             </Link>
           </div>
@@ -207,17 +243,26 @@ export default function DashboardPage() {
             {lowStockProducts.length ? (
               <div className="space-y-3">
                 {lowStockProducts.slice(0, 5).map((product) => (
-                  <div key={product._id} className="flex items-center justify-between gap-3">
+                  <div
+                    key={product._id}
+                    className="flex items-center justify-between gap-3"
+                  >
                     <div>
-                      <p className="text-sm font-medium text-gray-950">{product.name}</p>
-                      <p className="text-xs text-gray-500">{product.category || "Uncategorized"}</p>
+                      <p className="text-sm font-medium text-gray-950">
+                        {product.name}
+                      </p>
+                      <p className="text-xs text-gray-500">
+                        {product.category || "Uncategorized"}
+                      </p>
                     </div>
                     <StatusBadge value={product.status} />
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-sm text-gray-500">No low-stock alerts from your active inventory.</p>
+              <p className="text-sm text-gray-500">
+                No low-stock alerts from your active inventory.
+              </p>
             )}
           </div>
         </section>

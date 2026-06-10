@@ -15,8 +15,12 @@ export function PageHeader({
   return (
     <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-950">{title}</h1>
-        {description && <p className="mt-1 text-sm text-gray-500">{description}</p>}
+        <h1 className="text-2xl font-semibold tracking-tight text-gray-950">
+          {title}
+        </h1>
+        {description && (
+          <p className="mt-1 text-sm text-gray-500">{description}</p>
+        )}
       </div>
       {action}
     </div>
@@ -48,11 +52,18 @@ export function StatCard({
     <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
       <div className="flex items-center justify-between gap-3">
         <p className="text-sm font-medium text-gray-500">{label}</p>
-        <span className={cn("flex size-9 items-center justify-center rounded-md", tones[tone])}>
+        <span
+          className={cn(
+            "flex size-9 items-center justify-center rounded-md",
+            tones[tone],
+          )}
+        >
           <Icon className="size-4" />
         </span>
       </div>
-      <p className="mt-3 text-2xl font-semibold tracking-tight text-gray-950">{value}</p>
+      <p className="mt-3 text-2xl font-semibold tracking-tight text-gray-950">
+        {value}
+      </p>
       {helper && <p className="mt-1 text-xs text-gray-500">{helper}</p>}
     </div>
   );
@@ -70,7 +81,12 @@ export function StatusBadge({ value }: { value: string }) {
           : "bg-info-50 text-info-600 ring-info-200";
 
   return (
-    <span className={cn("inline-flex rounded-md px-2 py-1 text-xs font-medium capitalize ring-1", tone)}>
+    <span
+      className={cn(
+        "inline-flex rounded-md px-2 py-1 text-xs font-medium capitalize ring-1",
+        tone,
+      )}
+    >
       {normalized}
     </span>
   );
@@ -90,13 +106,15 @@ export function EmptyState({
   return (
     <div className="rounded-lg border border-dashed border-gray-300 bg-white p-8 text-center">
       <h2 className="text-base font-semibold text-gray-950">{title}</h2>
-      <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">{description}</p>
+      <p className="mx-auto mt-1 max-w-md text-sm text-gray-500">
+        {description}
+      </p>
       {href && actionLabel && (
         <Link
           href={href}
           className="mt-4 inline-flex h-9 items-center justify-center rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
         >
-          {actionLabel}
+          <span className="text-white">{actionLabel}</span>
         </Link>
       )}
     </div>
@@ -112,10 +130,14 @@ export function TableShell({ children }: { children: React.ReactNode }) {
 }
 
 export function FieldLabel({ children }: { children: React.ReactNode }) {
-  return <label className="text-sm font-medium text-gray-700">{children}</label>;
+  return (
+    <label className="text-sm font-medium text-gray-700">{children}</label>
+  );
 }
 
-export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement>) {
+export function TextArea(
+  props: React.TextareaHTMLAttributes<HTMLTextAreaElement>,
+) {
   return (
     <textarea
       {...props}
@@ -127,7 +149,9 @@ export function TextArea(props: React.TextareaHTMLAttributes<HTMLTextAreaElement
   );
 }
 
-export function NativeSelect(props: React.SelectHTMLAttributes<HTMLSelectElement>) {
+export function NativeSelect(
+  props: React.SelectHTMLAttributes<HTMLSelectElement>,
+) {
   return (
     <select
       {...props}
