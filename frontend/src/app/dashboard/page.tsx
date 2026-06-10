@@ -164,7 +164,7 @@ export default function DashboardPage() {
       </div>
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <section>
+        <section className="min-w-0">
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-base font-semibold text-gray-950">
               Recent orders
@@ -178,7 +178,7 @@ export default function DashboardPage() {
           </div>
           {orders.data?.orders.length ? (
             <TableShell>
-              <table className="min-w-full text-left text-sm">
+              <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                   <tr>
                     <th className="px-4 py-3">Customer</th>
