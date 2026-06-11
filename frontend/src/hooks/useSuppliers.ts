@@ -78,11 +78,13 @@ export function useCreateSupplier() {
   });
 }
 
+type UpdateSupplierPayload = Partial<Omit<Supplier, "materials">> & { materials?: string | string[] };
+
 export function useUpdateSupplier(id: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Partial<Supplier>) =>
+    mutationFn: (data: UpdateSupplierPayload) =>
       apiPut<Supplier>(`/suppliers/${id}`, data),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: SUPPLIER_KEYS.all });
