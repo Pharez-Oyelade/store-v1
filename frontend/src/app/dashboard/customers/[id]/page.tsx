@@ -126,14 +126,14 @@ export default function CustomerDetailPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-[1.4fr_1fr]">
-        <section className="space-y-6">
+        <section className="space-y-6 min-w-0">
           <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
             <h2 className="mb-4 text-base font-semibold text-gray-950">
               Order history
             </h2>
             {customer.data.orders.length ? (
               <TableShell>
-                <table className="min-w-full text-left text-sm">
+                <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
                       <th className="px-4 py-3">Date</th>
