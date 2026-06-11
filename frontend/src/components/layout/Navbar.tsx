@@ -91,7 +91,15 @@ const Navbar = () => {
                         : "text-gray-600 hover:text-gray-900",
                     )}
                   >
-                    {link.label}
+                    <span
+                      className={cn(
+                        pathname === link.href
+                          ? "text-brand-500"
+                          : "hover:text-brand-500",
+                      )}
+                    >
+                      {link.label}
+                    </span>
                   </Link>
                 </li>
               ))}
@@ -147,7 +155,7 @@ const Navbar = () => {
           {/* Header */}
           <div className="flex items-center justify-between px-5 h-16 border-b border-gray-100">
             <span className="font-bold text-lg text-gray-900">
-              Sabi<span className="text-brand-700">Store</span>
+              Vend<span className="text-brand-700">ra</span>
             </span>
             <button
               onClick={() => setIsMobileOpen(false)}
@@ -166,11 +174,15 @@ const Navbar = () => {
                 className={cn(
                   "flex items-center px-4 py-3 rounded-lg text-sm font-medium",
                   pathname === link.href
-                    ? "text-brand-700 bg-brand-500"
+                    ? "bg-brand-500"
                     : "text-gray-700 hover:bg-gray-50",
                 )}
               >
-                {link.label}
+                <span
+                  className={cn(pathname === link.href ? "text-white" : "")}
+                >
+                  {link.label}
+                </span>
               </Link>
             ))}
           </nav>
