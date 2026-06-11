@@ -171,11 +171,35 @@ export const updateOrder = asyncHandler(async (req, res) => {
   await order.save(); // Pre-save hook recomputes balanceOwed
 
   /*
-   * Business Logic: When order moves to "confirmed", decrement inventory.
-   * We only do this ONCE — only when transitioning FROM a non-confirmed state.
+   * Business Logic: Inventory management on status change.
+   *
+   * Stock should be depleted when the order moves to any "active" status
+   * (confirmed, ready, dispatched, completed) — but only ONCE.
+   * The `stockDepleted` flag on the order prevents double-deduction
+   * if the order flows through confirmed → ready → dispatched → completed.
+   *
+   * If the order is cancelled, restore the stock (if it was depleted).
    */
-  if (status === "confirmed" && prevStatus !== "confirmed") {
-    await depleteInventory(order);
+  if (status !== undefined && status !== prevStatus) {
+    const shouldDeplete =
+      !order.stockDepleted &&
+      ["confirmed", "ready", "dispatched", "completed"].includes(status);
+
+    const shouldRestore =
+      order.stockDepleted &&
+      status === "cancelled";
+
+    if (shouldDeplete) {
+      await depleteInventory(order);
+      order.stockDepleted = true;
+      await order.save();
+    }
+
+    if (shouldRestore) {
+      await restoreInventory(order);
+      order.stockDepleted = false;
+      await order.save();
+    }
   }
 
   /*
@@ -201,6 +225,13 @@ export const deleteOrder = asyncHandler(async (req, res) => {
 
   if (order.status === "completed") {
     return sendError(res, "Completed orders cannot be deleted", 400);
+  }
+
+  /*
+   * If stock was already depleted for this order, restore it before deleting.
+   */
+  if (order.stockDepleted) {
+    await restoreInventory(order);
   }
 
   await order.deleteOne();
@@ -264,7 +295,7 @@ async function normalizeOrderItems(items, vendorId) {
 }
 
 /**
- * Decrement product variant quantities when an order is confirmed.
+ * Decrement product variant quantities when an order is confirmed/completed.
  * Marks product as sold_out if all variants hit 0.
  */
 async function depleteInventory(order) {
@@ -293,6 +324,33 @@ async function depleteInventory(order) {
 }
 
 /**
+ * Restore product variant quantities when an order is cancelled.
+ * Reverses the depletion done by depleteInventory.
+ */
+async function restoreInventory(order) {
+  for (const item of order.items) {
+    if (!item.product) continue; // Skip custom items
+
+    const product = await Product.findById(item.product);
+    if (!product) continue;
+
+    const variant = product.variants.find((v) => v.label === item.variantLabel);
+    if (variant) {
+      variant.quantity += item.quantity;
+      variant.sold = Math.max(0, variant.sold - item.quantity);
+    }
+
+    // If the product was sold_out and now has stock, reactivate it
+    if (product.status === "sold_out") {
+      const hasStock = product.variants.some((v) => v.quantity > 0);
+      if (hasStock) product.status = "active";
+    }
+
+    await product.save();
+  }
+}
+
+/**
  * Update customer LTV and order count when an order is completed.
  */
 async function updateCustomerStats(order) {
@@ -306,3 +364,4 @@ async function updateCustomerStats(order) {
     $set: { lastOrderDate: new Date() },
   });
 }
+

@@ -115,6 +115,18 @@ const orderSchema = new mongoose.Schema(
       default: "pending",
     },
 
+    /*
+     * Tracks whether inventory has been deducted for this order.
+     * Set to true when stock is depleted (on confirmed/completed),
+     * reset to false when stock is restored (on cancelled).
+     * Prevents double-deduction if the order moves through
+     * confirmed → ready → dispatched → completed.
+     */
+    stockDepleted: {
+      type: Boolean,
+      default: false,
+    },
+
     source: {
       type: String,
       enum: ["dm", "call", "walk_in", "storefront"],
