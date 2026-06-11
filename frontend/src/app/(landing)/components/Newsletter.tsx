@@ -5,7 +5,7 @@ import React from "react";
 const Newsletter = () => {
   return (
     <section className="bg-brand-900 flex flex-col md:flex-row justify-between items-center gap-20 border-t-3 border-t-accent-600 px-5 md:px-15 py-30">
-      <div className="w-full">
+      <div className="w-full text-white">
         <Title
           eyebrowTitle="Join the waitlist"
           headingStart="Stop losing sales to"
