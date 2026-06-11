@@ -85,6 +85,7 @@ const Hero = () => {
             height={700}
             src="/sabi_screenshot.png"
             alt="Hero Image"
+            loading="eager"
             className="w-full h-full rounded-xl group:hover:scale-90 transition-transform duration-300"
           />
 
