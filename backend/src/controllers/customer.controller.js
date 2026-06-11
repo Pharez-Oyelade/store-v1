@@ -71,7 +71,7 @@ export const getCustomer = asyncHandler(async (req, res) => {
     .select("items totalAmount depositPaid balanceOwed status createdAt")
     .lean();
 
-  return sendSuccess(res, { ...customer.toObject(), orders });
+  return sendSuccess(res, { ...customer.toObject({ flattenMaps: true }), orders });
 });
 
 /* ── PUT /api/customers/:id ─────────────────────────────────────── */
@@ -95,7 +95,7 @@ export const updateCustomer = asyncHandler(async (req, res) => {
 
   await customer.save();
 
-  return sendSuccess(res, customer.toObject(), "Customer updated successfully");
+  return sendSuccess(res, customer.toObject({ flattenMaps: true }), "Customer updated successfully");
 });
 
 /* ── DELETE /api/customers/:id ──────────────────────────────────── */

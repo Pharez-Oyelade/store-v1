@@ -82,7 +82,7 @@ export function useUpdateSupplier(id: string) {
   const queryClient = useQueryClient();
 
   return useMutation({
-    mutationFn: (data: Partial<SupplierFormValues>) =>
+    mutationFn: (data: Partial<Supplier>) =>
       apiPut<Supplier>(`/suppliers/${id}`, data),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: SUPPLIER_KEYS.all });

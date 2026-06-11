@@ -23,7 +23,8 @@ export default function OrderDetailPage() {
   const order = useOrder(params.id);
   const updateOrder = useUpdateOrder(params.id);
 
-  if (order.isLoading) return <p className="text-sm text-gray-500">Loading order...</p>;
+  if (order.isLoading)
+    return <p className="text-sm text-gray-500">Loading order...</p>;
   if (!order.data) {
     return (
       <EmptyState
@@ -40,7 +41,10 @@ export default function OrderDetailPage() {
   return (
     <div className="mx-auto max-w-6xl">
       <div className="mb-4">
-        <Link href="/dashboard/orders" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900">
+        <Link
+          href="/dashboard/orders"
+          className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900"
+        >
           <ArrowLeft className="mr-2 size-4" />
           Back to orders
         </Link>
@@ -56,8 +60,8 @@ export default function OrderDetailPage() {
             onClick={() => updateOrder.mutate({ whatsappSent: true })}
             className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
           >
-            <MessageCircle className="size-4" />
-            WhatsApp
+            <MessageCircle className="size-4 text-white" />
+            <span className="text-white">WhatsApp</span>
           </a>
         }
       />
@@ -83,11 +87,17 @@ export default function OrderDetailPage() {
                 <tbody className="divide-y divide-gray-100">
                   {order.data.items.map((item, index) => (
                     <tr key={`${item.productName}-${index}`}>
-                      <td className="px-4 py-3 font-medium text-gray-950">{item.productName}</td>
+                      <td className="px-4 py-3 font-medium text-gray-950">
+                        {item.productName}
+                      </td>
                       <td className="px-4 py-3">{item.variantLabel}</td>
                       <td className="px-4 py-3">{item.quantity}</td>
-                      <td className="px-4 py-3">{formatCurrency(item.price)}</td>
-                      <td className="px-4 py-3">{formatCurrency(item.price * item.quantity)}</td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(item.price)}
+                      </td>
+                      <td className="px-4 py-3">
+                        {formatCurrency(item.price * item.quantity)}
+                      </td>
                     </tr>
                   ))}
                 </tbody>
@@ -96,11 +106,16 @@ export default function OrderDetailPage() {
           </div>
 
           <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
-            <h2 className="mb-4 text-base font-semibold text-gray-950">Customer</h2>
+            <h2 className="mb-4 text-base font-semibold text-gray-950">
+              Customer
+            </h2>
             <div className="grid gap-4 sm:grid-cols-3">
               <Info label="Name" value={order.data.customerSnapshot.name} />
               <Info label="Phone" value={order.data.customerSnapshot.phone} />
-              <Info label="Email" value={order.data.customerSnapshot.email || "Not provided"} />
+              <Info
+                label="Email"
+                value={order.data.customerSnapshot.email || "Not provided"}
+              />
             </div>
           </div>
         </section>
@@ -123,9 +138,16 @@ function OrderControl({
       <h2 className="text-base font-semibold text-gray-950">Manage order</h2>
       <div className="space-y-1.5">
         <FieldLabel>Status</FieldLabel>
-        <NativeSelect value={order.status} onChange={(event) => updateOrder.mutate({ status: event.target.value as OrderStatus })}>
+        <NativeSelect
+          value={order.status}
+          onChange={(event) =>
+            updateOrder.mutate({ status: event.target.value as OrderStatus })
+          }
+        >
           {Object.values(OrderStatus).map((value) => (
-            <option key={value} value={value}>{value}</option>
+            <option key={value} value={value}>
+              {value}
+            </option>
           ))}
         </NativeSelect>
       </div>
@@ -134,18 +156,37 @@ function OrderControl({
         type="number"
         min={0}
         defaultValue={order.depositPaid}
-        onBlur={(event) => updateOrder.mutate({ depositPaid: Number(event.target.value) })}
+        onBlur={(event) =>
+          updateOrder.mutate({ depositPaid: Number(event.target.value) })
+        }
       />
       <div className="space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
-        <div className="flex justify-between"><span>Total</span><strong>{formatCurrency(order.totalAmount)}</strong></div>
-        <div className="flex justify-between"><span>Balance</span><strong>{formatCurrency(order.balanceOwed)}</strong></div>
-        <div className="flex justify-between"><span>WhatsApp sent</span><strong>{order.whatsappSent ? "Yes" : "No"}</strong></div>
+        <div className="flex justify-between">
+          <span>Total</span>
+          <strong>{formatCurrency(order.totalAmount)}</strong>
+        </div>
+        <div className="flex justify-between">
+          <span>Balance</span>
+          <strong>{formatCurrency(order.balanceOwed)}</strong>
+        </div>
+        <div className="flex justify-between">
+          <span>WhatsApp sent</span>
+          <strong>{order.whatsappSent ? "Yes" : "No"}</strong>
+        </div>
       </div>
       <div className="space-y-1.5">
         <FieldLabel>Notes</FieldLabel>
-        <TextArea defaultValue={order.notes ?? ""} onBlur={(event) => updateOrder.mutate({ notes: event.target.value })} />
+        <TextArea
+          defaultValue={order.notes ?? ""}
+          onBlur={(event) => updateOrder.mutate({ notes: event.target.value })}
+        />
       </div>
-      <Button type="button" isLoading={updateOrder.isPending} leftIcon={<Save className="size-4" />} className="w-full">
+      <Button
+        type="button"
+        isLoading={updateOrder.isPending}
+        leftIcon={<Save className="size-4" />}
+        className="w-full"
+      >
         Saved automatically
       </Button>
     </aside>
@@ -163,7 +204,10 @@ function Info({ label, value }: { label: string; value: string }) {
 
 function buildOrderMessage(order: Order) {
   const lines = order.items
-    .map((item) => `${item.productName} (${item.variantLabel}) x ${item.quantity} - ${formatCurrency(item.price * item.quantity)}`)
+    .map(
+      (item) =>
+        `${item.productName} (${item.variantLabel}) x ${item.quantity} - ${formatCurrency(item.price * item.quantity)}`,
+    )
     .join("\n");
   return [
     `Hi ${order.customerSnapshot.name}, your Vendra order is confirmed.`,
