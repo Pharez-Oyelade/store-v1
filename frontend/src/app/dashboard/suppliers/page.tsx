@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import type React from "react";
+import Link from "next/link";
 import { MessageCircle, Plus, Search, Trash2 } from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
@@ -24,7 +25,7 @@ import {
 } from "@/hooks/useSuppliers";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { SupplierCategory, SupplierStatus, type Supplier } from "@/types";
-import { Banknote, Handshake, Star, WalletCards } from "lucide-react";
+import { Banknote, Handshake, Star, WalletCards, Package } from "lucide-react";
 
 export default function SuppliersPage() {
   const [search, setSearch] = useState("");
@@ -49,7 +50,7 @@ export default function SuppliersPage() {
         }
       />
 
-      <div className="mb-6 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="mb-6 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
         <StatCard
           label="Total suppliers"
           value={String(summary.data?.total ?? 0)}
@@ -62,14 +63,20 @@ export default function SuppliersPage() {
           tone="amber"
         />
         <StatCard
+          label="Pending deliveries"
+          value={String(summary.data?.pendingDeliveries ?? 0)}
+          icon={Package}
+          tone="amber"
+        />
+        <StatCard
           label="Outstanding"
           value={formatCurrency(summary.data?.outstandingBalance ?? 0)}
           icon={WalletCards}
           tone="rose"
         />
         <StatCard
-          label="Last purchase total"
-          value={formatCurrency(summary.data?.lastPurchaseTotal ?? 0)}
+          label="Total purchases"
+          value={formatCurrency(summary.data?.totalPurchaseAmount ?? 0)}
           icon={Banknote}
           tone="blue"
         />
@@ -103,13 +110,12 @@ export default function SuppliersPage() {
                   {suppliers.data.suppliers.map((supplier) => (
                     <tr key={supplier._id} className="hover:bg-gray-50">
                       <td className="px-4 py-3">
-                        <button
-                          type="button"
-                          onClick={() => setSelected(supplier)}
-                          className="text-left font-medium text-gray-950"
+                        <Link
+                          href={`/dashboard/suppliers/${supplier._id}`}
+                          className="text-left font-medium text-gray-950 hover:underline"
                         >
                           {supplier.name}
-                        </button>
+                        </Link>
                         <p className="text-xs text-gray-500">
                           {supplier.phone}
                         </p>

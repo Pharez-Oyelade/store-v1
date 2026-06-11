@@ -135,6 +135,15 @@ export interface Vendor {
   updatedAt: string;
 }
 
+export interface SupplierPurchase {
+  _id?: string;
+  description: string;
+  amount: number;
+  paidAmount: number;
+  status: "ordered" | "delivered";
+  date: string;
+}
+
 export interface Supplier {
   _id: string;
   vendor: string;
@@ -152,6 +161,7 @@ export interface Supplier {
   lastPurchaseAmount: number;
   outstandingBalance: number;
   lastPurchaseDate?: string;
+  purchases: SupplierPurchase[];
   createdAt: string;
   updatedAt: string;
 }
@@ -186,6 +196,7 @@ export interface Customer {
   lastOrderDate?: string;
   notes?: string;
   tags: string[];
+  measurements?: Record<string, string>;
   createdAt: string;
   updatedAt: string;
 }

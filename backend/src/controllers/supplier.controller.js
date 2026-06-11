@@ -30,6 +30,7 @@ function pickSupplierFields(body) {
     outstandingBalance:
       body.outstandingBalance !== undefined ? Number(body.outstandingBalance) : undefined,
     lastPurchaseDate: body.lastPurchaseDate ? new Date(body.lastPurchaseDate) : undefined,
+    purchases: body.purchases,
   };
 }
 
@@ -144,7 +145,18 @@ export const getSupplierSummary = asyncHandler(async (req, res) => {
           $sum: { $cond: [{ $eq: ["$status", "preferred"] }, 1, 0] },
         },
         outstandingBalance: { $sum: "$outstandingBalance" },
-        lastPurchaseTotal: { $sum: "$lastPurchaseAmount" },
+        totalPurchaseAmount: { $sum: "$totalPurchaseAmount" },
+        pendingDeliveries: {
+          $sum: {
+            $size: {
+              $filter: {
+                input: { $ifNull: ["$purchases", []] },
+                as: "purchase",
+                cond: { $eq: ["$$purchase.status", "ordered"] },
+              },
+            },
+          },
+        },
       },
     },
   ]);
@@ -153,6 +165,7 @@ export const getSupplierSummary = asyncHandler(async (req, res) => {
     total: summary?.total ?? 0,
     preferred: summary?.preferred ?? 0,
     outstandingBalance: summary?.outstandingBalance ?? 0,
-    lastPurchaseTotal: summary?.lastPurchaseTotal ?? 0,
+    totalPurchaseAmount: summary?.totalPurchaseAmount ?? 0,
+    pendingDeliveries: summary?.pendingDeliveries ?? 0,
   });
 });

@@ -1,7 +1,8 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { MessageCircle, Save } from "lucide-react";
+import { ArrowLeft, MessageCircle, Save } from "lucide-react";
+import Link from "next/link";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -38,6 +39,12 @@ export default function OrderDetailPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
+      <div className="mb-4">
+        <Link href="/dashboard/orders" className="inline-flex items-center text-sm font-medium text-gray-500 hover:text-gray-900">
+          <ArrowLeft className="mr-2 size-4" />
+          Back to orders
+        </Link>
+      </div>
       <PageHeader
         title={`Order for ${order.data.customerSnapshot.name}`}
         description={`Created ${formatDate(order.data.createdAt)} from ${order.data.source.replace("_", " ")}.`}

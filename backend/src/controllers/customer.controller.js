@@ -85,16 +85,17 @@ export const updateCustomer = asyncHandler(async (req, res) => {
     return sendError(res, "Customer not found", 404);
   }
 
-  const { notes, tags, instagram, email } = req.body;
+  const { notes, tags, instagram, email, measurements } = req.body;
 
   if (notes !== undefined) customer.notes = notes;
   if (tags !== undefined) customer.tags = tags;
   if (instagram !== undefined) customer.instagram = instagram;
   if (email !== undefined) customer.email = email;
+  if (measurements !== undefined) customer.measurements = measurements;
 
   await customer.save();
 
-  return sendSuccess(res, customer, "Customer updated successfully");
+  return sendSuccess(res, customer.toObject(), "Customer updated successfully");
 });
 
 /* ── DELETE /api/customers/:id ──────────────────────────────────── */

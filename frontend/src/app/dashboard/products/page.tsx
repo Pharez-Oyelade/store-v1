@@ -134,7 +134,9 @@ function ProductRow({
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-4 py-3">
-        <p className="font-medium text-gray-950">{product.name}</p>
+        <Link href={`/dashboard/products/${product._id}`} className="font-medium text-gray-950 hover:underline">
+          {product.name}
+        </Link>
         <p className="text-xs text-gray-500">
           {product.category || "Uncategorized"} · {product.variants.length}{" "}
           variants

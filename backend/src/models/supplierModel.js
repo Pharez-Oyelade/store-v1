@@ -77,12 +77,61 @@ const supplierSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+    totalPurchaseAmount: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+    
+    /* Individual purchases from this supplier */
+    purchases: {
+      type: [
+        {
+          description: { type: String, required: true },
+          amount: { type: Number, required: true, min: 0 },
+          paidAmount: { type: Number, default: 0, min: 0 },
+          status: { type: String, enum: ["ordered", "delivered"], default: "ordered" },
+          date: { type: Date, default: Date.now },
+        }
+      ],
+      default: []
+    }
   },
   { timestamps: true },
 );
 
 supplierSchema.index({ vendor: 1, status: 1 });
 supplierSchema.index({ vendor: 1, name: "text", materials: "text" });
+
+/* ── Pre-save: update amounts and dates ── */
+supplierSchema.pre("save", function () {
+  if (this.purchases && this.purchases.length > 0) {
+    // To find the last purchase, we look at the one with the latest date. 
+    // If dates are identical (e.g. same day), the one added last (at the end of the array) wins.
+    let lastPurchase = this.purchases[0];
+    for (let i = 1; i < this.purchases.length; i++) {
+      const p = this.purchases[i];
+      if (new Date(p.date).getTime() >= new Date(lastPurchase.date).getTime()) {
+        lastPurchase = p;
+      }
+    }
+    
+    this.lastPurchaseAmount = lastPurchase.amount;
+    this.lastPurchaseDate = lastPurchase.date;
+
+    // Compute totals
+    const totalAmount = this.purchases.reduce((sum, p) => sum + (p.amount || 0), 0);
+    const totalPaid = this.purchases.reduce((sum, p) => sum + (p.paidAmount || 0), 0);
+    
+    this.totalPurchaseAmount = totalAmount;
+    this.outstandingBalance = totalAmount - totalPaid;
+  } else {
+    this.lastPurchaseAmount = 0;
+    this.lastPurchaseDate = null;
+    this.totalPurchaseAmount = 0;
+    this.outstandingBalance = 0;
+  }
+});
 
 const Supplier = mongoose.model("Supplier", supplierSchema);
 

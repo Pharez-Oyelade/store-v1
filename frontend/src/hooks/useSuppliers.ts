@@ -28,7 +28,8 @@ interface SupplierSummary {
   total: number;
   preferred: number;
   outstandingBalance: number;
-  lastPurchaseTotal: number;
+  totalPurchaseAmount: number;
+  pendingDeliveries: number;
 }
 
 function buildQuery(params?: SupplierQueryParams) {

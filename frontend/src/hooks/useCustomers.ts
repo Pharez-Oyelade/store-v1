@@ -63,7 +63,10 @@ export function useUpdateCustomer(id: string) {
       apiPut<Customer>(`/customers/${id}`, data),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
-      queryClient.setQueryData(CUSTOMER_KEYS.detail(id), updated);
+      queryClient.setQueryData(CUSTOMER_KEYS.detail(id), (old: any) => {
+        if (!old) return updated;
+        return { ...old, ...updated };
+      });
       toast.success("Customer updated");
     },
     onError: (error: Error) => {

@@ -71,6 +71,16 @@ const customerSchema = new mongoose.Schema(
       type: [String],
       default: [],
     },
+
+    /*
+     * Custom measurements (e.g., Chest: 40, Waist: 32).
+     * Handled as a dynamic Map of strings.
+     */
+    measurements: {
+      type: Map,
+      of: String,
+      default: {},
+    },
   },
   { timestamps: true },
 );
