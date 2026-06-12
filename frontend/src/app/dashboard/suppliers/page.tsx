@@ -40,13 +40,16 @@ export default function SuppliersPage() {
         title="Suppliers"
         description="Manage the material vendors, makers, packaging partners and tool suppliers behind production."
         action={
-          <Button
-            type="button"
-            leftIcon={<Plus className="size-4" />}
-            onClick={() => setSelected(null)}
-          >
-            New supplier
-          </Button>
+          <a href="#new_supplier">
+            <Button
+              type="button"
+              leftIcon={<Plus className="size-4" />}
+              onClick={() => setSelected(null)}
+              className="w-full"
+            >
+              New supplier
+            </Button>
+          </a>
         }
       />
 
@@ -184,7 +187,9 @@ export default function SuppliersPage() {
           )}
         </section>
 
-        <SupplierForm supplier={selected} onSaved={() => setSelected(null)} />
+        <div id="new_supplier">
+          <SupplierForm supplier={selected} onSaved={() => setSelected(null)} />
+        </div>
       </div>
     </div>
   );
