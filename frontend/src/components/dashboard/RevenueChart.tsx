@@ -22,8 +22,8 @@ export default function RevenueChart({ data }: { data: RevenueDataPoint[] }) {
         >
           <defs>
             <linearGradient id="revenueFill" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#16a34a" stopOpacity={0.28} />
-              <stop offset="95%" stopColor="#16a34a" stopOpacity={0.02} />
+              <stop offset="5%" stopColor="#1618a3" stopOpacity={0.28} />
+              <stop offset="95%" stopColor="#2916a3" stopOpacity={0.02} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
