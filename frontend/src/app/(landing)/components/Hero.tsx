@@ -79,14 +79,14 @@ const Hero = () => {
         transition={{ delay: 0.5, duration: 0.5, ease: "circIn" }}
         className="relative w-full md:w-1/2"
       >
-        <div className="w-full p-4 border-2 border-brand-400 rounded-lg overflow-hidden group shadow-lg">
+        <div className="w-full p-2 border-2 border-brand-400 rounded-lg overflow-hidden group shadow-lg">
           <Image
-            width={700}
-            height={700}
-            src="/sabi_screenshot.png"
+            width={800}
+            height={800}
+            src="/vendra_dashboard.png"
             alt="Hero Image"
             loading="eager"
-            className="w-full h-full rounded-xl group:hover:scale-90 transition-transform duration-300"
+            className="w-full h-full rounded-lg group:hover:scale-90 transition-transform duration-300"
           />
 
           {/* floating card */}
