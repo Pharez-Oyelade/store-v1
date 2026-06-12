@@ -79,7 +79,7 @@ const Hero = () => {
         transition={{ delay: 0.5, duration: 0.5, ease: "circIn" }}
         className="relative w-full md:w-1/2"
       >
-        <div className="w-full p-2 border-2 border-brand-400 rounded-lg overflow-hidden group shadow-lg">
+        <div className="w-full p-1 md:p-2 border-2 border-brand-400 rounded-lg overflow-hidden group shadow-lg">
           <Image
             width={800}
             height={800}
