@@ -47,6 +47,9 @@ export default function LoginPage() {
     <div className="flex gap-20 items-center h-full overflow-hidden">
       <div className="relative hidden md:block w-full h-full overflow-hidden">
         <div className="absolute w-full h-full bg-black/80" />
+        <p className="absolute w-full bottom-10 text-xl font-semibold text-white left-5">
+          <span className="text-4xl">"</span>Precision is the new Aesthetic
+        </p>
         <Image
           src="/storefront.jpg"
           width={500}
@@ -123,6 +126,16 @@ export default function LoginPage() {
             Sign In
           </Button>
         </form>
+
+        <p className="text-center text-sm text-gray-500 mt-6">
+          New to Vendra?{" "}
+          <Link
+            href="/register"
+            className="text-brand-700 font-semibold hover:text-brand-800"
+          >
+            Create an Account →
+          </Link>
+        </p>
       </div>
     </div>
   );

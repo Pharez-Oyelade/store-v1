@@ -423,6 +423,9 @@ export default function RegisterPage() {
           className="w-full"
           alt="login_image"
         />
+        <p className="absolute w-full bottom-10 text-xl font-semibold text-white left-100">
+          <span className="text-4xl">"</span>Precision is the new Aesthetic
+        </p>
       </div>
     </div>
   );
