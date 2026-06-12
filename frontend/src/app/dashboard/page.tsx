@@ -125,7 +125,7 @@ export default function DashboardPage() {
               href="/dashboard/analytics"
               className="text-sm font-medium text-brand-700"
             >
-              Analytics
+              <span className="text-brand-700">Analytics</span>
             </Link>
           </div>
           <RevenueChart data={revenue.data ?? []} />
@@ -173,7 +173,7 @@ export default function DashboardPage() {
               href="/dashboard/orders"
               className="text-sm font-medium text-brand-700"
             >
-              View all
+              <span className="text-brand-700">View all</span>
             </Link>
           </div>
           {orders.data?.orders.length ? (
@@ -236,7 +236,7 @@ export default function DashboardPage() {
               href="/dashboard/products"
               className="text-sm font-medium text-brand-700"
             >
-              Inventory
+              <span className="text-brand-700">Inventory</span>
             </Link>
           </div>
           <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
