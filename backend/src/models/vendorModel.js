@@ -99,7 +99,7 @@ const vendorSchema = new mongoose.Schema(
     /* ── Subscription (populated later) ──────────────── */
     subscriptionPlan: {
       type: String,
-      enum: ["free", "starter", "growth", "agency"],
+      enum: ["free", "stitch", "drape", "atelier", "maison"],
       default: "free",
     },
 
@@ -107,6 +107,35 @@ const vendorSchema = new mongoose.Schema(
       type: String,
       enum: ["active", "inactive", "past_due"],
       default: "active",
+    },
+
+    /* ── Storefront Settings ────────────────────────────── */
+    storefrontSettings: {
+      themeColor: { type: String, default: "#E2A03F" },
+      accentColor: { type: String, default: "#1F2937" },
+      bannerImage: {
+        url: { type: String, default: "" },
+        publicId: { type: String, default: "" },
+      },
+      customDomain: { type: String, default: "" },
+      customCss: { type: String, default: "" },
+      announcementText: { type: String, default: "" },
+    },
+
+    /* ── Social Messaging Templates ─────────────────────── */
+    socialMessaging: {
+      orderConfirmedTemplate: {
+        type: String,
+        default: "Hi {customerName}, your order with {businessName} is confirmed! Total: ₦{totalAmount}. Balance: ₦{balanceOwed}.",
+      },
+      orderDispatchedTemplate: {
+        type: String,
+        default: "Hi {customerName}, your order is out for delivery! Track code: {trackingCode}.",
+      },
+      orderCompletedTemplate: {
+        type: String,
+        default: "Thank you for shopping with {businessName}, {customerName}! We'd love your feedback.",
+      },
     },
 
     /* ── Password Reset ───────────────────────────────────── */

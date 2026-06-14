@@ -159,24 +159,24 @@ const page = () => {
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
                     <span>
-                      Up to <b>50</b> products
+                      Up to <b>15</b> products
                     </span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>20 orders per month</span>
+                    <span>10 orders per month</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Basic customer list (up to 50)</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>Basic sales summary & analytics</span>
+                    <span>Basic customer list (up to 20)</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
                     <span>Email support</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <X color="#808080" size={18} />{" "}
+                    <span>Sales summary & analytics</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <X color="#808080" size={18} />{" "}

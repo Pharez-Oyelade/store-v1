@@ -20,7 +20,23 @@ export default function StorefrontPage() {
   const storefrontPath = profile.data?.handle ? `/store/${profile.data.handle}` : "/store";
 
   return (
-    <div className="mx-auto max-w-7xl">
+    <div className="mx-auto max-w-7xl relative">
+      {(!profile.data?.subscriptionPlan || profile.data?.subscriptionPlan === "free" || profile.data?.subscriptionPlan === "stitch") && (
+        <div className="absolute inset-0 z-10 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800">
+          <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl text-center max-w-md border border-gray-100 dark:border-gray-800">
+            <div className="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
+              <Store className="h-6 w-6 text-amber-600 dark:text-amber-500" />
+            </div>
+            <h3 className="text-xl font-bold mb-2">Premium Feature</h3>
+            <p className="text-gray-600 dark:text-gray-400 mb-6">
+              Public storefronts are available on The Drape, The Atelier, and The Maison plans. Upgrade to unlock your own branded discovery page.
+            </p>
+            <Link href="/dashboard/settings">
+              <button className="w-full bg-brand-600 text-white py-2 rounded-lg font-medium hover:bg-brand-700 transition">Upgrade Plan</button>
+            </Link>
+          </div>
+        </div>
+      )}
       <PageHeader
         title="Storefront"
         description="Control the public details buyers see before they continue on WhatsApp or Instagram."

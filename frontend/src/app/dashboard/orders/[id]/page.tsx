@@ -3,6 +3,8 @@
 import { useParams } from "next/navigation";
 import { ArrowLeft, MessageCircle, Save } from "lucide-react";
 import Link from "next/link";
+import { useAuthStore } from "@/store/authStore";
+import toast from "react-hot-toast";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -36,7 +38,21 @@ export default function OrderDetailPage() {
     );
   }
 
-  const message = buildOrderMessage(order.data);
+  let whatsappLink = order.data.whatsappLinks?.confirmed;
+  let whatsappLabel = "WhatsApp Confirmed";
+
+  if (order.data.status === OrderStatus.Dispatched) {
+    whatsappLink = order.data.whatsappLinks?.dispatched;
+    whatsappLabel = "WhatsApp Dispatched";
+  } else if (order.data.status === OrderStatus.Completed) {
+    whatsappLink = order.data.whatsappLinks?.completed;
+    whatsappLabel = "WhatsApp Completed";
+  }
+
+  if (!whatsappLink) {
+    const message = buildOrderMessage(order.data);
+    whatsappLink = buildWhatsAppLink(order.data.customerSnapshot.phone, message);
+  }
 
   return (
     <div className="mx-auto max-w-6xl">
@@ -54,14 +70,14 @@ export default function OrderDetailPage() {
         description={`Created ${formatDate(order.data.createdAt)} from ${order.data.source.replace("_", " ")}.`}
         action={
           <a
-            href={buildWhatsAppLink(order.data.customerSnapshot.phone, message)}
+            href={whatsappLink}
             target="_blank"
             rel="noreferrer"
             onClick={() => updateOrder.mutate({ whatsappSent: true })}
             className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
           >
             <MessageCircle className="size-4 text-white" />
-            <span className="text-white">WhatsApp</span>
+            <span className="text-white">{whatsappLabel}</span>
           </a>
         }
       />
@@ -133,6 +149,59 @@ function OrderControl({
   order: Order;
   updateOrder: ReturnType<typeof useUpdateOrder>;
 }) {
+  const vendor = useAuthStore((s) => s.vendor);
+  const isPremium = vendor?.subscriptionPlan === "atelier" || vendor?.subscriptionPlan === "maison";
+
+  const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = event.target.value as OrderStatus;
+    updateOrder.mutate({ status: newStatus });
+
+    if (isPremium) {
+      let link = "";
+      let label = "";
+
+      if (newStatus === OrderStatus.Confirmed) {
+        link = order.whatsappLinks?.confirmed || "";
+        label = "Order Confirmed";
+      } else if (newStatus === OrderStatus.Dispatched) {
+        link = order.whatsappLinks?.dispatched || "";
+        label = "Order Dispatched";
+      } else if (newStatus === OrderStatus.Completed) {
+        link = order.whatsappLinks?.completed || "";
+        label = "Order Completed";
+      }
+
+      if (link) {
+        toast((t) => (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium text-gray-900">Status changed to {newStatus}. Send update to customer?</p>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => toast.dismiss(t.id)} 
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+              >
+                Skip
+              </button>
+              <a 
+                href={link} 
+                target="_blank" 
+                rel="noreferrer"
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  updateOrder.mutate({ whatsappSent: true });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded transition-colors"
+              >
+                <MessageCircle className="size-3" />
+                Send WhatsApp
+              </a>
+            </div>
+          </div>
+        ), { duration: 6000, id: `status-toast-${newStatus}` });
+      }
+    }
+  };
+
   return (
     <aside className="space-y-4 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
       <h2 className="text-base font-semibold text-gray-950">Manage order</h2>
@@ -140,9 +209,7 @@ function OrderControl({
         <FieldLabel>Status</FieldLabel>
         <NativeSelect
           value={order.status}
-          onChange={(event) =>
-            updateOrder.mutate({ status: event.target.value as OrderStatus })
-          }
+          onChange={handleStatusChange}
         >
           {Object.values(OrderStatus).map((value) => (
             <option key={value} value={value}>
@@ -181,11 +248,46 @@ function OrderControl({
           onBlur={(event) => updateOrder.mutate({ notes: event.target.value })}
         />
       </div>
+
+      <div className="pt-4 border-t border-gray-100">
+        <h3 className="text-sm font-medium text-gray-950 mb-3">Send Updates</h3>
+        <div className="space-y-2">
+          <a
+            href={order.whatsappLinks?.confirmed || buildWhatsAppLink(order.customerSnapshot.phone, buildOrderMessage(order))}
+            target="_blank"
+            rel="noreferrer"
+            onClick={() => updateOrder.mutate({ whatsappSent: true })}
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            <MessageCircle className="size-4 text-[#25D366]" />
+            Order Confirmed
+          </a>
+          <a
+            href={order.whatsappLinks?.dispatched || buildWhatsAppLink(order.customerSnapshot.phone, "Your order has been dispatched!")}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            <MessageCircle className="size-4 text-[#25D366]" />
+            Order Dispatched
+          </a>
+          <a
+            href={order.whatsappLinks?.completed || buildWhatsAppLink(order.customerSnapshot.phone, "Thank you for shopping with us!")}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 w-full px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+          >
+            <MessageCircle className="size-4 text-[#25D366]" />
+            Order Completed
+          </a>
+        </div>
+      </div>
+
       <Button
         type="button"
         isLoading={updateOrder.isPending}
         leftIcon={<Save className="size-4" />}
-        className="w-full"
+        className="w-full mt-4"
       >
         Saved automatically
       </Button>

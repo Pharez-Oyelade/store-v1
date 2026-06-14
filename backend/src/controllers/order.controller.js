@@ -3,6 +3,8 @@ import Customer from "../models/customerModel.js";
 import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { buildDynamicWhatsAppLink } from "../services/whatsapp.service.js";
+import { createNotification } from "../services/notification.service.js";
 
 /* ── GET /api/orders ────────────────────────────────────────────── */
 export const getOrders = asyncHandler(async (req, res) => {
@@ -29,7 +31,7 @@ export const getOrders = asyncHandler(async (req, res) => {
   const skip = (Number(page) - 1) * Number(limit);
   const sortDir = sortOrder === "asc" ? 1 : -1;
 
-  const [orders, total] = await Promise.all([
+  const [ordersRaw, total] = await Promise.all([
     Order.find(filter)
       .sort({ [sort]: sortDir })
       .skip(skip)
@@ -37,6 +39,18 @@ export const getOrders = asyncHandler(async (req, res) => {
       .lean(),
     Order.countDocuments(filter),
   ]);
+
+  const orders = await Promise.all(
+    ordersRaw.map(async (orderObj) => {
+      const confirmed = await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderConfirmedTemplate");
+      const dispatched = await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderDispatchedTemplate");
+      const completed = await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderCompletedTemplate");
+      return {
+        ...orderObj,
+        whatsappLinks: { confirmed, dispatched, completed },
+      };
+    })
+  );
 
   const totalPages = Math.ceil(total / Number(limit));
 
@@ -88,7 +102,14 @@ export const getOrder = asyncHandler(async (req, res) => {
     return sendError(res, "Order not found", 404);
   }
 
-  return sendSuccess(res, order);
+  const orderObj = order.toObject();
+  orderObj.whatsappLinks = {
+    confirmed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderConfirmedTemplate"),
+    dispatched: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderDispatchedTemplate"),
+    completed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderCompletedTemplate"),
+  };
+
+  return sendSuccess(res, orderObj);
 });
 
 /* ── POST /api/orders ───────────────────────────────────────────── */
@@ -146,7 +167,21 @@ export const createOrder = asyncHandler(async (req, res) => {
     source,
   });
 
-  return sendSuccess(res, order, "Order created successfully", 201);
+  const orderObj = order.toObject();
+  orderObj.whatsappLinks = {
+    confirmed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderConfirmedTemplate"),
+    dispatched: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderDispatchedTemplate"),
+    completed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderCompletedTemplate"),
+  };
+
+  await createNotification(vendorId, {
+    title: "New Order Created",
+    message: `Order #${order._id.toString().slice(-6).toUpperCase()} has been created for ${customerName} (Total: ₦${totalAmount.toLocaleString("en-NG")}).`,
+    type: "order_status",
+    actionUrl: `/dashboard/orders/${order._id}`,
+  });
+
+  return sendSuccess(res, orderObj, "Order created successfully", 201);
 });
 
 /* ── PUT /api/orders/:id ────────────────────────────────────────── */
@@ -200,6 +235,13 @@ export const updateOrder = asyncHandler(async (req, res) => {
       order.stockDepleted = false;
       await order.save();
     }
+
+    await createNotification(order.vendor, {
+      title: "Order Status Updated",
+      message: `Order #${order._id.toString().slice(-6).toUpperCase()} status has changed to "${status}".`,
+      type: "order_status",
+      actionUrl: `/dashboard/orders/${order._id}`,
+    });
   }
 
   /*
@@ -209,7 +251,14 @@ export const updateOrder = asyncHandler(async (req, res) => {
     await updateCustomerStats(order);
   }
 
-  return sendSuccess(res, order, "Order updated successfully");
+  const orderObj = order.toObject();
+  orderObj.whatsappLinks = {
+    confirmed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderConfirmedTemplate"),
+    dispatched: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderDispatchedTemplate"),
+    completed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderCompletedTemplate"),
+  };
+
+  return sendSuccess(res, orderObj, "Order updated successfully");
 });
 
 /* ── DELETE /api/orders/:id ─────────────────────────────────────── */
@@ -320,6 +369,15 @@ async function depleteInventory(order) {
     if (allSoldOut) product.status = "sold_out";
 
     await product.save();
+
+    if (variant.quantity <= 3) {
+      await createNotification(order.vendor, {
+        title: "Low Stock Alert",
+        message: `Variant "${variant.label}" of product "${product.name}" is running low on stock (${variant.quantity} left).`,
+        type: "low_stock",
+        actionUrl: `/dashboard/products/edit/${product._id}`,
+      });
+    }
   }
 }
 

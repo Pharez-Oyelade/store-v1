@@ -13,6 +13,8 @@ import {
 import { useDeleteOrder, useOrders, useUpdateOrder } from "@/hooks/useOrders";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { OrderStatus, type Order } from "@/types";
+import { useAuthStore } from "@/store/authStore";
+import toast from "react-hot-toast";
 
 export default function OrdersPage() {
   const searchParams = useSearchParams();
@@ -86,6 +88,51 @@ export default function OrdersPage() {
 
 function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
   const updateOrder = useUpdateOrder(order._id);
+  const vendor = useAuthStore((s) => s.vendor);
+  const isPremium = vendor?.subscriptionPlan === "atelier" || vendor?.subscriptionPlan === "maison";
+
+  const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = event.target.value as OrderStatus;
+    updateOrder.mutate({ status: newStatus });
+
+    if (isPremium) {
+      let link = "";
+
+      if (newStatus === OrderStatus.Confirmed) link = order.whatsappLinks?.confirmed || "";
+      else if (newStatus === OrderStatus.Dispatched) link = order.whatsappLinks?.dispatched || "";
+      else if (newStatus === OrderStatus.Completed) link = order.whatsappLinks?.completed || "";
+
+      if (link) {
+        toast((t) => (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium text-gray-900">Status changed to {newStatus}. Send update to customer?</p>
+            <div className="flex gap-2">
+              <button 
+                onClick={() => toast.dismiss(t.id)} 
+                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+              >
+                Skip
+              </button>
+              <a 
+                href={link} 
+                target="_blank" 
+                rel="noreferrer"
+                onClick={() => {
+                  toast.dismiss(t.id);
+                  updateOrder.mutate({ whatsappSent: true });
+                }}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded transition-colors"
+              >
+                <MessageCircle className="size-3" />
+                Send WhatsApp
+              </a>
+            </div>
+          </div>
+        ), { duration: 6000, id: `status-toast-${newStatus}-${order._id}` });
+      }
+    }
+  };
+
   const message = buildOrderMessage(order);
 
   return (
@@ -108,9 +155,7 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
           <NativeSelect
             className="h-8 w-32"
             value={order.status}
-            onChange={(event) =>
-              updateOrder.mutate({ status: event.target.value as OrderStatus })
-            }
+            onChange={handleStatusChange}
           >
             {Object.values(OrderStatus).map((value) => (
               <option key={value} value={value}>

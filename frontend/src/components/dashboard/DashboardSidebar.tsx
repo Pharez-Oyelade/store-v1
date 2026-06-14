@@ -107,6 +107,16 @@ export default function DashboardSidebar() {
             </div>
           )}
         </div>
+        
+        {(!vendor?.subscriptionPlan || vendor.subscriptionPlan === "free") && !collapsed && (
+          <div className="mt-3 mb-1 px-3 py-3 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+            <p className="text-xs text-brand-200 font-medium mb-2">You are on the Free plan. Upgrade to unlock more features.</p>
+            <Link href="/dashboard/settings" className="block text-center w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold py-1.5 rounded transition-colors">
+              Upgrade Now
+            </Link>
+          </div>
+        )}
+
         <button
           onClick={() => logout()}
           className={cn(

@@ -18,6 +18,11 @@ export interface VendorProfilePayload {
   instagram?: string;
   whatsapp?: string;
   email?: string;
+  socialMessaging?: {
+    orderConfirmedTemplate?: string;
+    orderDispatchedTemplate?: string;
+    orderCompletedTemplate?: string;
+  };
 }
 
 export function useVendorProfile() {
