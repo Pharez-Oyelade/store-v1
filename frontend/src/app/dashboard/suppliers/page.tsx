@@ -27,10 +27,13 @@ import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { SupplierCategory, SupplierStatus, type Supplier } from "@/types";
 import { Banknote, Handshake, Star, WalletCards, Package } from "lucide-react";
 
+import { PaginationControls } from "@/components/ui/PaginationControls";
+
 export default function SuppliersPage() {
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [selected, setSelected] = useState<Supplier | null>(null);
-  const suppliers = useSuppliers({ page: 1, limit: 50, search });
+  const suppliers = useSuppliers({ page, limit: 10, search });
   const summary = useSupplierSummary();
   const deleteSupplier = useDeleteSupplier();
 
@@ -178,6 +181,16 @@ export default function SuppliersPage() {
                   ))}
                 </tbody>
               </table>
+              
+              {suppliers.data?.pagination && (
+                <PaginationControls
+                  currentPage={suppliers.data.pagination.page}
+                  totalPages={suppliers.data.pagination.totalPages}
+                  hasNextPage={suppliers.data.pagination.hasNextPage}
+                  hasPrevPage={suppliers.data.pagination.hasPrevPage}
+                  onPageChange={(newPage) => setPage(newPage)}
+                />
+              )}
             </TableShell>
           ) : (
             <EmptyState

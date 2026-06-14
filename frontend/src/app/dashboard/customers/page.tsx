@@ -12,9 +12,12 @@ import {
 import { useCustomers, useDeleteCustomer } from "@/hooks/useCustomers";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 
+import { PaginationControls } from "@/components/ui/PaginationControls";
+
 export default function CustomersPage() {
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const customers = useCustomers({ page: 1, limit: 50, search });
+  const customers = useCustomers({ page, limit: 10, search });
   const deleteCustomer = useDeleteCustomer();
 
   return (
@@ -84,6 +87,16 @@ export default function CustomersPage() {
               ))}
             </tbody>
           </table>
+          
+          {customers.data?.pagination && (
+            <PaginationControls
+              currentPage={customers.data.pagination.page}
+              totalPages={customers.data.pagination.totalPages}
+              hasNextPage={customers.data.pagination.hasNextPage}
+              hasPrevPage={customers.data.pagination.hasPrevPage}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
+          )}
         </TableShell>
       ) : (
         <EmptyState

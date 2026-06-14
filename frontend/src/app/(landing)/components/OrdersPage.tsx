@@ -15,13 +15,16 @@ import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { OrderStatus, type Order } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
+import { useState } from "react";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 export default function OrdersPage() {
+  const [page, setPage] = useState(1);
   const searchParams = useSearchParams();
   const initialStatus = searchParams.get("status") as OrderStatus | null;
   const orders = useOrders({
-    page: 1,
-    limit: 50,
+    page,
+    limit: 10,
     status: initialStatus ?? undefined,
   });
   const deleteOrder = useDeleteOrder();
@@ -73,6 +76,16 @@ export default function OrdersPage() {
               ))}
             </tbody>
           </table>
+          
+          {orders.data?.pagination && (
+            <PaginationControls
+              currentPage={orders.data.pagination.page}
+              totalPages={orders.data.pagination.totalPages}
+              hasNextPage={orders.data.pagination.hasNextPage}
+              hasPrevPage={orders.data.pagination.hasPrevPage}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
+          )}
         </TableShell>
       ) : (
         <EmptyState

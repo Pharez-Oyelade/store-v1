@@ -18,13 +18,15 @@ import {
 } from "@/hooks/useProducts";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import { ProductStatus, type Product } from "@/types";
+import { PaginationControls } from "@/components/ui/PaginationControls";
 
 export default function ProductsPage() {
+  const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProductStatus | "">("");
   const params = useMemo(
-    () => ({ page: 1, limit: 50, search, status: status || undefined }),
-    [search, status],
+    () => ({ page, limit: 10, search, status: status || undefined }),
+    [page, search, status],
   );
   const products = useProducts(params);
   const deleteProduct = useDeleteProduct();
@@ -95,6 +97,15 @@ export default function ProductsPage() {
               ))}
             </tbody>
           </table>
+          {products.data?.pagination && (
+            <PaginationControls
+              currentPage={products.data.pagination.page}
+              totalPages={products.data.pagination.totalPages}
+              hasNextPage={products.data.pagination.hasNextPage}
+              hasPrevPage={products.data.pagination.hasPrevPage}
+              onPageChange={(newPage) => setPage(newPage)}
+            />
+          )}
         </TableShell>
       ) : (
         <EmptyState
