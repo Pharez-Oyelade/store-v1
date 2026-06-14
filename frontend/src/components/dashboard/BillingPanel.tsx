@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/Button";
 import { CheckCircle2, CreditCard, Loader2, Calendar } from "lucide-react";
 import { useInitializeUpgrade, useVerifyUpgrade, useCurrentSubscription } from "@/hooks/useSubscription";
 import { usePaystackInline } from "@/hooks/usePaystackInline";
+import { SubscriptionPlan, SubscriptionStatus } from "@/types";
 import { useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 
@@ -32,14 +33,14 @@ export function BillingPanel() {
     
     setSelectedPlan(planId);
     try {
-      const data = await initUpgradeMutation.mutateAsync({ plan: planId });
+      const data = (await initUpgradeMutation.mutateAsync({ plan: planId })) as any;
       
       if (data.isFree) {
         toast.success(`Successfully changed to ${PLANS.find(p => p.id === planId)?.name} plan`);
         queryClient.invalidateQueries({ queryKey: ["subscription", "current"] });
         queryClient.invalidateQueries({ queryKey: ["auth", "me"] });
         if (vendor) {
-          setVendor({ ...vendor, subscriptionPlan: planId, subscriptionStatus: "active" });
+          setVendor({ ...vendor, subscriptionPlan: planId as SubscriptionPlan, subscriptionStatus: SubscriptionStatus.Active });
         }
         setSelectedPlan(null);
         return;
@@ -48,7 +49,7 @@ export function BillingPanel() {
       initializePayment({
         key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY || "pk_test_placeholder",
         email: vendor?.email || `vendor-${vendor?._id}@sabistore.com`,
-        amount: PLANS.find(p => p.id === planId)!.price.replace(/\D/g, "") + "00",
+        amount: parseInt(PLANS.find(p => p.id === planId)!.price.replace(/\D/g, "") + "00", 10),
         metadata: {
           vendorId: vendor?._id,
           plan: planId,
@@ -77,10 +78,10 @@ export function BillingPanel() {
           <h2 className="text-xl font-bold tracking-tight text-gray-900 dark:text-white">Subscription & Billing</h2>
         </div>
         
-        {subscription?.currentPeriodEnd && currentPlan !== "free" && (
+        {(subscription as any)?.currentPeriodEnd && currentPlan !== "free" && (
           <div className="flex items-center space-x-2 bg-brand-50 dark:bg-brand-900/10 text-brand-700 dark:text-brand-300 px-4 py-2 rounded-lg text-sm font-medium border border-brand-100 dark:border-brand-800/50">
             <Calendar className="w-4 h-4" />
-            <span>Next billing date: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}</span>
+            <span>Next billing date: {new Date((subscription as any).currentPeriodEnd).toLocaleDateString()}</span>
           </div>
         )}
       </div>
@@ -122,7 +123,7 @@ export function BillingPanel() {
               </ul>
               
               <Button
-                variant={isCurrent ? "outline" : isDowngrade ? "ghost" : "primary"}
+                variant={isCurrent ? "outline" : isDowngrade ? "ghost" : "default"}
                 className={`w-full ${isDowngrade ? 'border border-gray-200 dark:border-gray-700' : ''}`}
                 disabled={isCurrent || !isLoaded || (isProcessing && selectedPlan === plan.id)}
                 onClick={() => handleUpgrade(plan.id)}

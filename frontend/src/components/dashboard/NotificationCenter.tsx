@@ -15,8 +15,8 @@ export default function NotificationCenter() {
   const readMutation = useReadNotification();
   const readAllMutation = useReadAllNotifications();
 
-  const notifications = response?.data?.notifications || [];
-  const unreadCount = response?.data?.unreadCount || 0;
+  const notifications = (response as any)?.data?.notifications || [];
+  const unreadCount = (response as any)?.data?.unreadCount || 0;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {

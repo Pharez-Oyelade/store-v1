@@ -1,5 +1,11 @@
 import { useEffect, useState } from "react";
 
+declare global {
+  interface Window {
+    PaystackPop: any;
+  }
+}
+
 export const usePaystackInline = () => {
   const [isLoaded, setIsLoaded] = useState(false);
 
@@ -20,7 +26,7 @@ export const usePaystackInline = () => {
     };
   }, []);
 
-  const initializePayment = ({ key, email, amount, metadata, onSuccess, onClose }) => {
+  const initializePayment = ({ key, email, amount, metadata, onSuccess, onClose }: { key: string, email: string, amount: number, metadata?: any, onSuccess?: (res: any) => void, onClose?: () => void }) => {
     if (!isLoaded || !window.PaystackPop) {
       console.error("Paystack inline script not loaded yet");
       return;
@@ -31,7 +37,7 @@ export const usePaystackInline = () => {
       email,
       amount,
       metadata,
-      callback: (response) => {
+      callback: (response: any) => {
         if (onSuccess) onSuccess(response);
       },
       onClose: () => {
