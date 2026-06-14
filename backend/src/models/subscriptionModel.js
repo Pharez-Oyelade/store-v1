@@ -2,24 +2,27 @@ import mongoose from "mongoose";
 
 /*
  * Subscription plans mirror the PRD pricing tiers:
- *   free     → ₦0/mo   | 10 products | 50 orders/mo  | 1 team seat
- *   starter  → ₦5,000  | 100 products | 500 orders/mo | 2 team seats
- *   growth   → ₦12,000 | unlimited    | unlimited     | 5 team seats
- *   agency   → ₦25,000 | unlimited    | unlimited     | 15 team seats (white-label)
+ *   free     → ₦0/mo   | 5 products | 5 orders/mo  | 1 team seat
+ *   stitch   → ₦4,900  | 15 products | 10 orders/mo | 1 team seat
+ *   drape    → ₦14,900 | 200 products | 500 orders/mo | 3 team seats
+ *   atelier  → ₦34,900 | unlimited    | unlimited     | 10 team seats
+ *   maison   → Custom  | unlimited    | unlimited     | unlimited
  */
 
 export const PLAN_LIMITS = {
-  free: { products: 10, ordersPerMonth: 50, teamSeats: 1 },
-  starter: { products: 100, ordersPerMonth: 500, teamSeats: 2 },
-  growth: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 5 },
-  agency: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 15 },
+  free: { products: 5, ordersPerMonth: 5, teamSeats: 1 },
+  stitch: { products: 15, ordersPerMonth: 10, teamSeats: 1 },
+  drape: { products: 200, ordersPerMonth: 500, teamSeats: 3 },
+  atelier: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10 },
+  maison: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
 };
 
 export const PLAN_PRICES = {
   free: 0,
-  starter: 5000,
-  growth: 12000,
-  agency: 25000,
+  stitch: 4900,
+  drape: 14900,
+  atelier: 34900,
+  maison: 0,
 };
 
 const subscriptionSchema = new mongoose.Schema(
@@ -33,7 +36,7 @@ const subscriptionSchema = new mongoose.Schema(
 
     plan: {
       type: String,
-      enum: ["free", "starter", "growth", "agency"],
+      enum: ["free", "stitch", "drape", "atelier", "maison"],
       default: "free",
     },
 

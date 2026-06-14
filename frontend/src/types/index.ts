@@ -20,9 +20,10 @@ export enum ProductStatus {
 
 export enum SubscriptionPlan {
   Free = "free",
-  Starter = "starter",
-  Growth = "growth",
-  Agency = "agency",
+  Stitch = "stitch",
+  Drape = "drape",
+  Atelier = "atelier",
+  Maison = "maison",
 }
 
 export enum SubscriptionStatus {
@@ -126,6 +127,11 @@ export interface Vendor {
     instagram?: string;
     whatsapp?: string;
   };
+  socialMessaging?: {
+    orderConfirmedTemplate?: string;
+    orderDispatchedTemplate?: string;
+    orderCompletedTemplate?: string;
+  };
   isActive: boolean;
   subscription?: Subscription;
   subscriptionPlan?: SubscriptionPlan;
@@ -219,6 +225,11 @@ export interface Order {
     name: string;
     phone: string;
     email?: string;
+  };
+  whatsappLinks?: {
+    confirmed: string;
+    dispatched: string;
+    completed: string;
   };
   items: OrderItem[];
   totalAmount: number;

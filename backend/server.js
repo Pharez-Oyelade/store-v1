@@ -19,6 +19,8 @@ import customerRouter from "./src/routes/customer.routes.js";
 import analyticsRouter from "./src/routes/analytics.routes.js";
 import storefrontRouter from "./src/routes/storefront.routes.js";
 import supplierRouter from "./src/routes/supplier.routes.js";
+import subscriptionRouter from "./src/routes/subscription.routes.js";
+import notificationRouter from "./src/routes/notification.routes.js";
 
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
@@ -85,6 +87,8 @@ app.use("/api/orders", apiLimiter, orderRouter);
 app.use("/api/customers", apiLimiter, customerRouter);
 app.use("/api/suppliers", apiLimiter, supplierRouter);
 app.use("/api/analytics", apiLimiter, analyticsRouter);
+app.use("/api/subscriptions", subscriptionRouter); // Note: webhook handles its own rate limit, endpoints use their own logic or apiLimiter
+app.use("/api/notifications", apiLimiter, notificationRouter);
 app.use("/api/storefront", storefrontRouter); // Public — no rate limit
 
 /* ── Error Handling (must be LAST) ──────────────────────────────── */

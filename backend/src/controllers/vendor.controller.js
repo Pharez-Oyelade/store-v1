@@ -12,7 +12,7 @@ export const getProfile = asyncHandler(async (req, res) => {
 
 /* ── PUT /api/vendor/profile ────────────────────────────────────── */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { businessName, bio, state, city, area, instagram, whatsapp, email } =
+  const { businessName, bio, state, city, area, instagram, whatsapp, email, socialMessaging } =
     req.body;
 
   const vendor = await Vendor.findById(req.vendor._id);
@@ -30,6 +30,19 @@ export const updateProfile = asyncHandler(async (req, res) => {
   // Social links
   if (instagram !== undefined) vendor.socials.instagram = instagram;
   if (whatsapp !== undefined) vendor.socials.whatsapp = whatsapp;
+
+  // Social messaging templates
+  if (socialMessaging !== undefined) {
+    if (socialMessaging.orderConfirmedTemplate !== undefined) {
+      vendor.socialMessaging.orderConfirmedTemplate = socialMessaging.orderConfirmedTemplate;
+    }
+    if (socialMessaging.orderDispatchedTemplate !== undefined) {
+      vendor.socialMessaging.orderDispatchedTemplate = socialMessaging.orderDispatchedTemplate;
+    }
+    if (socialMessaging.orderCompletedTemplate !== undefined) {
+      vendor.socialMessaging.orderCompletedTemplate = socialMessaging.orderCompletedTemplate;
+    }
+  }
 
   await vendor.save();
 

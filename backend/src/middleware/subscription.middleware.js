@@ -9,7 +9,7 @@ import { sendError } from "../utils/apiResponse.js";
  */
 export const checkProductLimit = async (req, res, next) => {
   const plan = req.vendor.subscriptionPlan || "free";
-  const limit = PLAN_LIMITS[plan]?.products ?? 10;
+  const limit = PLAN_LIMITS[plan]?.products ?? 5;
 
   if (limit === Infinity) return next();
 
@@ -35,7 +35,7 @@ export const checkProductLimit = async (req, res, next) => {
  */
 export const checkOrderLimit = async (req, res, next) => {
   const plan = req.vendor.subscriptionPlan || "free";
-  const limit = PLAN_LIMITS[plan]?.ordersPerMonth ?? 50;
+  const limit = PLAN_LIMITS[plan]?.ordersPerMonth ?? 5;
 
   if (limit === Infinity) return next();
 
