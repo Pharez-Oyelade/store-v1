@@ -3,36 +3,58 @@
 import { useState } from "react";
 import { Lock, Save } from "lucide-react";
 import { PageHeader } from "@/components/dashboard/DashboardPrimitives";
-import { useVendorProfile, useUpdateVendorProfile } from "@/hooks/useVendorProfile";
+import {
+  useVendorProfile,
+  useUpdateVendorProfile,
+} from "@/hooks/useVendorProfile";
 import { Button } from "@/components/ui/Button";
 import { TextArea } from "@/components/dashboard/DashboardPrimitives";
 import Link from "next/link";
 import toast from "react-hot-toast";
 
 const DEFAULT_TEMPLATES = {
-  orderConfirmedTemplate: "Hi {customerName}, your order with {businessName} is confirmed! Total: ₦{totalAmount}. Balance: ₦{balanceOwed}.",
-  orderDispatchedTemplate: "Hi {customerName}, your order is out for delivery! Track code: {trackingCode}.",
-  orderCompletedTemplate: "Thank you for shopping with {businessName}, {customerName}! We'd love your feedback.",
+  orderConfirmedTemplate:
+    "Hi {customerName}, your order with {businessName} is confirmed! Total: ₦{totalAmount}. Balance: ₦{balanceOwed}.",
+  orderDispatchedTemplate:
+    "Hi {customerName}, your order is out for delivery! Track code: {trackingCode}.",
+  orderCompletedTemplate:
+    "Thank you for shopping with {businessName}, {customerName}! We'd love your feedback.",
 };
 
-const TOKENS = ["{customerName}", "{businessName}", "{orderId}", "{totalAmount}", "{balanceOwed}", "{trackingCode}", "{itemsList}"];
+const TOKENS = [
+  "{customerName}",
+  "{businessName}",
+  "{orderId}",
+  "{totalAmount}",
+  "{balanceOwed}",
+  "{trackingCode}",
+  "{itemsList}",
+];
 
 export default function SocialTemplatesPage() {
   const { data: profile, isLoading } = useVendorProfile();
   const updateProfile = useUpdateVendorProfile();
 
   const [templates, setTemplates] = useState({
-    orderConfirmedTemplate: profile?.socialMessaging?.orderConfirmedTemplate || DEFAULT_TEMPLATES.orderConfirmedTemplate,
-    orderDispatchedTemplate: profile?.socialMessaging?.orderDispatchedTemplate || DEFAULT_TEMPLATES.orderDispatchedTemplate,
-    orderCompletedTemplate: profile?.socialMessaging?.orderCompletedTemplate || DEFAULT_TEMPLATES.orderCompletedTemplate,
+    orderConfirmedTemplate:
+      profile?.socialMessaging?.orderConfirmedTemplate ||
+      DEFAULT_TEMPLATES.orderConfirmedTemplate,
+    orderDispatchedTemplate:
+      profile?.socialMessaging?.orderDispatchedTemplate ||
+      DEFAULT_TEMPLATES.orderDispatchedTemplate,
+    orderCompletedTemplate:
+      profile?.socialMessaging?.orderCompletedTemplate ||
+      DEFAULT_TEMPLATES.orderCompletedTemplate,
   });
 
-  const isPremium = profile?.subscriptionPlan === "atelier" || profile?.subscriptionPlan === "maison";
+  const isPremium =
+    profile?.subscriptionPlan === "atelier" ||
+    profile?.subscriptionPlan === "maison";
 
   const handleSave = async () => {
     try {
       await updateProfile.mutateAsync({
-        socialMessaging: templates
+        socialMessaging: templates,
       });
       toast.success("Templates saved successfully");
     } catch (e) {
@@ -43,7 +65,7 @@ export default function SocialTemplatesPage() {
   const renderPreview = (template: string) => {
     let preview = template;
     const mockData: Record<string, string> = {
-      "{customerName}": "Aisha",
+      "{customerName}": "Pleasant",
       "{businessName}": profile?.businessName || "Your Store",
       "{orderId}": "ORD123",
       "{totalAmount}": "15,000",
@@ -52,7 +74,7 @@ export default function SocialTemplatesPage() {
       "{itemsList}": "• Aso Oke Blouse (M / Blue) × 1 — ₦15,000",
     };
 
-    TOKENS.forEach(token => {
+    TOKENS.forEach((token) => {
       preview = preview.replaceAll(token, mockData[token] || token);
     });
 
@@ -76,7 +98,8 @@ export default function SocialTemplatesPage() {
             </div>
             <h3 className="text-xl font-bold mb-2">Premium Feature</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Custom social messaging templates are available on The Atelier and The Maison plans. Upgrade to unlock this feature.
+              Custom social messaging templates are available on The Atelier and
+              The Maison plans. Upgrade to unlock this feature.
             </p>
             <Link href="/dashboard/settings">
               <Button className="w-full">Upgrade Plan</Button>
@@ -85,13 +108,19 @@ export default function SocialTemplatesPage() {
         </div>
       )}
 
-      <div className={`space-y-8 ${!isPremium ? 'opacity-50 pointer-events-none' : ''}`}>
-        
+      <div
+        className={`space-y-8 ${!isPremium ? "opacity-50 pointer-events-none" : ""}`}
+      >
         <div className="bg-brand-purple/5 border border-brand-purple/20 p-4 rounded-xl mb-8">
-          <h4 className="font-semibold text-brand-purple mb-2">Available Variables</h4>
+          <h4 className="font-semibold text-brand-purple mb-2">
+            Available Variables
+          </h4>
           <div className="flex flex-wrap gap-2">
-            {TOKENS.map(t => (
-              <span key={t} className="px-2 py-1 bg-white dark:bg-gray-800 text-xs font-mono rounded border border-gray-200 dark:border-gray-700">
+            {TOKENS.map((t) => (
+              <span
+                key={t}
+                className="px-2 py-1 bg-white dark:bg-gray-800 text-xs font-mono rounded border border-gray-200 dark:border-gray-700"
+              >
                 {t}
               </span>
             ))}
@@ -105,14 +134,21 @@ export default function SocialTemplatesPage() {
               <span className="w-3 h-3 rounded-full bg-blue-500"></span>
               Order Confirmed
             </h3>
-            <TextArea 
+            <TextArea
               rows={4}
               value={templates.orderConfirmedTemplate}
-              onChange={(e) => setTemplates({...templates, orderConfirmedTemplate: e.target.value})}
+              onChange={(e) =>
+                setTemplates({
+                  ...templates,
+                  orderConfirmedTemplate: e.target.value,
+                })
+              }
             />
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Live Preview (WhatsApp)</h4>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Live Preview (WhatsApp)
+            </h4>
             <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
               {renderPreview(templates.orderConfirmedTemplate)}
             </div>
@@ -126,14 +162,21 @@ export default function SocialTemplatesPage() {
               <span className="w-3 h-3 rounded-full bg-amber-500"></span>
               Order Dispatched
             </h3>
-            <TextArea 
+            <TextArea
               rows={3}
               value={templates.orderDispatchedTemplate}
-              onChange={(e) => setTemplates({...templates, orderDispatchedTemplate: e.target.value})}
+              onChange={(e) =>
+                setTemplates({
+                  ...templates,
+                  orderDispatchedTemplate: e.target.value,
+                })
+              }
             />
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Live Preview (WhatsApp)</h4>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Live Preview (WhatsApp)
+            </h4>
             <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
               {renderPreview(templates.orderDispatchedTemplate)}
             </div>
@@ -147,14 +190,21 @@ export default function SocialTemplatesPage() {
               <span className="w-3 h-3 rounded-full bg-green-500"></span>
               Order Completed
             </h3>
-            <TextArea 
+            <TextArea
               rows={3}
               value={templates.orderCompletedTemplate}
-              onChange={(e) => setTemplates({...templates, orderCompletedTemplate: e.target.value})}
+              onChange={(e) =>
+                setTemplates({
+                  ...templates,
+                  orderCompletedTemplate: e.target.value,
+                })
+              }
             />
           </div>
           <div className="bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800 rounded-xl p-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">Live Preview (WhatsApp)</h4>
+            <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+              Live Preview (WhatsApp)
+            </h4>
             <div className="whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
               {renderPreview(templates.orderCompletedTemplate)}
             </div>

@@ -51,9 +51,9 @@ export default function SettingsPage() {
         </div>
         <a
           href="/dashboard/settings/templates"
-          className="inline-flex h-9 items-center justify-center rounded-md bg-brand-600 px-4 py-2 text-sm font-medium text-white shadow transition-colors hover:bg-brand-700"
+          className="inline-flex h-10 items-center justify-center rounded-md bg-brand-600 px-4 py-6 md:py-2 text-sm font-medium text-white shadow transition-colors hover:bg-brand-700"
         >
-          <span className="text-white">Edit Templates</span>
+          <span className="text-white text-center">Edit Templates</span>
         </a>
       </div>
 
