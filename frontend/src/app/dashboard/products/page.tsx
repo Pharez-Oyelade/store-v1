@@ -72,31 +72,50 @@ export default function ProductsPage() {
       </div>
 
       {productList.length ? (
-        <TableShell>
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Product</th>
-                <th className="px-4 py-3">Stock</th>
-                <th className="px-4 py-3">Price</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Updated</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {productList.map((product) => (
-                <ProductRow
-                  key={product._id}
-                  product={product}
-                  onDelete={() => {
-                    if (confirm(`Delete ${product.name}?`))
-                      deleteProduct.mutate(product._id);
-                  }}
-                />
-              ))}
-            </tbody>
-          </table>
+        <>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4 mb-4">
+            {productList.map((product) => (
+              <ProductCard
+                key={product._id}
+                product={product}
+                onDelete={() => {
+                  if (confirm(`Delete ${product.name}?`))
+                    deleteProduct.mutate(product._id);
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <TableShell>
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3">Product</th>
+                    <th className="px-4 py-3">Stock</th>
+                    <th className="px-4 py-3">Price</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Updated</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {productList.map((product) => (
+                    <ProductRow
+                      key={product._id}
+                      product={product}
+                      onDelete={() => {
+                        if (confirm(`Delete ${product.name}?`))
+                          deleteProduct.mutate(product._id);
+                      }}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </TableShell>
+          </div>
           {products.data?.pagination && (
             <PaginationControls
               currentPage={products.data.pagination.page}
@@ -106,7 +125,7 @@ export default function ProductsPage() {
               onPageChange={(newPage) => setPage(newPage)}
             />
           )}
-        </TableShell>
+        </>
       ) : (
         <EmptyState
           title="No products found"
@@ -115,6 +134,63 @@ export default function ProductsPage() {
           actionLabel="Add product"
         />
       )}
+    </div>
+  );
+}
+
+function ProductCard({
+  product,
+  onDelete,
+}: {
+  product: Product;
+  onDelete: () => void;
+}) {
+  const updateProduct = useUpdateProduct(product._id);
+  const stock = product.variants.reduce((sum, variant) => sum + variant.quantity, 0);
+  const isLow = product.variants.some((variant) => variant.quantity <= product.lowStockThreshold);
+
+  function updateStatus(nextStatus: ProductStatus) {
+    const formData = new FormData();
+    formData.append("status", nextStatus);
+    formData.append("variants", JSON.stringify(product.variants));
+    updateProduct.mutate(formData);
+  }
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <Link href={`/dashboard/products/${product._id}`} className="font-semibold text-gray-900 text-base block hover:underline">
+            {product.name}
+          </Link>
+          <p className="text-xs text-gray-500 mt-0.5">{product.category || "Uncategorized"} • {product.variants.length} variants</p>
+        </div>
+        <StatusBadge value={product.status} />
+      </div>
+
+      <div className="flex justify-between items-center py-3 border-y border-gray-50 mb-3">
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5">Price</p>
+          <p className="font-medium text-gray-900">{formatCurrency(product.basePrice)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5 text-right">Stock</p>
+          <p className={`font-medium text-right ${isLow ? 'text-accent-700' : 'text-gray-900'}`}>{stock} units</p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 items-center">
+        <NativeSelect className="flex-1 h-10" value={product.status} onChange={(e) => updateStatus(e.target.value as ProductStatus)}>
+          {Object.values(ProductStatus).map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}
+        </NativeSelect>
+        
+        <button
+          onClick={onDelete}
+          className="flex-shrink-0 flex size-10 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50"
+        >
+          <Trash2 className="size-5" />
+        </button>
+      </div>
     </div>
   );
 }

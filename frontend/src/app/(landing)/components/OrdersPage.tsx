@@ -46,36 +46,51 @@ export default function OrdersPage() {
       />
 
       {orders.data?.orders.length ? (
-        <TableShell>
-          <table className="min-w-full text-left text-sm">
-            <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-              <tr>
-                <th className="px-4 py-3">Customer</th>
-                <th className="px-4 py-3">Items</th>
-                <th className="px-4 py-3">Total</th>
-                <th className="px-4 py-3">Balance</th>
-                <th className="px-4 py-3">Status</th>
-                <th className="px-4 py-3">Date</th>
-                <th className="px-4 py-3 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {orders.data.orders.map((order) => (
-                <OrderRow
-                  key={order._id}
-                  order={order}
-                  onDelete={() => {
-                    if (
-                      confirm(
-                        `Delete order for ${order.customerSnapshot.name}?`,
-                      )
-                    )
-                      deleteOrder.mutate(order._id);
-                  }}
-                />
-              ))}
-            </tbody>
-          </table>
+        <>
+          {/* Mobile Card View */}
+          <div className="md:hidden space-y-4 mb-4">
+            {orders.data.orders.map((order) => (
+              <OrderCard
+                key={order._id}
+                order={order}
+                onDelete={() => {
+                  if (confirm(`Delete order for ${order.customerSnapshot.name}?`))
+                    deleteOrder.mutate(order._id);
+                }}
+              />
+            ))}
+          </div>
+
+          {/* Desktop Table View */}
+          <div className="hidden md:block">
+            <TableShell>
+              <table className="min-w-full text-left text-sm">
+                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                  <tr>
+                    <th className="px-4 py-3">Customer</th>
+                    <th className="px-4 py-3">Items</th>
+                    <th className="px-4 py-3">Total</th>
+                    <th className="px-4 py-3">Balance</th>
+                    <th className="px-4 py-3">Status</th>
+                    <th className="px-4 py-3">Date</th>
+                    <th className="px-4 py-3 text-right">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {orders.data.orders.map((order) => (
+                    <OrderRow
+                      key={order._id}
+                      order={order}
+                      onDelete={() => {
+                        if (confirm(`Delete order for ${order.customerSnapshot.name}?`))
+                          deleteOrder.mutate(order._id);
+                      }}
+                    />
+                  ))}
+                </tbody>
+              </table>
+            </TableShell>
+          </div>
           
           {orders.data?.pagination && (
             <PaginationControls
@@ -86,7 +101,7 @@ export default function OrdersPage() {
               onPageChange={(newPage) => setPage(newPage)}
             />
           )}
-        </TableShell>
+        </>
       ) : (
         <EmptyState
           title="No orders found"
@@ -95,6 +110,91 @@ export default function OrdersPage() {
           actionLabel="Create order"
         />
       )}
+    </div>
+  );
+}
+
+function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) {
+  const updateOrder = useUpdateOrder(order._id);
+  const vendor = useAuthStore((s) => s.vendor);
+  const isPremium = vendor?.subscriptionPlan === "atelier" || vendor?.subscriptionPlan === "maison";
+
+  const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+    const newStatus = event.target.value as OrderStatus;
+    updateOrder.mutate({ status: newStatus });
+
+    if (isPremium) {
+      let link = "";
+      if (newStatus === OrderStatus.Confirmed) link = order.whatsappLinks?.confirmed || "";
+      else if (newStatus === OrderStatus.Dispatched) link = order.whatsappLinks?.dispatched || "";
+      else if (newStatus === OrderStatus.Completed) link = order.whatsappLinks?.completed || "";
+
+      if (link) {
+        toast((t) => (
+          <div className="flex flex-col gap-3">
+            <p className="text-sm font-medium text-gray-900">Status changed to {newStatus}. Send update?</p>
+            <div className="flex gap-2">
+              <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded">Skip</button>
+              <a href={link} target="_blank" rel="noreferrer" onClick={() => { toast.dismiss(t.id); updateOrder.mutate({ whatsappSent: true }); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded">
+                <MessageCircle className="size-3" /> WhatsApp
+              </a>
+            </div>
+          </div>
+        ), { duration: 6000, id: `status-toast-mobile-${newStatus}-${order._id}` });
+      }
+    }
+  };
+
+  const message = buildOrderMessage(order);
+
+  return (
+    <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
+      <div className="flex justify-between items-start mb-3">
+        <div>
+          <Link href={`/dashboard/orders/${order._id}`} className="font-semibold text-gray-900 text-base block hover:underline">
+            {order.customerSnapshot.name}
+          </Link>
+          <p className="text-xs text-gray-500 mt-0.5">{order.customerSnapshot.phone} • {formatDate(order.createdAt)}</p>
+        </div>
+        <StatusBadge value={order.status} />
+      </div>
+
+      <div className="flex justify-between items-center py-3 border-y border-gray-50 mb-3">
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5">Total</p>
+          <p className="font-medium text-gray-900">{formatCurrency(order.totalAmount)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5 text-right">Balance</p>
+          <p className="font-medium text-gray-900 text-right">{formatCurrency(order.balanceOwed)}</p>
+        </div>
+        <div>
+          <p className="text-xs text-gray-500 mb-0.5 text-right">Items</p>
+          <p className="font-medium text-gray-900 text-right">{order.items.length}</p>
+        </div>
+      </div>
+
+      <div className="flex gap-2 items-center">
+        <NativeSelect className="flex-1 h-10" value={order.status} onChange={handleStatusChange}>
+          {Object.values(OrderStatus).map((value) => <option key={value} value={value}>{value}</option>)}
+        </NativeSelect>
+        
+        <a
+          href={buildWhatsAppLink(order.customerSnapshot.phone, message)}
+          target="_blank"
+          rel="noreferrer"
+          onClick={() => updateOrder.mutate({ whatsappSent: true })}
+          className="flex-shrink-0 flex size-10 items-center justify-center rounded-md border border-gray-200 text-brand-700 hover:bg-brand-50"
+        >
+          <MessageCircle className="size-5" />
+        </a>
+        <button
+          onClick={onDelete}
+          className="flex-shrink-0 flex size-10 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50"
+        >
+          <Trash2 className="size-5" />
+        </button>
+      </div>
     </div>
   );
 }
