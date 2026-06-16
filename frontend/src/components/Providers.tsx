@@ -5,9 +5,19 @@ import { QueryClientProvider } from "@tanstack/react-query";
 import { ReactQueryDevtools } from "@tanstack/react-query-devtools";
 import { Toaster } from "react-hot-toast";
 import { queryClient } from "@/lib/react-query";
+import { useEffect } from "react";
 import { AuthSync } from "@/components/AuthSync";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
+  useEffect(() => {
+    if ("serviceWorker" in navigator) {
+      navigator.serviceWorker
+        .register("/sw.js")
+        .then((reg) => console.log("[ServiceWorker] Registration successful", reg))
+        .catch((err) => console.error("[ServiceWorker] Registration failed", err));
+    }
+  }, []);
+
   return (
     <QueryClientProvider client={queryClient}>
       <AuthSync />
