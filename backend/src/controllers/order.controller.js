@@ -290,7 +290,7 @@ export const deleteOrder = asyncHandler(async (req, res) => {
 
 /* ==== Private helpers ============================================= */
 
-async function normalizeOrderItems(items, vendorId) {
+export async function normalizeOrderItems(items, vendorId) {
   const normalized = [];
 
   for (const item of items) {
@@ -328,6 +328,11 @@ async function normalizeOrderItems(items, vendorId) {
     const variant = product.variants.find((v) => v.label === item.variantLabel);
     if (!variant) {
       normalized.error = `${product.name} does not have variant ${item.variantLabel}`;
+      return normalized;
+    }
+
+    if (variant.quantity < quantity) {
+      normalized.error = `Insufficient stock for ${product.name} (${item.variantLabel}). Available: ${variant.quantity}, Requested: ${quantity}`;
       return normalized;
     }
 
