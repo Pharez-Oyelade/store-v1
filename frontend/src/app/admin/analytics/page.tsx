@@ -70,7 +70,7 @@ export default function AdminAnalyticsPage() {
   const chartData = (revenueSeries ?? []).map((point) => {
     let label = "";
     if (point._id.day) {
-      label = `${point._id.day} ${formatMonthYear(point._id.year, point._id.month)}`;
+      label = `${point._id.day} ${formatMonthYear(point._id.year, point._id.month!)}`;
     } else if (point._id.month) {
       label = formatMonthYear(point._id.year, point._id.month);
     } else {
