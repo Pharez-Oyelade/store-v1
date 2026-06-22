@@ -429,3 +429,155 @@ export interface PlanConfig {
   };
   highlighted?: boolean; // true = "Most Popular" badge
 }
+
+/* ============================================================
+ * ADMIN TYPES
+ * Used exclusively in the admin dashboard section (/admin/*)
+ * ============================================================ */
+
+export type AnnouncementType = "info" | "warning" | "urgent";
+
+export interface Announcement {
+  _id: string;
+  title: string;
+  message: string;
+  type: AnnouncementType;
+  targetTier: SubscriptionPlan | null;
+  isActive: boolean;
+  expiresAt: string | null;
+  createdBy: { _id: string; businessName: string } | string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface AuditLog {
+  _id: string;
+  adminId: string;
+  adminName: string;
+  action:
+    | "vendor_suspended"
+    | "vendor_activated"
+    | "vendor_subscription_changed"
+    | "announcement_created"
+    | "announcement_updated"
+    | "announcement_deleted"
+    | "subscription_tier_updated";
+  targetType: "vendor" | "subscription" | "announcement" | "platform";
+  targetId: string | null;
+  targetName: string;
+  details: Record<string, unknown>;
+  ipAddress: string;
+  createdAt: string;
+}
+
+/** Full vendor profile as returned by the admin API, enriched with stats */
+export interface AdminVendor extends Vendor {
+  productCount: number;
+  orderCount: number;
+  totalRevenue: number;
+  orderStats?: {
+    totalOrders: number;
+    totalRevenue: number;
+    avgOrderValue: number;
+  };
+  subscription?: Subscription;
+}
+
+/** Platform-wide KPIs returned by GET /api/admin/dashboard/kpis */
+export interface PlatformKPIs {
+  vendors: {
+    total: number;
+    active: number;
+    suspended: number;
+  };
+  signups: {
+    today: number;
+    thisMonth: number;
+    lastMonth: number;
+    growthPct: number | null;
+  };
+  revenue: {
+    mrr: number;
+    tierBreakdown: Record<string, { count: number; revenue: number }>;
+  };
+  orders: {
+    gmv: number;
+    total: number;
+    pending: number;
+    avgOrderValue: number;
+    fulfillmentRate: number;
+  };
+}
+
+export interface PlatformRevenueSeries {
+  _id: { year: number; month?: number; day?: number; week?: number };
+  revenue: number;
+  orderCount: number;
+}
+
+export interface VendorCohort {
+  year: number;
+  month: number;
+  total: number;
+  active: number;
+  retentionRate: number;
+  paidSubscribers: number;
+  conversionRate: number;
+}
+
+export interface TopPerformer {
+  _id: string;
+  vendor: {
+    _id: string;
+    businessName: string;
+    handle: string;
+    logo?: CloudinaryImage;
+    subscriptionPlan: SubscriptionPlan;
+    isActive: boolean;
+  };
+  revenue: number;
+  orderCount: number;
+}
+
+export interface SubscriptionTier {
+  plan: string;
+  price: number;
+  limits: {
+    products: number;
+    ordersPerMonth: number;
+    teamSeats: number;
+  };
+}
+
+export interface BillingHealth {
+  totalMrr: number;
+  tiers: Record<
+    string,
+    { active: number; pastDue: number; inactive: number; mrr: number }
+  >;
+  pastDueVendors: Pick<
+    Vendor,
+    "_id" | "businessName" | "handle" | "phone" | "subscriptionPlan"
+  >[];
+  inactiveCount: number;
+}
+
+/** Admin vendor list query params */
+export interface AdminVendorQueryParams {
+  page?: number;
+  limit?: number;
+  status?: "active" | "suspended" | "all";
+  plan?: SubscriptionPlan | "all";
+  search?: string;
+  sort?: "newest" | "oldest" | "name";
+}
+
+export interface AnnouncementFormValues {
+  title: string;
+  message: string;
+  type: AnnouncementType;
+  targetTier: SubscriptionPlan | null;
+  expiresAt: string | null;
+  isActive?: boolean;
+}
+

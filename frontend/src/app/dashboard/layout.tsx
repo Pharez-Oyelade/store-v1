@@ -1,5 +1,6 @@
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import NotificationCenter from "@/components/dashboard/NotificationCenter";
+import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 
 export default function DashboardLayout({
   children,
@@ -15,7 +16,8 @@ export default function DashboardLayout({
         <NotificationCenter />
       </div>
 
-      <section className="min-w-0 flex-1 px-4 pb-10 pt-20 lg:px-8 lg:pt-12">
+      <section className="min-w-0 flex-1 px-4 pb-10 pt-20 lg:px-8 lg:pt-20">
+        <AnnouncementBanner />
         {children}
       </section>
     </main>

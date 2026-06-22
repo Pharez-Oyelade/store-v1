@@ -21,6 +21,7 @@ import storefrontRouter from "./src/routes/storefront.routes.js";
 import supplierRouter from "./src/routes/supplier.routes.js";
 import subscriptionRouter from "./src/routes/subscription.routes.js";
 import notificationRouter from "./src/routes/notification.routes.js";
+import adminRouter from "./src/routes/admin.routes.js";
 
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
@@ -59,6 +60,16 @@ const authLimiter = rateLimit({
   },
 });
 
+/* Admin limiter: tighter than API, looser than auth (admins make many reads) */
+const adminLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 60,
+  message: {
+    success: false,
+    message: "Too many admin requests. Please slow down.",
+  },
+});
+
 /* ── Body Parsing ───────────────────────────────────────────────── */
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
@@ -80,7 +91,12 @@ app.get("/health", (req, res) => {
 });
 
 /* ── API Routes ─────────────────────────────────────────────────── */
-app.use("/api/auth", authLimiter, authRouter);
+app.use("/api/auth/login", authLimiter);
+app.use("/api/auth/register", authLimiter);
+app.use("/api/auth/forgot-password", authLimiter);
+app.use("/api/auth/reset-password", authLimiter);
+
+app.use("/api/auth", apiLimiter, authRouter);
 app.use("/api/vendor", apiLimiter, vendorRouter);
 app.use("/api/products", apiLimiter, productRouter);
 app.use("/api/orders", apiLimiter, orderRouter);
@@ -90,6 +106,7 @@ app.use("/api/analytics", apiLimiter, analyticsRouter);
 app.use("/api/subscriptions", subscriptionRouter); // Note: webhook handles its own rate limit, endpoints use their own logic or apiLimiter
 app.use("/api/notifications", apiLimiter, notificationRouter);
 app.use("/api/storefront", storefrontRouter); // Public — no rate limit
+app.use("/api/admin", adminLimiter, adminRouter);
 
 /* ── Error Handling (must be LAST) ──────────────────────────────── */
 app.use(notFound);

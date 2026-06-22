@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
@@ -31,6 +31,7 @@ export function useLogin() {
 
   const { setVendor, setInitialized } = useAuthStore();
   const router = useRouter();
+  const searchParams = useSearchParams();
 
   return useMutation({
     mutationFn: (credentials: LoginCredentials) => {
@@ -47,7 +48,13 @@ export function useLogin() {
 
       queryClient.setQueryData(AUTH_QUERY_KEYS.me, vendor);
       toast.success(`Welcome back, ${vendor.businessName}!`);
-      router.push("/dashboard");
+      
+      const from = searchParams.get("from");
+      if (from) {
+        router.push(from);
+      } else {
+        router.push(vendor.role === "admin" ? "/admin" : "/dashboard");
+      }
     },
 
     onError: (error: Error) => {

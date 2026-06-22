@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { jwtVerify } from "jose";
 
 /*
  * The name of the auth cookie set by our backend.
@@ -20,7 +21,14 @@ const PROTECTED_PATHS = ["/dashboard", "/admin"];
  */
 const AUTH_PATHS = ["/login", "/register"];
 
-export function middleware(request: NextRequest) {
+/*
+ * Routes that require admin role specifically.
+ * A vendor who is authenticated but NOT an admin will be redirected
+ * to their dashboard when trying to access these.
+ */
+const ADMIN_PATHS = ["/admin"];
+
+export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   /*
@@ -37,6 +45,9 @@ export function middleware(request: NextRequest) {
 
   // Check if it's an auth route (login/register)
   const isAuthRoute = AUTH_PATHS.some((path) => pathname.startsWith(path));
+
+  // Check if it's an admin-only route
+  const isAdminRoute = ADMIN_PATHS.some((path) => pathname.startsWith(path));
 
   if (isProtectedRoute && !isAuthenticated) {
     /*
@@ -58,6 +69,39 @@ export function middleware(request: NextRequest) {
   }
 
   /*
+   * Role-based check for admin routes.
+   *
+   * We decode the JWT using `jose` (Edge Runtime compatible — already
+   * installed in the project). This is a server-side guard that runs
+   * BEFORE the page renders, complementing the client-side AdminGuard.
+   *
+   * If decoding fails (malformed token) or role !== "admin",
+   * redirect to /dashboard with an ?unauthorized flag.
+   */
+  if (isAdminRoute && isAuthenticated && token?.value) {
+    try {
+      const secret = new TextEncoder().encode(
+        process.env.JWT_SECRET || "fallback-secret",
+      );
+      const { payload } = await jwtVerify(token.value, secret);
+
+      if (payload.role !== "admin") {
+        const dashboardUrl = new URL("/dashboard", request.url);
+        dashboardUrl.searchParams.set("unauthorized", "admin");
+        return NextResponse.redirect(dashboardUrl);
+      }
+    } catch {
+      /*
+       * Token is invalid or expired — treat as unauthenticated.
+       * The protect middleware on the backend will also reject it.
+       */
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  /*
    * NextResponse.next() passes the request to the next handler
    * (i.e., the page component or API route).
    * Always return something from middleware — never return undefined.
@@ -65,16 +109,6 @@ export function middleware(request: NextRequest) {
   return NextResponse.next();
 }
 
-/*
- * config.matcher controls WHICH requests run through this middleware.
- * Being selective is important for performance — we don't want middleware
- * running on every static file request.
- *
- * This matcher:
- * - Matches /dashboard, /dashboard/anything, /admin, /admin/anything
- * - Matches /login, /register
- * - Excludes _next/static (Next.js compiled files), _next/image, favicon.ico
- */
 /*
  * config.matcher — KEEP THIS MINIMAL.
  *

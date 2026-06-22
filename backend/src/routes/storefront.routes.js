@@ -3,6 +3,7 @@ import {
   getVendorStorefront,
   getStorefrontProducts,
   getStorefrontProduct,
+  createStorefrontOrder,
 } from "../controllers/storefront.controller.js";
 
 const storefrontRouter = Router();
@@ -11,5 +12,6 @@ const storefrontRouter = Router();
 storefrontRouter.get("/:handle", getVendorStorefront);
 storefrontRouter.get("/:handle/products", getStorefrontProducts);
 storefrontRouter.get("/:handle/products/:productId", getStorefrontProduct);
+storefrontRouter.post("/:handle/orders", createStorefrontOrder);
 
 export default storefrontRouter;

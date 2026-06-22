@@ -1,6 +1,7 @@
 // AXIOS CONFIG
 import axios, { AxiosError } from "axios";
 import type { ApiError } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 
 const api = axios.create({
   baseURL: process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api",
@@ -40,12 +41,16 @@ api.interceptors.response.use(
 
     // Handle 401 unautorized - auth cookie expired or missing, redirect to /login if not already there
 
-    if (status === 401) {
+    if (status === 401 || status === 403) {
       if (
-        typeof window !== "undefined" &&
-        !window.location.pathname.startsWith("/login")
+        typeof window !== "undefined"
       ) {
-        window.location.href = "/login";
+        // Clear Zustand auth store to prevent infinite redirect loops or ghost sessions
+        useAuthStore.getState().clearVendor();
+        
+        if (!window.location.pathname.startsWith("/login")) {
+          window.location.href = "/login";
+        }
       }
     }
     const message =

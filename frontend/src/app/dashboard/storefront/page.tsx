@@ -1,7 +1,8 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
-import { ExternalLink, Store } from "lucide-react";
+import { ExternalLink, Store, Copy, CheckCircle2 } from "lucide-react";
 import VendorProfileForm from "@/components/dashboard/VendorProfileForm";
 import {
   EmptyState,
@@ -18,6 +19,15 @@ export default function StorefrontPage() {
   const profile = useVendorProfile();
   const products = useProducts({ page: 1, limit: 20, status: ProductStatus.Active });
   const storefrontPath = profile.data?.handle ? `/store/${profile.data.handle}` : "/store";
+  const publicUrl = typeof window !== "undefined" && profile.data?.handle ? `${window.location.origin}/store/${profile.data.handle}` : "";
+  const [copied, setCopied] = useState(false);
+
+  const handleCopy = () => {
+    if (!publicUrl) return;
+    navigator.clipboard.writeText(publicUrl);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
 
   return (
     <div className="mx-auto max-w-7xl relative">
@@ -71,7 +81,27 @@ export default function StorefrontPage() {
             </div>
           </div>
 
-          <div>
+          <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card mt-4">
+            <h3 className="text-sm font-semibold text-gray-900 mb-2">Your Public URL</h3>
+            <p className="text-xs text-gray-500 mb-3">Share this link on Instagram or WhatsApp to let customers buy directly from you.</p>
+            <div className="flex items-center gap-2">
+              <input 
+                type="text" 
+                readOnly 
+                value={publicUrl} 
+                className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-gray-700 outline-none"
+              />
+              <button 
+                onClick={handleCopy}
+                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-50 text-brand-700 hover:bg-brand-100 rounded-md transition-colors font-medium text-sm border border-brand-200"
+              >
+                {copied ? <CheckCircle2 className="size-4" /> : <Copy className="size-4" />}
+                {copied ? "Copied!" : "Copy"}
+              </button>
+            </div>
+          </div>
+
+          <div className="mt-6">
             <h2 className="mb-3 text-base font-semibold text-gray-950">Active products on storefront</h2>
             {products.data?.products.length ? (
               <TableShell>

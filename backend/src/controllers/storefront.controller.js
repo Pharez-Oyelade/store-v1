@@ -1,7 +1,11 @@
 import Vendor from "../models/vendorModel.js";
 import Product from "../models/productModel.js";
+import Customer from "../models/customerModel.js";
+import Order from "../models/orderModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { normalizeOrderItems } from "./order.controller.js";
+import { createNotification } from "../services/notification.service.js";
 
 /* ── GET /api/storefront/:handle ────────────────────────────────── */
 export const getVendorStorefront = asyncHandler(async (req, res) => {
@@ -96,4 +100,50 @@ export const getStorefrontProduct = asyncHandler(async (req, res) => {
       whatsapp: vendor.socials?.whatsapp,
     },
   });
+});
+
+/* ── POST /api/storefront/:handle/orders ────────────────────────── */
+export const createStorefrontOrder = asyncHandler(async (req, res) => {
+  const { handle } = req.params;
+  const { customerName, customerPhone, customerEmail = "", items, notes = "" } = req.body;
+
+  const vendor = await Vendor.findOne({ handle: handle.toLowerCase(), isActive: true });
+  if (!vendor) return sendError(res, "Store not found", 404);
+
+  const vendorId = vendor._id;
+
+  let customer = await Customer.findOne({ vendor: vendorId, phone: customerPhone });
+  if (!customer) {
+    customer = await Customer.create({
+      vendor: vendorId,
+      name: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+    });
+  }
+
+  const normalizedItems = await normalizeOrderItems(items, vendorId);
+  if (normalizedItems.error) return sendError(res, normalizedItems.error, 400);
+
+  const totalAmount = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const order = await Order.create({
+    vendor: vendorId,
+    customer: customer._id,
+    customerSnapshot: { name: customerName, phone: customerPhone, email: customerEmail },
+    items: normalizedItems,
+    totalAmount,
+    depositPaid: 0,
+    notes,
+    source: "storefront",
+  });
+
+  await createNotification(vendorId, {
+    title: "New Storefront Order",
+    message: `Order #${order._id.toString().slice(-6).toUpperCase()} received from ${customerName} via Storefront (Total: ₦${totalAmount.toLocaleString("en-NG")}).`,
+    type: "order_status",
+    actionUrl: `/dashboard/orders/${order._id}`,
+  });
+
+  return sendSuccess(res, { orderId: order._id }, "Order placed successfully", 201);
 });

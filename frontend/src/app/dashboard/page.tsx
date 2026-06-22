@@ -10,6 +10,7 @@ import {
   Receipt,
   ShoppingCart,
   Users,
+  TriangleAlert,
 } from "lucide-react";
 import {
   EmptyState,
@@ -43,6 +44,9 @@ export default function DashboardPage() {
       (variant) => variant.quantity <= product.lowStockThreshold,
     ),
   );
+  const outOfStockProducts = productList.filter((product) =>
+    product.variants.some((variant) => variant.quantity === 0),
+  );
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -66,6 +70,36 @@ export default function DashboardPage() {
           </div>
         }
       />
+
+      {outOfStockProducts && (
+        <div className="flex flex-col w-full">
+          {outOfStockProducts.map((product) => {
+            const outOfStockVariants = product.variants.filter(
+              (variant) => variant.quantity === 0,
+            );
+            return (
+              <div
+                key={product._id}
+                className="w-full bg-red-100 mb-5 py-2 px-5 rounded-xl border-2 border-black flex items-start md:items-center gap-2"
+              >
+                <TriangleAlert className="w-5 h-5" />
+                <p className="text-md">
+                  {product.name}
+                  {outOfStockVariants.length > 0 && (
+                    <>
+                      {" "}
+                      - Variants out of stock:{" "}
+                      {outOfStockVariants
+                        .map((v) => v.label || v.sku || "Unknown")
+                        .join(", ")}
+                    </>
+                  )}
+                </p>
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
