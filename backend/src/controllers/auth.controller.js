@@ -8,10 +8,14 @@ import validator from "validator";
 const COOKIE_NAME = "access_token";
 
 // jwt token
-const signTokenAndSetCookie = (res, vendorId) => {
-  const token = jwt.sign({ id: vendorId }, process.env.JWT_SECRET, {
-    expiresIn: process.env.JWT_EXPIRES_IN || "7d",
-  });
+const signTokenAndSetCookie = (res, vendor) => {
+  const token = jwt.sign(
+    { id: vendor._id, role: vendor.role },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    },
+  );
 
   res.cookie(COOKIE_NAME, token, {
     httpOnly: true,
@@ -83,7 +87,7 @@ export const register = asyncHandler(async (req, res) => {
     password,
   });
 
-  signTokenAndSetCookie(res, vendor._id);
+  signTokenAndSetCookie(res, vendor);
 
   return sendSuccess(
     res,
@@ -134,7 +138,7 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  signTokenAndSetCookie(res, vendor._id);
+  signTokenAndSetCookie(res, vendor);
 
   return sendSuccess(
     res,
@@ -252,7 +256,7 @@ export const resetPassword = asyncHandler(async (req, res) => {
   await vendor.save(); // Pre-save hook will hash the new password
 
   // Sign in the vendor immediately after reset
-  signTokenAndSetCookie(res, vendor._id);
+  signTokenAndSetCookie(res, vendor);
 
   return sendSuccess(
     res,
