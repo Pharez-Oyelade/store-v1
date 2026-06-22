@@ -258,8 +258,8 @@ export function useExportData() {
         responseType: "blob",
       });
 
-      /* Trigger browser download */
-      const url = window.URL.createObjectURL(new Blob([response.data]));
+      /* Trigger browser download (interceptor unwraps Axios response, so response is the Blob directly) */
+      const url = window.URL.createObjectURL(new Blob([response as unknown as BlobPart]));
       const link = document.createElement("a");
       link.href = url;
       const date = new Date().toISOString().split("T")[0];

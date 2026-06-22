@@ -487,7 +487,7 @@ export async function generateCsvExport(type) {
     ]);
 
     return [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
       .join("\n");
   }
 
@@ -509,7 +509,7 @@ export async function generateCsvExport(type) {
     ]);
 
     return [headers, ...rows]
-      .map((row) => row.map((cell) => `"${String(cell).replace(/"/g, '""')}"`).join(","))
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
       .join("\n");
   }
 
