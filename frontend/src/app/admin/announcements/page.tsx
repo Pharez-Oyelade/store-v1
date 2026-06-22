@@ -19,7 +19,7 @@ import {
   useUpdateAnnouncement,
   useDeleteAnnouncement,
 } from "@/hooks/useAdmin";
-import type { Announcement, AnnouncementFormValues, AnnouncementType } from "@/types";
+import type { Announcement, AnnouncementFormValues, AnnouncementType, SubscriptionPlan } from "@/types";
 import { format } from "date-fns";
 
 /* Zod schema */
@@ -76,7 +76,7 @@ function AnnouncementForm({
         onSubmit({
           ...vals,
           type: vals.type as AnnouncementType,
-          targetTier: vals.targetTier || null,
+          targetTier: (vals.targetTier as SubscriptionPlan) || null,
           expiresAt: vals.expiresAt || null,
         }),
       )}
