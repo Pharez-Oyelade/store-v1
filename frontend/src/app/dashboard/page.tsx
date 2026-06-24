@@ -71,7 +71,7 @@ export default function DashboardPage() {
         }
       />
 
-      {outOfStockProducts && (
+      {/* {outOfStockProducts && (
         <div className="flex flex-col w-full">
           {outOfStockProducts.map((product) => {
             const outOfStockVariants = product.variants.filter(
@@ -99,7 +99,7 @@ export default function DashboardPage() {
             );
           })}
         </div>
-      )}
+      )} */}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
         <StatCard
