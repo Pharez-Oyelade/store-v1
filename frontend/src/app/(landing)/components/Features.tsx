@@ -21,7 +21,7 @@ const tabs = [
       tagline: "fashion-specific",
       heading: "Inventory built for fashion",
       paragraph:
-        "Not a generic product list. Track sizes, colour variants, fabrics, and quantities — the way a fashion vendor actually thinks.",
+        "Not a generic product list. Track sizes, colour variants, fabrics, and quantities, the way a fashion vendor actually thinks.",
       list: [
         "Add products with sizes (XS–XXL or custom), colour variants, and quantity per variant",
         "Low-stock alerts sent to your WhatsApp when stock hits your threshold",
@@ -39,7 +39,7 @@ const tabs = [
       tagline: "works with whatsapp",
       heading: "Manage orders without chaos.",
       paragraph:
-        "Log orders from any channel — DM, WhatsApp, in-person — and track them in one place. Works alongside your existing workflow, not against it.",
+        "Log orders from any channel: DM, WhatsApp, in-person, and track them in one place. Works alongside your existing workflow, not against it.",
       list: [
         "Log orders with customer name, item, size, colour, price, and deposit paid",
         "One-tap WhatsApp message generator — send a pre-formatted confirmation in seconds",
@@ -57,7 +57,7 @@ const tabs = [
       tagline: "built-in crm",
       heading: "Know your customers.",
       paragraph:
-        "Every customer you've sold to, their full order history, their preferences, and their balance — always at your fingertips.",
+        "Every customer you've sold to, their full order history, their preferences, and their balance, always at your fingertips.",
       list: [
         "Auto-create customer profiles when you log their first order",
         "Full order history, total spend, and last purchase date per customer",
@@ -129,10 +129,10 @@ const Features = () => {
                 <div key={tab.label} onClick={() => setTabOption(tab.label)}>
                   <div
                     className={cn(
-                      "flex items-center gap-5 p-5 border-b border-gray-400",
-                      "cursor-pointer rounded-lg",
+                      "flex items-center gap-5 p-5 border-b",
+                      "cursor-pointer rounded-md",
                       tabOption === tab.label
-                        ? "bg-accent-100 border-l-3 border-l-accent-400"
+                        ? "bg-accent-100"
                         : "bg-transparent",
                     )}
                   >

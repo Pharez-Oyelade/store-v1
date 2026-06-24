@@ -431,7 +431,7 @@ const page = () => {
         </div>
       </section>
 
-      {/* Meet the Team Section (Placeholders) */}
+      {/* Meet the Team Section */}
       <section className="bg-white py-20 px-4 md:px-15 border-y border-gray-100">
         <div className="max-w-7xl mx-auto space-y-12">
           <div className="text-center space-y-4">
@@ -466,7 +466,7 @@ const page = () => {
               </div>
               <div>
                 <h4 className="text-lg font-bold text-gray-900">
-                  Founder Name
+                  Pharez Oyelade
                 </h4>
                 <p className="text-xs text-gray-500 font-semibold uppercase">
                   Leadership & Strategy

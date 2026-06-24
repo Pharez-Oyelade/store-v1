@@ -6,7 +6,7 @@ const processData = [
     id: 1,
     title: "Sign up with your phone",
     subtitle:
-      "No email required. Enter your number, verify with OTP, set up your business profile in under 5 minutes.",
+      "No email required. Enter your number, set up your business profile in under 5 minutes.",
   },
   {
     id: 2,
