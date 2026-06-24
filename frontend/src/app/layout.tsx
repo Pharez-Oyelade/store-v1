@@ -21,11 +21,11 @@ const greatVibes = Great_Vibes({
 
 export const metadata: Metadata = {
   title: {
-    default: "Sabi Store — Your Ultimate E-commerce Solution",
-    template: "%s | Sabi Store",
+    default: "Vendra — Your Ultimate E-commerce Solution",
+    template: "%s | Vendra",
   },
   description:
-    "Practice project for Sabi Store, an e-commerce platform for vendors to manage their products and orders.",
+    "Practice project for Vendra, an e-commerce platform for vendors to manage their products and orders.",
 };
 
 export default function RootLayout({
