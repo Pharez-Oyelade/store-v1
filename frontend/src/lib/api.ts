@@ -17,12 +17,16 @@ const api = axios.create({
 // Request Interceptor
 api.interceptors.request.use(
   (config) => {
+    if (config.data instanceof FormData) {
+      delete config.headers["Content-Type"];
+    }
     return config;
   },
   (error) => {
     return Promise.reject(error);
   },
 );
+
 
 // Response Interceptors - run after every response arrives, handle errors globally
 api.interceptors.response.use(

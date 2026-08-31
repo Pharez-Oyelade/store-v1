@@ -141,10 +141,20 @@ export default function ProductForm({ product }: { product?: Product }) {
           type="file"
           accept="image/*"
           multiple
-          onChange={(event) => setFiles(event.target.files)}
-          helper={product ? "Existing images stay attached. New uploads are appended." : "Upload up to 5 images."}
+          onChange={(event) => {
+            const selected = Array.from(event.target.files ?? []);
+            const oversized = selected.filter((f) => f.size > 15 * 1024 * 1024);
+            if (oversized.length > 0) {
+              toast.error("One or more images exceed the 15MB limit.");
+              event.target.value = "";
+              return;
+            }
+            setFiles(event.target.files);
+          }}
+          helper={product ? "Existing images stay attached. New uploads are appended." : "Upload up to 5 images (max 15MB each)."}
         />
       </section>
+
 
       <section className="space-y-4 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
         <div className="flex items-center justify-between">

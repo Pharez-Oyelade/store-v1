@@ -35,12 +35,13 @@ const Newsletter = () => {
     <section className="bg-brand-900 flex flex-col md:flex-row justify-between items-center gap-12 lg:gap-20 border-t-2 border-t-accent-600 px-6 md:px-16 py-20">
       <div className="w-full text-white">
         <Title
-          eyebrowTitle="Join the waitlist"
+          eyebrowTitle="Start with 14 days free"
           headingStart="Stop losing sales to"
           headingSpan="chaos."
-          text="Join early access. Vendors who sign up today get 3 months of Growth features for free and permanent early-adopter pricing."
+          text="Join Nigerian fashion brands using Vendra. Sign up today and get an automatic 14-day free trial on The Stitch Plan with full bespoke demands and inventory tracking."
         />
       </div>
+
 
       {/* NEWSLETTER input */}
       <div className="w-full max-w-md">

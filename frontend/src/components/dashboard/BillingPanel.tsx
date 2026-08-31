@@ -17,13 +17,27 @@ const PLANS = [
     id: "free",
     name: "Free",
     price: "₦0/mo",
-    features: ["5 Products", "5 Orders/mo", "Standard Theme"],
+    features: [
+      "5 Products",
+      "5 Orders/Demands per month",
+      "Customer Measurements Profile",
+      "Debt & Balance Tracker",
+      "1 Team Seat",
+    ],
   },
   {
     id: "stitch",
     name: "The Stitch",
     price: "₦4,900/mo",
-    features: ["15 Products", "10 Orders/mo", "Basic Customer List"],
+    trial: "14-Day Free Trial",
+    features: [
+      "50 Products",
+      "25 Orders/Demands per month",
+      "Bespoke Demand Board",
+      "Customer Measurements Profile & CRM",
+      "WhatsApp 1-Click Dispatch",
+      "1 Team Seat",
+    ],
   },
   {
     id: "drape",
@@ -31,9 +45,10 @@ const PLANS = [
     price: "₦14,900/mo",
     features: [
       "200 Products",
-      "500 Orders/mo",
-      "3 Staff Accounts",
-      "Public Storefront",
+      "500 Orders/Demands per month",
+      "Supplier Debt & Material Tracking",
+      "Revenue Analytics & Reports",
+      "3 Team Seats",
     ],
   },
   {
@@ -42,12 +57,13 @@ const PLANS = [
     price: "₦34,900/mo",
     features: [
       "Unlimited Products",
-      "Unlimited Orders",
-      "10 Staff Accounts",
-      "Custom WhatsApp Templates",
+      "Unlimited Orders & Demands",
+      "Priority WhatsApp Support",
+      "10 Team Seats",
     ],
   },
 ];
+
 
 export function BillingPanel() {
   const vendor = useAuthStore((state) => state.vendor);
@@ -129,18 +145,37 @@ export function BillingPanel() {
           </h2>
         </div>
 
-        {(subscription as any)?.currentPeriodEnd && currentPlan !== "free" && (
-          <div className="flex items-center space-x-2 bg-brand-50 dark:bg-brand-900/10 text-brand-700 dark:text-brand-300 px-4 py-2 rounded-lg text-sm font-medium border border-brand-100 dark:border-brand-800/50">
-            <Calendar className="w-4 h-4" />
-            <span>
-              Next billing date:{" "}
-              {new Date(
-                (subscription as any).currentPeriodEnd,
-              ).toLocaleDateString()}
-            </span>
-          </div>
-        )}
+        {(subscription as any)?.currentPeriodEnd && currentPlan !== "free" && (() => {
+          const endDate = new Date((subscription as any).currentPeriodEnd);
+          const daysLeft = Math.max(0, Math.ceil((endDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+          const isTrial = (subscription as any)?.isTrial;
+
+          return (
+            <div
+              className={`flex items-center space-x-2 px-4 py-2 rounded-xl text-sm font-medium border ${
+                isTrial
+                  ? "bg-amber-50 text-amber-900 border-amber-200"
+                  : "bg-emerald-50 text-emerald-900 border-emerald-200"
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>
+                {isTrial ? (
+                  <>
+                    ✨ <strong>14-Day Free Trial:</strong> {daysLeft} day{daysLeft !== 1 ? "s" : ""} remaining (Ends{" "}
+                    {endDate.toLocaleDateString()})
+                  </>
+                ) : (
+                  <>
+                    Next renewal: {endDate.toLocaleDateString()} ({daysLeft} day{daysLeft !== 1 ? "s" : ""} left)
+                  </>
+                )}
+              </span>
+            </div>
+          );
+        })()}
       </div>
+
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {PLANS.map((plan) => {

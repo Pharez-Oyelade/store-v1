@@ -145,54 +145,60 @@ export default function MaterialsBuilder({
           />
         </div>
 
-        <div className="sm:col-span-2">
-          <input
-            type="text"
-            placeholder="Qty (e.g. 5 yds)"
-            value={quantity}
-            onChange={(e) => setQuantity(e.target.value)}
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
-          />
+        <div className="grid grid-cols-2 sm:contents gap-2">
+          <div className="sm:col-span-2">
+            <input
+              type="text"
+              placeholder="Qty (e.g. 5 yds)"
+              value={quantity}
+              onChange={(e) => setQuantity(e.target.value)}
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
+            />
+          </div>
+
+          <div className="sm:col-span-3">
+            <input
+              type="number"
+              placeholder="Est. Cost (₦)"
+              value={estimatedCost}
+              onChange={(e) =>
+                setEstimatedCost(e.target.value === "" ? "" : Number(e.target.value))
+              }
+              className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
+            />
+          </div>
         </div>
 
-        <div className="sm:col-span-3">
-          <input
-            type="number"
-            placeholder="Cost (₦)"
-            value={estimatedCost}
-            onChange={(e) =>
-              setEstimatedCost(e.target.value === "" ? "" : Number(e.target.value))
-            }
-            className="w-full px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
-          />
-        </div>
+        <div className="grid grid-cols-3 sm:contents gap-2">
+          <div className="col-span-2 sm:col-span-2">
+            <select
+              value={supplierId}
+              onChange={(e) => setSupplierId(e.target.value)}
+              className="w-full px-2 py-2 text-xs border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-brand-700 h-[38px]"
+            >
+              <option value="">Supplier (Opt)</option>
+              {suppliers.map((s) => (
+                <option key={s._id} value={s._id}>
+                  {s.name}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        <div className="sm:col-span-2">
-          <select
-            value={supplierId}
-            onChange={(e) => setSupplierId(e.target.value)}
-            className="w-full px-2 py-2 text-xs border border-gray-200 rounded-xl bg-white focus:outline-none focus:border-brand-700"
-          >
-            <option value="">Supplier (Opt)</option>
-            {suppliers.map((s) => (
-              <option key={s._id} value={s._id}>
-                {s.name}
-              </option>
-            ))}
-          </select>
-        </div>
-
-        <div className="sm:col-span-1 flex items-center">
-          <button
-            type="button"
-            onClick={handleAdd}
-            className="w-full h-full min-h-[38px] bg-gray-100 hover:bg-brand-700 hover:text-white text-gray-700 rounded-xl text-sm font-medium transition-colors flex items-center justify-center"
-            title="Add material"
-          >
-            <Plus size={16} />
-          </button>
+          <div className="col-span-1 sm:col-span-1 flex items-center">
+            <button
+              type="button"
+              onClick={handleAdd}
+              className="w-full h-full min-h-[38px] bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-xs sm:text-sm font-semibold transition-colors flex items-center justify-center gap-1 shadow-xs"
+              title="Add material"
+            >
+              <Plus size={16} />
+              <span className="sm:hidden">Add</span>
+            </button>
+          </div>
         </div>
       </div>
+
     </div>
   );
 }

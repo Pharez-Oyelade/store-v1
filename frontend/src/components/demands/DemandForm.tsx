@@ -160,6 +160,13 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (!e.target.files) return;
     const files = Array.from(e.target.files);
+
+    const oversized = files.filter((f) => f.size > 15 * 1024 * 1024);
+    if (oversized.length > 0) {
+      toast.error("One or more images exceed the 15MB limit. Please choose smaller files.");
+      return;
+    }
+
     const totalCount = existingImages.length + selectedFiles.length + files.length;
     if (totalCount > 5) {
       toast.error("Maximum 5 reference images allowed");
@@ -170,6 +177,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     const newPreviews = files.map((file) => URL.createObjectURL(file));
     setPreviewUrls((prev) => [...prev, ...newPreviews]);
   };
+
 
   const handleRemoveNewImage = (index: number) => {
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
@@ -230,21 +238,22 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const isPending = createMutation.isPending || updateMutation.isPending;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 max-w-5xl mx-auto pb-12">
+    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12">
       {/* Navigation Tabs */}
-      <div className="flex border-b border-gray-200 overflow-x-auto gap-2">
+      <div className="flex border-b border-gray-200 overflow-x-auto gap-1 sm:gap-2 pb-1 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
           type="button"
           onClick={() => setActiveTab("details")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+          className={`flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-2.5 sm:py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
             activeTab === "details"
               ? "border-brand-700 text-brand-700"
               : "border-transparent text-gray-500 hover:text-gray-900"
           }`}
         >
-          <Scissors size={16} />
+          <Scissors size={15} />
           1. Design & Customer
         </button>
+
         <button
           type="button"
           onClick={() => setActiveTab("measurements")}

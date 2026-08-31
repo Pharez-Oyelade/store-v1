@@ -1,75 +1,69 @@
-import Link from "next/link";
-import { formatCurrency } from "@/lib/utils";
+import React from "react";
+import { Store, MessageCircle, Sparkles } from "lucide-react";
 
-async function getProducts(handle: string) {
+async function getVendorInfo(handle: string) {
   try {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
-    const res = await fetch(`${apiUrl}/storefront/${handle}/products?limit=50`, {
+    const res = await fetch(`${apiUrl}/storefront/${handle}`, {
       next: { revalidate: 30 },
     });
-    if (!res.ok) return [];
+    if (!res.ok) return null;
     const data = await res.json();
-    return data.data.products;
+    return data.data;
   } catch (error) {
-    return [];
+    return null;
   }
 }
 
-export default async function StorefrontPage({ params }: { params: Promise<{ handle: string }> }) {
+export default async function StorefrontPage({
+  params,
+}: {
+  params: Promise<{ handle: string }>;
+}) {
   const { handle } = await params;
-  const products = await getProducts(handle);
-
-  if (!products || products.length === 0) {
-    return (
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 text-center">
-        <h3 className="text-lg font-medium text-gray-900">No products available</h3>
-        <p className="mt-1 text-sm text-gray-500">Check back later for new arrivals.</p>
-      </div>
-    );
-  }
+  const vendor = await getVendorInfo(handle);
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-      <div className="grid grid-cols-2 gap-x-4 gap-y-10 sm:gap-x-6 md:grid-cols-3 lg:grid-cols-4 xl:gap-x-8">
-        {products.map((product: any) => {
-          // Find the lowest price across variants
-          const minPrice = Math.min(...product.variants.map((v: any) => v.price));
-          const totalStock = product.variants.reduce((acc: number, v: any) => acc + v.stockQuantity, 0);
+    <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center">
+      <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 sm:p-14 space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-brand-50 text-brand-700 flex items-center justify-center mx-auto border border-brand-200/60">
+          <Store size={32} />
+        </div>
 
-          return (
-            <Link key={product._id} href={`/store/${handle}/product/${product._id}`} className="group relative">
-              <div className="aspect-h-1 aspect-w-1 w-full overflow-hidden rounded-xl bg-gray-200 lg:aspect-none group-hover:opacity-75 lg:h-80 transition-opacity">
-                {product.images && product.images.length > 0 ? (
-                  <img
-                    src={product.images[0].url}
-                    alt={product.name}
-                    className="h-full w-full object-cover object-center lg:h-full lg:w-full"
-                  />
-                ) : (
-                  <div className="h-full w-full flex items-center justify-center bg-gray-100 text-gray-400">
-                    No image
-                  </div>
-                )}
-                {totalStock <= 0 && (
-                  <div className="absolute top-2 right-2 bg-gray-900/80 backdrop-blur-sm text-white px-2 py-1 rounded-md text-xs font-bold uppercase tracking-wider">
-                    Sold Out
-                  </div>
-                )}
-              </div>
-              <div className="mt-4 flex justify-between">
-                <div>
-                  <h3 className="text-sm font-medium text-gray-900">
-                    <span aria-hidden="true" className="absolute inset-0" />
-                    {product.name}
-                  </h3>
-                  <p className="mt-1 text-sm text-gray-500">{product.category}</p>
-                </div>
-                <p className="text-sm font-semibold text-gray-900">{formatCurrency(minPrice)}</p>
-              </div>
-            </Link>
-          );
-        })}
+        <div className="space-y-3">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100 text-amber-800 text-xs font-bold uppercase tracking-wider">
+            <Sparkles size={13} />
+            Storefront Coming Soon
+          </div>
+          <h1 className="text-3xl sm:text-4xl font-serif font-bold text-gray-900">
+            {vendor?.businessName || `@${handle}`}
+          </h1>
+          <p className="text-sm sm:text-base text-gray-600 max-w-lg mx-auto leading-relaxed">
+            {vendor?.bio ||
+              "Our full digital catalog and online ordering experience is launching soon!"}
+          </p>
+        </div>
+
+        {vendor?.socials?.whatsapp && (
+          <div className="pt-4 border-t border-gray-100">
+            <p className="text-xs text-gray-500 mb-4 uppercase tracking-wider font-semibold">
+              Connect Directly with the Designer
+            </p>
+            <a
+              href={`https://wa.me/${vendor.socials.whatsapp.replace(/\D/g, "")}?text=${encodeURIComponent(
+                `Hello ${vendor.businessName}, I would like to make an inquiry!`
+              )}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center justify-center gap-2 py-3.5 px-8 rounded-xl bg-brand-700 hover:bg-brand-800 text-white font-medium text-sm transition-all shadow-md active:scale-98"
+            >
+              <MessageCircle size={18} />
+              Chat on WhatsApp
+            </a>
+          </div>
+        )}
       </div>
     </div>
   );
 }
+

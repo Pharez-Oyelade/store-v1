@@ -119,30 +119,33 @@ export default function MeasurementsEditor({
       )}
 
       {/* Custom Field Add Row */}
-      <div className="flex gap-2 pt-2 border-t border-gray-100">
+      <div className="flex flex-col sm:flex-row gap-2 pt-2 border-t border-gray-100">
         <input
           type="text"
-          placeholder="Custom field (e.g. Wrist, Lap)"
+          placeholder="Custom field name (e.g. Wrist, Lap)"
           value={newKey}
           onChange={(e) => setNewKey(e.target.value)}
           className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
         />
-        <input
-          type="text"
-          placeholder="Value (e.g. 12cm)"
-          value={newValue}
-          onChange={(e) => setNewValue(e.target.value)}
-          className="w-28 sm:w-36 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
-        />
-        <button
-          type="button"
-          onClick={() => handleAdd(newKey, newValue)}
-          className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-sm font-medium transition-colors flex items-center gap-1"
-        >
-          <Plus size={16} />
-          Add
-        </button>
+        <div className="flex gap-2">
+          <input
+            type="text"
+            placeholder='Value (e.g. 12")'
+            value={newValue}
+            onChange={(e) => setNewValue(e.target.value)}
+            className="flex-1 sm:w-36 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
+          />
+          <button
+            type="button"
+            onClick={() => handleAdd(newKey, newValue)}
+            className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1 shrink-0"
+          >
+            <Plus size={16} />
+            Add
+          </button>
+        </div>
       </div>
+
     </div>
   );
 }

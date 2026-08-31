@@ -32,6 +32,34 @@ export enum SubscriptionStatus {
   PastDue = "past_due",
 }
 
+export interface Subscription {
+  _id: string;
+  vendor: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  isTrial?: boolean;
+  trialStartDate?: string;
+  trialEndDate?: string;
+  expiryNoticeSent?: boolean;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const PLAN_LIMITS: Record<
+  SubscriptionPlan,
+  { products: number; ordersPerMonth: number; teamSeats: number }
+> = {
+  [SubscriptionPlan.Free]: { products: 5, ordersPerMonth: 5, teamSeats: 1 },
+  [SubscriptionPlan.Stitch]: { products: 50, ordersPerMonth: 25, teamSeats: 1 },
+  [SubscriptionPlan.Drape]: { products: 200, ordersPerMonth: 500, teamSeats: 3 },
+  [SubscriptionPlan.Atelier]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10 },
+  [SubscriptionPlan.Maison]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
+};
+
+
 export enum OrderSource {
   DM = "dm",
   Call = "call",

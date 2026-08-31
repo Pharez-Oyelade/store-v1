@@ -124,17 +124,17 @@ export default function StorefrontBespokeRequestPage({
   };
 
   return (
-    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+    <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-12">
       <Link
         href={`/store/${handle}`}
-        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-6"
+        className="inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 transition-colors mb-4 sm:mb-6"
       >
         <ArrowLeft size={16} />
         Back to Storefront
       </Link>
 
       {submitted ? (
-        <div className="bg-white p-8 sm:p-12 rounded-2xl border border-gray-100 shadow-sm text-center max-w-lg mx-auto">
+        <div className="bg-white p-6 sm:p-12 rounded-2xl border border-gray-100 shadow-sm text-center max-w-lg mx-auto">
           <div className="w-14 h-14 bg-emerald-50 text-emerald-600 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle2 size={32} />
           </div>
@@ -165,7 +165,7 @@ export default function StorefrontBespokeRequestPage({
           </Link>
         </div>
       ) : (
-        <div className="bg-white p-8 sm:p-10 rounded-2xl border border-gray-100 shadow-sm space-y-8">
+        <div className="bg-white p-5 sm:p-8 md:p-10 rounded-2xl border border-gray-100 shadow-sm space-y-6 sm:space-y-8">
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-brand-50 text-brand-700 text-xs font-semibold uppercase tracking-wider mb-2">
               <Scissors size={14} />
@@ -174,10 +174,11 @@ export default function StorefrontBespokeRequestPage({
             <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900">
               Request a Custom Outfit
             </h1>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-xs sm:text-sm text-gray-500 mt-1">
               Have a specific style in mind? Share your inspiration photos, measurements, and details with the designer.
             </p>
           </div>
+
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Contact Details */}

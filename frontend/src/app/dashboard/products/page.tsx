@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Edit, PackagePlus, Search, Trash2 } from "lucide-react";
+import { Edit, PackagePlus, Search, Trash2, AlertCircle } from "lucide-react";
 import Input from "@/components/ui/Input";
 import {
   EmptyState,
@@ -17,13 +17,15 @@ import {
   useUpdateProduct,
 } from "@/hooks/useProducts";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { ProductStatus, type Product } from "@/types";
+import { ProductStatus, SubscriptionPlan, PLAN_LIMITS, type Product } from "@/types";
+import { useAuthStore } from "@/store/authStore";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<ProductStatus | "">("");
+  const vendor = useAuthStore((s) => s.vendor);
   const params = useMemo(
     () => ({ page, limit: 10, search, status: status || undefined }),
     [page, search, status],
@@ -32,12 +34,16 @@ export default function ProductsPage() {
   const deleteProduct = useDeleteProduct();
 
   const productList = products.data?.products ?? [];
+  const currentPlan = (vendor?.subscriptionPlan || "free") as SubscriptionPlan;
+  const maxProducts = PLAN_LIMITS[currentPlan]?.products ?? 5;
+  const totalProducts = products.data?.pagination?.total ?? productList.length;
+  const isOverLimit = maxProducts !== Infinity && totalProducts > maxProducts;
 
   return (
     <div className="mx-auto max-w-7xl">
       <PageHeader
         title="Products"
-        description="Manage fashion inventory, variants, stock levels and storefront availability."
+        description="Manage fashion inventory, variants, stock levels and catalog availability."
         action={
           <Link
             href="/dashboard/products/new"
@@ -48,6 +54,29 @@ export default function ProductsPage() {
           </Link>
         }
       />
+
+      {isOverLimit && (
+        <div className="mb-5 rounded-2xl border border-amber-200 bg-amber-50/90 p-4 text-amber-900 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-xs">
+          <div className="flex items-start gap-3">
+            <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
+            <div>
+              <p className="text-sm font-bold">
+                Catalog limit exceeded ({totalProducts}/{maxProducts} products on {currentPlan.toUpperCase()} Plan)
+              </p>
+              <p className="text-xs text-amber-800 mt-0.5">
+                All your existing {totalProducts} products are safe and accessible. To add more products, upgrade to The Stitch Plan or archive items down to {maxProducts}.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/settings"
+            className="inline-flex items-center gap-1 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 px-3.5 py-2 rounded-xl shrink-0 transition-colors shadow-xs"
+          >
+            Upgrade Plan &rarr;
+          </Link>
+        </div>
+      )}
+
 
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
         <Input

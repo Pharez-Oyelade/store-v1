@@ -143,14 +143,19 @@ const page = () => {
             </div>
 
             {/* CTA */}
-            <button
+            <a
+              href="/register"
               className={cn(
-                "border py-3 w-full px-5 hover:bg-accent-500 hover:border-accent-500 hover:text-white",
+                "block text-center border py-3 w-full px-5 hover:bg-accent-500 hover:border-accent-500 hover:text-white font-medium transition-colors",
                 plan.isPopular ? "border-accent-400 text-accent-500" : "",
               )}
             >
-              {plan.monthlyPrice ? "START FREE TRIAL" : "BOOK A CALL"}
-            </button>
+              {plan.tier === "01"
+                ? "START 14-DAY FREE TRIAL"
+                : plan.monthlyPrice
+                ? "START FREE TRIAL"
+                : "BOOK A CALL"}
+            </a>
 
             {/* PRICING OPTION DETAILS */}
             <div className="border-t border-t-gray-400 mt-10 py-3">
@@ -159,12 +164,18 @@ const page = () => {
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
                     <span>
+                      <b>14-Day Free Trial</b> included
+                    </span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>
                       Up to <b>50</b> products or bespoke styles
                     </span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>100 orders & customer demands / mo</span>
+                    <span><b>25</b> orders & bespoke demands / mo</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
@@ -172,7 +183,7 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Customer measurements profile</span>
+                    <span>Customer measurements profile & CRM</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
@@ -180,15 +191,11 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>WhatsApp order updates</span>
+                    <span>WhatsApp 1-click customer dispatch</span>
                   </div>
                   <div className="flex gap-2 items-center">
-                    <X color="#808080" size={18} />{" "}
-                    <span>Supplier & fabric tracking</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <X color="#808080" size={18} />{" "}
-                    <span>Custom WhatsApp templates</span>
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>1 Team seat</span>
                   </div>
                 </div>
               )}
@@ -204,7 +211,7 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Unlimited orders & bespoke demands</span>
+                    <span><b>500</b> orders & bespoke demands / mo</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
@@ -216,25 +223,17 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Weekly & monthly revenue summary</span>
+                    <span>Revenue analytics & reports</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Public storefront + custom request link</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>Low stock alerts</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>Up to 3 staff accounts</span>
+                    <span>3 Team seats</span>
                   </div>
                 </div>
               )}
 
-
               {/* 3 */}
+
               {plan.tier === "03" && (
                 <div className="space-y-5 text-sm">
                   <div className="flex gap-2 items-center">

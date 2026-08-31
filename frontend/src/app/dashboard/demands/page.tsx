@@ -46,9 +46,9 @@ export default function DemandsPage() {
   const pagination = requestsData?.pagination;
 
   return (
-    <div className="space-y-8 max-w-7xl mx-auto pb-16">
+    <div className="space-y-6 sm:space-y-8 max-w-7xl mx-auto pb-16 px-1 sm:px-0">
       {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
         <div>
           <h1 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900 flex items-center gap-2.5">
             <span className="p-2 rounded-xl bg-brand-50 text-brand-700">
@@ -56,70 +56,69 @@ export default function DemandsPage() {
             </span>
             Demand Board
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
+          <p className="text-xs sm:text-sm text-gray-500 mt-1">
             Track bespoke customer requests, tailoring measurements, fabric sourcing, and fittings.
           </p>
         </div>
 
-        <Link href="/dashboard/demands/new">
-          <Button variant="primary" leftIcon={<Plus size={16} />}>
+        <Link href="/dashboard/demands/new" className="w-full sm:w-auto">
+          <Button variant="primary" leftIcon={<Plus size={16} />} className="w-full sm:w-auto justify-center">
             New Bespoke Demand
           </Button>
         </Link>
       </div>
 
-
       {/* KPI Metric Summary Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Active Demands</span>
-            <Layers size={18} className="text-brand-700" />
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Active Demands</span>
+            <Layers size={18} className="text-brand-700 shrink-0" />
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900">
             {isSummaryLoading ? "..." : summaryData?.activeCount || 0}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Inquiries through fittings</p>
+          <p className="text-[11px] text-gray-400 mt-1">Inquiries & fittings</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Overdue Deadlines</span>
-            <AlertCircle size={18} className="text-red-600" />
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Overdue</span>
+            <AlertCircle size={18} className="text-red-600 shrink-0" />
           </div>
-          <p className={`text-2xl font-bold ${summaryData?.overdueCount ? "text-red-600" : "text-gray-900"}`}>
+          <p className={`text-xl sm:text-2xl font-bold ${summaryData?.overdueCount ? "text-red-600" : "text-gray-900"}`}>
             {isSummaryLoading ? "..." : summaryData?.overdueCount || 0}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Need urgent attention</p>
+          <p className="text-[11px] text-gray-400 mt-1">Need urgent attention</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Customer Debt</span>
-            <DollarSign size={18} className="text-amber-600" />
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Customer Debt</span>
+            <DollarSign size={18} className="text-amber-600 shrink-0" />
           </div>
-          <p className="text-2xl font-bold text-amber-700">
+          <p className="text-xl sm:text-2xl font-bold text-amber-700 truncate">
             {isSummaryLoading ? "..." : formatCurrency(summaryData?.totalBalanceOwed || 0)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Balances to collect</p>
+          <p className="text-[11px] text-gray-400 mt-1">Balances to collect</p>
         </div>
 
-        <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-xs">
+        <div className="bg-white p-4 sm:p-5 rounded-2xl border border-gray-200 shadow-xs flex flex-col justify-between">
           <div className="flex items-center justify-between text-gray-500 mb-2">
-            <span className="text-xs font-medium uppercase tracking-wider">Total Value</span>
-            <Sparkles size={18} className="text-purple-600" />
+            <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wider">Total Value</span>
+            <Sparkles size={18} className="text-purple-600 shrink-0" />
           </div>
-          <p className="text-2xl font-bold text-gray-900">
+          <p className="text-xl sm:text-2xl font-bold text-gray-900 truncate">
             {isSummaryLoading ? "..." : formatCurrency(summaryData?.totalAgreedValue || 0)}
           </p>
-          <p className="text-xs text-gray-400 mt-1">Confirmed bespoke orders</p>
+          <p className="text-[11px] text-gray-400 mt-1">Confirmed bespoke</p>
         </div>
       </div>
 
       {/* Filter Tabs & Search Bar */}
-      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-3 sm:gap-4">
         {/* Status Tabs */}
-        <div className="flex gap-1.5 overflow-x-auto pb-2 md:pb-0 scrollbar-none">
+        <div className="flex gap-1.5 overflow-x-auto pb-1 md:pb-0 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {STATUS_TABS.map((tab) => (
             <button
               key={tab.value}
@@ -127,7 +126,7 @@ export default function DemandsPage() {
                 setSelectedStatus(tab.value);
                 setPage(1);
               }}
-              className={`px-3.5 py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
+              className={`px-3 sm:px-3.5 py-1.5 sm:py-2 rounded-xl text-xs font-semibold whitespace-nowrap transition-all ${
                 selectedStatus === tab.value
                   ? "bg-brand-700 text-white shadow-xs"
                   : "bg-white text-gray-600 hover:bg-gray-100 border border-gray-200"
@@ -137,6 +136,7 @@ export default function DemandsPage() {
             </button>
           ))}
         </div>
+
 
         {/* Search */}
         <div className="relative w-full md:w-72 shrink-0">

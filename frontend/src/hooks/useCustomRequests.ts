@@ -73,7 +73,11 @@ export function useCreateCustomRequest() {
 
   return useMutation({
     mutationFn: (data: FormData | Record<string, unknown>) =>
-      apiPost<CustomRequest>("/custom-requests", data),
+      apiPost<CustomRequest>(
+        "/custom-requests",
+        data,
+        data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined
+      ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
       toast.success("Bespoke request recorded successfully");
@@ -90,7 +94,11 @@ export function useUpdateCustomRequest(id: string) {
 
   return useMutation({
     mutationFn: (data: FormData | Partial<CustomRequest>) =>
-      apiPut<CustomRequest>(`/custom-requests/${id}`, data),
+      apiPut<CustomRequest>(
+        `/custom-requests/${id}`,
+        data,
+        data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined
+      ),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
       queryClient.setQueryData(CUSTOM_REQUEST_KEYS.detail(id), updated);
@@ -101,6 +109,7 @@ export function useUpdateCustomRequest(id: string) {
     },
   });
 }
+
 
 /* ── Delete Custom Request ──────────────────────────────────────── */
 export function useDeleteCustomRequest() {

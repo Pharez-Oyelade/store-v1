@@ -1,142 +1,81 @@
 "use client";
 
-import { useState } from "react";
+import React from "react";
 import Link from "next/link";
-import { ExternalLink, Store, Copy, CheckCircle2 } from "lucide-react";
-import VendorProfileForm from "@/components/dashboard/VendorProfileForm";
-import {
-  EmptyState,
-  PageHeader,
-  StatusBadge,
-  TableShell,
-} from "@/components/dashboard/DashboardPrimitives";
-import { useProducts } from "@/hooks/useProducts";
-import { useVendorProfile } from "@/hooks/useVendorProfile";
-import { formatCurrency } from "@/lib/utils";
-import { ProductStatus } from "@/types";
+import { Store, Sparkles, Package, Scissors, MessageCircle, ArrowRight } from "lucide-react";
+import Button from "@/components/custom/Button";
+import { PageHeader } from "@/components/dashboard/DashboardPrimitives";
 
 export default function StorefrontPage() {
-  const profile = useVendorProfile();
-  const products = useProducts({ page: 1, limit: 20, status: ProductStatus.Active });
-  const storefrontPath = profile.data?.handle ? `/store/${profile.data.handle}` : "/store";
-  const publicUrl = typeof window !== "undefined" && profile.data?.handle ? `${window.location.origin}/store/${profile.data.handle}` : "";
-  const [copied, setCopied] = useState(false);
-
-  const handleCopy = () => {
-    if (!publicUrl) return;
-    navigator.clipboard.writeText(publicUrl);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
   return (
-    <div className="mx-auto max-w-7xl relative">
-      {(!profile.data?.subscriptionPlan || profile.data?.subscriptionPlan === "free" || profile.data?.subscriptionPlan === "stitch") && (
-        <div className="absolute inset-0 z-10 bg-white/60 dark:bg-black/60 backdrop-blur-sm flex flex-col items-center justify-center rounded-xl border border-gray-200 dark:border-gray-800">
-          <div className="bg-white dark:bg-gray-900 p-8 rounded-2xl shadow-xl text-center max-w-md border border-gray-100 dark:border-gray-800">
-            <div className="mx-auto w-12 h-12 bg-amber-100 dark:bg-amber-900/30 rounded-full flex items-center justify-center mb-4">
-              <Store className="h-6 w-6 text-amber-600 dark:text-amber-500" />
-            </div>
-            <h3 className="text-xl font-bold mb-2">Premium Feature</h3>
-            <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Public storefronts are available on The Drape, The Atelier, and The Maison plans. Upgrade to unlock your own branded discovery page.
-            </p>
-            <Link href="/dashboard/settings">
-              <button className="w-full bg-brand-600 text-white py-2 rounded-lg font-medium hover:bg-brand-700 transition">Upgrade Plan</button>
+    <div className="mx-auto max-w-4xl pb-16 space-y-8">
+      <PageHeader
+        title="Public Storefronts"
+        description="Your dedicated online store and digital fashion catalog for customer discovery."
+      />
+
+      <div className="bg-white rounded-3xl border border-gray-200 shadow-sm p-8 sm:p-12 text-center space-y-6">
+        <div className="w-16 h-16 rounded-2xl bg-amber-50 text-amber-600 border border-amber-200/60 flex items-center justify-center mx-auto shadow-xs">
+          <Store size={32} />
+        </div>
+
+        <div className="space-y-2 max-w-xl mx-auto">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-800 text-xs font-bold uppercase tracking-wider">
+            <Sparkles size={13} />
+            Feature Coming Soon
+          </div>
+          <h2 className="text-2xl sm:text-3xl font-serif font-bold text-gray-900">
+            Public Online Storefronts are in Development
+          </h2>
+          <p className="text-sm text-gray-600 leading-relaxed pt-1">
+            We are currently building branded web storefronts with customer carts and custom domain connections. This feature will roll out to all vendors in a future update!
+          </p>
+        </div>
+
+        {/* What vendors can use right now */}
+        <div className="pt-6 border-t border-gray-100 max-w-2xl mx-auto">
+          <h3 className="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">
+            Available on Vendra Today
+          </h3>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-left">
+            <Link
+              href="/dashboard/products"
+              className="p-4 rounded-2xl bg-gray-50 hover:bg-brand-50/50 border border-gray-200 transition-colors group block"
+            >
+              <Package size={20} className="text-brand-700 mb-2 group-hover:scale-110 transition-transform" />
+              <h4 className="text-sm font-bold text-gray-900">Product Inventory</h4>
+              <p className="text-xs text-gray-500 mt-1">Manage stock, prices, and sizes for ready-to-wear.</p>
+            </Link>
+
+            <Link
+              href="/dashboard/demands"
+              className="p-4 rounded-2xl bg-gray-50 hover:bg-brand-50/50 border border-gray-200 transition-colors group block"
+            >
+              <Scissors size={20} className="text-brand-700 mb-2 group-hover:scale-110 transition-transform" />
+              <h4 className="text-sm font-bold text-gray-900">Bespoke Demands</h4>
+              <p className="text-xs text-gray-500 mt-1">Record client measurements, fabrics, and deadlines.</p>
+            </Link>
+
+            <Link
+              href="/dashboard/orders"
+              className="p-4 rounded-2xl bg-gray-50 hover:bg-brand-50/50 border border-gray-200 transition-colors group block"
+            >
+              <MessageCircle size={20} className="text-brand-700 mb-2 group-hover:scale-110 transition-transform" />
+              <h4 className="text-sm font-bold text-gray-900">Orders & WhatsApp</h4>
+              <p className="text-xs text-gray-500 mt-1">Track deposits, debts, and send 1-click updates.</p>
             </Link>
           </div>
         </div>
-      )}
-      <PageHeader
-        title="Storefront"
-        description="Control the public details buyers see before they continue on WhatsApp or Instagram."
-        action={
-          <Link href={storefrontPath} className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50">
-            <ExternalLink className="size-4" />
-            Preview
+
+        <div className="pt-2">
+          <Link href="/dashboard">
+            <Button variant="primary" rightIcon={<ArrowRight size={16} />}>
+              Go to Dashboard Overview
+            </Button>
           </Link>
-        }
-      />
-
-      <div className="grid gap-6 xl:grid-cols-[1fr_1fr]">
-        <section>
-          <h2 className="mb-3 text-base font-semibold text-gray-950">Storefront profile</h2>
-          <VendorProfileForm />
-        </section>
-
-        <section className="space-y-4">
-          <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
-            <div className="flex items-start gap-3">
-              <span className="flex size-10 items-center justify-center rounded-md bg-brand-50 text-brand-700">
-                <Store className="size-5" />
-              </span>
-              <div>
-                <h2 className="text-base font-semibold text-gray-950">{profile.data?.businessName ?? "Your store"}</h2>
-                <p className="text-sm text-gray-500">@{profile.data?.handle ?? "handle"}</p>
-                <p className="mt-3 text-sm text-gray-600">{profile.data?.bio || "Add a short bio to help buyers understand your style and services."}</p>
-                <p className="mt-3 text-xs text-gray-500">
-                  {[profile.data?.location?.area, profile.data?.location?.city, profile.data?.location?.state].filter(Boolean).join(", ") || "Location not set"}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card mt-4">
-            <h3 className="text-sm font-semibold text-gray-900 mb-2">Your Public URL</h3>
-            <p className="text-xs text-gray-500 mb-3">Share this link on Instagram or WhatsApp to let customers buy directly from you.</p>
-            <div className="flex items-center gap-2">
-              <input 
-                type="text" 
-                readOnly 
-                value={publicUrl} 
-                className="flex-1 text-sm bg-gray-50 border border-gray-200 rounded-md py-2 px-3 text-gray-700 outline-none"
-              />
-              <button 
-                onClick={handleCopy}
-                className="flex items-center justify-center gap-1.5 px-3 py-2 bg-brand-50 text-brand-700 hover:bg-brand-100 rounded-md transition-colors font-medium text-sm border border-brand-200"
-              >
-                {copied ? <CheckCircle2 className="size-4" /> : <Copy className="size-4" />}
-                {copied ? "Copied!" : "Copy"}
-              </button>
-            </div>
-          </div>
-
-          <div className="mt-6">
-            <h2 className="mb-3 text-base font-semibold text-gray-950">Active products on storefront</h2>
-            {products.data?.products.length ? (
-              <TableShell>
-                <table className="min-w-full text-left text-sm">
-                  <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-                    <tr>
-                      <th className="px-4 py-3">Product</th>
-                      <th className="px-4 py-3">Price</th>
-                      <th className="px-4 py-3">Stock</th>
-                      <th className="px-4 py-3">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {products.data.products.map((product) => (
-                      <tr key={product._id}>
-                        <td className="px-4 py-3 font-medium text-gray-950">{product.name}</td>
-                        <td className="px-4 py-3">{formatCurrency(product.basePrice)}</td>
-                        <td className="px-4 py-3">{product.variants.reduce((sum, variant) => sum + variant.quantity, 0)}</td>
-                        <td className="px-4 py-3"><StatusBadge value={product.status} /></td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </TableShell>
-            ) : (
-              <EmptyState
-                title="No active products"
-                description="Set products to active so buyers can see them on your public storefront."
-                href="/dashboard/products"
-                actionLabel="Manage products"
-              />
-            )}
-          </div>
-        </section>
+        </div>
       </div>
     </div>
   );
 }
+
