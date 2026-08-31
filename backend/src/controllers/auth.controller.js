@@ -1,11 +1,20 @@
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import Vendor from "../models/vendorModel.js";
+import Subscription from "../models/subscriptionModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import validator from "validator";
+import {
+  sendPasswordResetEmail,
+  sendWelcomeTrialEmail,
+} from "../services/email.service.js";
+import { createNotification } from "../services/notification.service.js";
+import { syncVendorSubscription } from "../services/subscription.service.js";
+
 
 const COOKIE_NAME = "access_token";
+
 
 // jwt token
 const signTokenAndSetCookie = (res, vendor) => {
@@ -79,13 +88,45 @@ export const register = asyncHandler(async (req, res) => {
     );
   }
 
+  const trialStart = new Date();
+  const trialEnd = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000); // 14-day trial
+
   const vendor = await Vendor.create({
     businessName: businessName.trim(),
     handle: handle.toLowerCase().trim(),
     phone: phone.trim(),
     email: email ? email.toLowerCase().trim() : undefined,
     password,
+    subscriptionPlan: "stitch",
+    subscriptionStatus: "active",
   });
+
+  await Subscription.create({
+    vendor: vendor._id,
+    plan: "stitch",
+    status: "active",
+    isTrial: true,
+    trialStartDate: trialStart,
+    trialEndDate: trialEnd,
+    currentPeriodStart: trialStart,
+    currentPeriodEnd: trialEnd,
+    expiryNoticeSent: false,
+  });
+
+  await createNotification(vendor._id, {
+    title: "14-Day Stitch Free Trial Activated",
+    message:
+      "Welcome to Vendra! Your 14-day free trial on The Stitch Plan is active. Enjoy up to 50 products, bespoke demands, and debt tracking.",
+    type: "subscription",
+    actionUrl: "/dashboard",
+  });
+
+  if (vendor.email) {
+    await sendWelcomeTrialEmail(vendor.email, {
+      businessName: vendor.businessName,
+      trialDays: 14,
+    });
+  }
 
   signTokenAndSetCookie(res, vendor);
 
@@ -127,7 +168,6 @@ export const login = asyncHandler(async (req, res) => {
   }
 
   // compare password (comparePassword method in schema)
-
   const isPasswordCorrect = await vendor.comparePassword(password);
 
   if (!isPasswordCorrect) {
@@ -138,11 +178,15 @@ export const login = asyncHandler(async (req, res) => {
     );
   }
 
-  signTokenAndSetCookie(res, vendor);
+  // Real-time subscription sync on login
+  await syncVendorSubscription(vendor._id);
+  const updatedVendor = await Vendor.findById(vendor._id);
+
+  signTokenAndSetCookie(res, updatedVendor || vendor);
 
   return sendSuccess(
     res,
-    buildAuthUserResponse(vendor),
+    buildAuthUserResponse(updatedVendor || vendor),
     `Welcome back, ${vendor.businessName}`,
   );
 });
@@ -161,12 +205,17 @@ export const logout = asyncHandler(async (req, res) => {
 
 /* -------------- Get Me (current vendor) ---------------- */
 export const getMe = asyncHandler(async (req, res) => {
-  /*
-   * req.vendor is attached by the `protect` middleware.
-   * We return a fresh copy with only the fields the client needs.
-   */
-  return sendSuccess(res, buildAuthUserResponse(req.vendor), "Authenticated");
+  // Sync real-time subscription lifecycle (expiry/downgrade check)
+  await syncVendorSubscription(req.vendor._id);
+  const freshVendor = await Vendor.findById(req.vendor._id);
+
+  return sendSuccess(
+    res,
+    buildAuthUserResponse(freshVendor || req.vendor),
+    "Authenticated",
+  );
 });
+
 
 /* -------------- Forgot Password ---------------- */
 export const forgotPassword = asyncHandler(async (req, res) => {
@@ -209,17 +258,26 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   vendor.passwordResetExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   await vendor.save({ validateBeforeSave: false });
 
-  /*
-   * TODO: Send the reset token via email or SMS.
-   * For now, returning it in the response for development.
-   * In production, remove the token from the response and send via Termii/email.
-   */
+  const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
+
+  if (vendor.email) {
+    await sendPasswordResetEmail(vendor.email, resetUrl);
+  }
+
+  // In development, also log the reset URL to the server console for rapid testing
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n🔑 [DEV ONLY] Password Reset Token: ${resetToken}`);
+    console.log(`🔗 [DEV ONLY] Reset URL: ${resetUrl}\n`);
+  }
+
   return sendSuccess(
     res,
-    { resetToken }, // REMOVE in production — send via email/SMS instead
-    "Password reset token generated",
+    null,
+    "If an account with that credential exists, a password reset link has been sent.",
   );
 });
+
+
 
 /* -------------- Reset Password ---------------- */
 export const resetPassword = asyncHandler(async (req, res) => {

@@ -26,7 +26,7 @@ export default function AuthLayout({
 
       {/* Marketing footer */}
       <p className="mt-8 text-xs text-gray-400 text-center py-12">
-        &copy; {new Date().getFullYear()} SabiStore &middot;{" "}
+        &copy; {new Date().getFullYear()} Vendra &middot;{" "}
         <Link href="/privacy" className="hover:text-gray-600 transition-colors">
           Privacy
         </Link>{" "}
@@ -38,3 +38,4 @@ export default function AuthLayout({
     </div>
   );
 }
+

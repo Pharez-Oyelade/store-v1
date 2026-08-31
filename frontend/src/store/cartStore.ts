@@ -73,8 +73,9 @@ export const useCartStore = create<CartState>()(
       },
     }),
     {
-      name: "sabistore-cart", // key for local storage
+      name: "vendra-cart", // key for local storage
       storage: createJSONStorage(() => localStorage),
     }
   )
 );
+

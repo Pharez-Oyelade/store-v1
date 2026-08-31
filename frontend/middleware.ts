@@ -79,10 +79,16 @@ export async function middleware(request: NextRequest) {
    * redirect to /dashboard with an ?unauthorized flag.
    */
   if (isAdminRoute && isAuthenticated && token?.value) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (!jwtSecret) {
+      console.error("[Middleware] JWT_SECRET environment variable is missing.");
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
+
     try {
-      const secret = new TextEncoder().encode(
-        process.env.JWT_SECRET || "fallback-secret",
-      );
+      const secret = new TextEncoder().encode(jwtSecret);
       const { payload } = await jwtVerify(token.value, secret);
 
       if (payload.role !== "admin") {
@@ -91,6 +97,7 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(dashboardUrl);
       }
     } catch {
+
       /*
        * Token is invalid or expired — treat as unauthenticated.
        * The protect middleware on the backend will also reject it.

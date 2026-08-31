@@ -36,10 +36,11 @@ const Hero = () => {
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.5, ease: easeOut }}
-          className="inline-flex items-center gap-3 px-4 py-2 rounded-full glass-card border-brand-200"
+          className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full glass-card border-brand-200"
         >
+          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
           <span className="text-brand-700 text-xs md:text-sm font-semibold uppercase tracking-wider">
-            Built for Nigerian Fashion Vendors
+            14-Day Free Trial on The Stitch Plan
           </span>
         </motion.div>
 
@@ -60,8 +61,10 @@ const Hero = () => {
           transition={{ delay: 0.3, duration: 0.6, ease: easeOut }}
           className="max-w-xl text-base md:text-lg text-gray-600 leading-relaxed"
         >
-          Stop managing orders in DMs and inventory in notebooks. Vendra gives
-          fashion vendors one clean, powerful dashboard for everything.
+          Built for ready-to-wear boutiques, thrifts, and bespoke tailors who
+          sew on demand. Stop losing orders in messy DMs and notebooks — Vendra
+          gives fashion creators one clean dashboard for inventory, customer
+          measurements, and orders.
         </motion.p>
 
         {/* CTAs */}
@@ -71,13 +74,13 @@ const Hero = () => {
           transition={{ delay: 0.5, duration: 0.6, ease: easeOut }}
           className="flex flex-col sm:flex-row items-start sm:items-center gap-4 pt-2"
         >
-          <Link href="/login">
+          <Link href="/register">
             <Button
               size="large"
               variant="primary"
               className="shadow-lg active:scale-95 hover:shadow-brand-500/50 transition-shadow"
             >
-              Get Started Free
+              Start 14-Day Free Trial
             </Button>
           </Link>
 
@@ -102,9 +105,9 @@ const Hero = () => {
           className="hidden md:flex gap-8 lg:gap-10 items-center text-sm"
         >
           {[
+            "14-day free trial\non Stitch plan",
             "No credit card\nrequired",
-            "Easy setup in\nminutes",
-            "Cancel anytime",
+            "Cancel or downgrade\nanytime",
           ].map((label) => (
             <div key={label} className="flex items-center gap-2">
               <div className="p-1 rounded-full border-2 font-bold border-brand-600 shrink-0">
@@ -114,6 +117,7 @@ const Hero = () => {
             </div>
           ))}
         </motion.div>
+
       </motion.div>
 
       {/* Hero Image — right column */}

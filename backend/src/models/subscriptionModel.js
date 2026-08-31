@@ -11,7 +11,7 @@ import mongoose from "mongoose";
 
 export const PLAN_LIMITS = {
   free: { products: 5, ordersPerMonth: 5, teamSeats: 1 },
-  stitch: { products: 15, ordersPerMonth: 10, teamSeats: 1 },
+  stitch: { products: 50, ordersPerMonth: 25, teamSeats: 1 },
   drape: { products: 200, ordersPerMonth: 500, teamSeats: 3 },
   atelier: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10 },
   maison: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
@@ -37,7 +37,7 @@ const subscriptionSchema = new mongoose.Schema(
     plan: {
       type: String,
       enum: ["free", "stitch", "drape", "atelier", "maison"],
-      default: "free",
+      default: "stitch",
     },
 
     status: {
@@ -45,6 +45,12 @@ const subscriptionSchema = new mongoose.Schema(
       enum: ["active", "inactive", "past_due"],
       default: "active",
     },
+
+    /* ── Trial Tracking ──────────────────────────────────── */
+    isTrial: { type: Boolean, default: false },
+    trialStartDate: { type: Date },
+    trialEndDate: { type: Date },
+    expiryNoticeSent: { type: Boolean, default: false },
 
     /* ── Paystack references ──────────────────────────────── */
     paystackCustomerCode: { type: String, default: "" },
@@ -58,6 +64,7 @@ const subscriptionSchema = new mongoose.Schema(
   },
   { timestamps: true },
 );
+
 
 const Subscription = mongoose.model("Subscription", subscriptionSchema);
 

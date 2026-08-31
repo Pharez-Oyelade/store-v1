@@ -32,6 +32,37 @@ export enum SubscriptionStatus {
   PastDue = "past_due",
 }
 
+export interface Subscription {
+  _id: string;
+  vendor: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  isTrial?: boolean;
+  trialStartDate?: string;
+  trialEndDate?: string;
+  expiryNoticeSent?: boolean;
+  paystackCustomerCode?: string;
+  paystackSubscriptionCode?: string;
+  currentPeriodStart?: string;
+  currentPeriodEnd?: string;
+  cancelAtPeriodEnd?: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+
+export const PLAN_LIMITS: Record<
+  SubscriptionPlan,
+  { products: number; ordersPerMonth: number; teamSeats: number }
+> = {
+  [SubscriptionPlan.Free]: { products: 5, ordersPerMonth: 5, teamSeats: 1 },
+  [SubscriptionPlan.Stitch]: { products: 50, ordersPerMonth: 25, teamSeats: 1 },
+  [SubscriptionPlan.Drape]: { products: 200, ordersPerMonth: 500, teamSeats: 3 },
+  [SubscriptionPlan.Atelier]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10 },
+  [SubscriptionPlan.Maison]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
+};
+
+
 export enum OrderSource {
   DM = "dm",
   Call = "call",
@@ -90,20 +121,6 @@ export interface Product {
   updatedAt: string;
 }
 
-// subscription
-export interface Subscription {
-  _id: string;
-  vendor: string;
-  plan: SubscriptionPlan;
-  status: SubscriptionStatus;
-  paystackCustomerCode?: string; // for Paystack integration
-  paystackSubscriptionCode?: string;
-  currentPeriodStart?: string;
-  currentPeriodEnd?: string;
-  cancelAtPeriodEnd: boolean; // if true, subscription will cancel at the end of the current billing period
-  createdAt: string;
-  updatedAt: string;
-}
 
 // vendor
 export interface Vendor {
@@ -148,7 +165,9 @@ export interface SupplierPurchase {
   paidAmount: number;
   status: "ordered" | "delivered";
   date: string;
+  customRequest?: string | { _id: string; title?: string };
 }
+
 
 export interface Supplier {
   _id: string;
@@ -219,6 +238,7 @@ export interface OrderItem {
 // order
 export interface Order {
   _id: string;
+  isBespoke?: boolean;
   vendor: string;
   customer?: Customer; // optional for walk-in orders or if customer info isn't collected (MongoDB ObjectId)
   customerSnapshot: {
@@ -242,6 +262,7 @@ export interface Order {
   createdAt: string;
   updatedAt: string;
 }
+
 
 // analytics
 export interface RevenueDataPoint {
@@ -361,10 +382,17 @@ export interface ProductQueryParams {
 export interface OrderQueryParams {
   page?: number;
   limit?: number;
-  status?: OrderStatus;
+  status?: OrderStatus | string;
+  payment?: "all" | "paid" | "unpaid" | "debt" | string;
+  search?: string;
+  type?: "all" | "ready_to_wear" | "bespoke";
   startDate?: string; // ISO date string for filtering orders created after this date
   endDate?: string;
+  sort?: string;
+  order?: "asc" | "desc";
 }
+
+
 
 export interface CustomerQeryParams {
   page?: number;
@@ -580,3 +608,109 @@ export interface AnnouncementFormValues {
   expiresAt: string | null;
   isActive?: boolean;
 }
+
+/* ============================================================
+ * BESPOKE & DEMAND TRACKING TYPES
+ * For tailors, designers & made-to-order fashion vendors
+ * ============================================================ */
+
+export enum CustomRequestStatus {
+  Inquiry = "inquiry",
+  Quoted = "quoted",
+  Confirmed = "confirmed",
+  Sourcing = "sourcing",
+  InProgress = "in_progress",
+  Fitting = "fitting",
+  Completed = "completed",
+  Cancelled = "cancelled",
+}
+
+export type CustomRequestCategory =
+  | "clothing"
+  | "accessories"
+  | "alteration"
+  | "repair"
+  | "other";
+
+export interface CustomRequestMaterial {
+  _id?: string;
+  name: string;
+  quantity?: string;
+  supplier?: {
+    _id: string;
+    name: string;
+    phone: string;
+    category: string;
+  } | string | null;
+  estimatedCost: number;
+  acquired: boolean;
+}
+
+export interface CustomRequest {
+  _id: string;
+  vendor: string;
+  customer?: Customer | string | null;
+  customerSnapshot: {
+    name: string;
+    phone: string;
+    email?: string;
+  };
+  title: string;
+  description?: string;
+  category: CustomRequestCategory;
+  referenceImages: CloudinaryImage[];
+  measurements?: Record<string, string>;
+  materials: CustomRequestMaterial[];
+  estimatedPrice: number;
+  agreedPrice: number;
+  depositPaid: number;
+  balanceOwed: number;
+  deadline?: string | null;
+  status: CustomRequestStatus;
+  source: string;
+  notes?: string;
+  whatsappSent: boolean;
+  whatsappLinks?: {
+    quote: string;
+    confirmed: string;
+    fitting: string;
+    completed: string;
+  };
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CustomRequestSummary {
+  activeCount: number;
+  overdueCount: number;
+  totalBalanceOwed: number;
+  totalAgreedValue: number;
+}
+
+export interface CustomRequestQueryParams {
+  page?: number;
+  limit?: number;
+  status?: CustomRequestStatus | "all";
+  category?: CustomRequestCategory;
+  search?: string;
+  sort?: string;
+  order?: "asc" | "desc";
+}
+
+export interface CustomRequestFormValues {
+  title: string;
+  customerName: string;
+  customerPhone: string;
+  customerEmail?: string;
+  category: CustomRequestCategory;
+  description?: string;
+  estimatedPrice: number | "";
+  agreedPrice?: number | "";
+  depositPaid?: number | "";
+  deadline?: string;
+  source?: string;
+  notes?: string;
+  measurements?: Record<string, string>;
+  materials?: CustomRequestMaterial[];
+}
+

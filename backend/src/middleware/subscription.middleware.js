@@ -1,5 +1,6 @@
 import Product from "../models/productModel.js";
 import Order from "../models/orderModel.js";
+import CustomRequest from "../models/customRequestModel.js";
 import { PLAN_LIMITS } from "../models/subscriptionModel.js";
 import { sendError } from "../utils/apiResponse.js";
 
@@ -21,7 +22,7 @@ export const checkProductLimit = async (req, res, next) => {
   if (count >= limit) {
     return sendError(
       res,
-      `Your ${plan} plan allows up to ${limit} products. Upgrade to add more.`,
+      `Your ${plan.toUpperCase()} plan allows up to ${limit} active products. Upgrade to add more.`,
       403,
     );
   }
@@ -30,8 +31,8 @@ export const checkProductLimit = async (req, res, next) => {
 };
 
 /**
- * Middleware: check if vendor can create more orders this month.
- * Used on POST /api/orders.
+ * Middleware: check if vendor can create more orders or bespoke demands this month.
+ * Used on POST /api/orders and POST /api/custom-requests.
  */
 export const checkOrderLimit = async (req, res, next) => {
   const plan = req.vendor.subscriptionPlan || "free";
@@ -43,18 +44,27 @@ export const checkOrderLimit = async (req, res, next) => {
   startOfMonth.setDate(1);
   startOfMonth.setHours(0, 0, 0, 0);
 
-  const count = await Order.countDocuments({
-    vendor: req.vendor._id,
-    createdAt: { $gte: startOfMonth },
-  });
+  const [orderCount, customReqCount] = await Promise.all([
+    Order.countDocuments({
+      vendor: req.vendor._id,
+      createdAt: { $gte: startOfMonth },
+    }),
+    CustomRequest.countDocuments({
+      vendor: req.vendor._id,
+      createdAt: { $gte: startOfMonth },
+    }),
+  ]);
 
-  if (count >= limit) {
+  const totalCount = orderCount + customReqCount;
+
+  if (totalCount >= limit) {
     return sendError(
       res,
-      `Your ${plan} plan allows up to ${limit} orders per month. Upgrade to continue.`,
+      `Your ${plan.toUpperCase()} plan allows up to ${limit} orders/demands per month (Used: ${totalCount}). Upgrade to record more.`,
       403,
     );
   }
 
   next();
 };
+

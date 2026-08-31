@@ -258,7 +258,16 @@ export default function SupplierDetailPage() {
                           </td>
                           <td className="px-4 py-3 font-medium">
                             {purchase.description}
+                            {purchase.customRequest && (
+                              <Link
+                                href={`/dashboard/demands/${typeof purchase.customRequest === "object" ? (purchase.customRequest as any)._id : purchase.customRequest}`}
+                                className="text-xs text-brand-700 font-semibold hover:underline block mt-0.5"
+                              >
+                                View Bespoke Demand &rarr;
+                              </Link>
+                            )}
                           </td>
+
                           <td className="px-4 py-3">
                             {formatCurrency(purchase.amount)}
                           </td>

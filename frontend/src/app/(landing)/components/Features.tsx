@@ -11,6 +11,7 @@ import {
   ChartColumnBig,
   Store,
   ArrowRight,
+  Scissors,
 } from "lucide-react";
 
 const bentoFeatures = [
@@ -31,11 +32,19 @@ const bentoFeatures = [
     className: "md:col-span-1 md:row-span-2 bg-accent-50",
   },
   {
+    id: "bespoke",
+    icon: <Scissors className="w-6 h-6 text-purple-600" />,
+    title: "Bespoke & Tailoring Board",
+    description:
+      "No ready-made stock yet? Record customer demands, save body measurements, track fabric requirements, and schedule fittings.",
+    className: "md:col-span-1 md:row-span-1 bg-purple-50/70 border-purple-200/60",
+  },
+  {
     id: "customers",
     icon: <Users className="w-6 h-6 text-success-500" />,
-    title: "Built-in CRM",
+    title: "Built-in CRM & Measurements",
     description:
-      "Full order history, total spend, and last purchase date per customer.",
+      "Full order history, customer body measurements map, and purchase debt tracking.",
     className: "md:col-span-1 md:row-span-1 bg-white",
   },
   {
@@ -43,18 +52,19 @@ const bentoFeatures = [
     icon: <ChartColumnBig className="w-6 h-6 text-info-500" />,
     title: "Clear, visual analytics",
     description:
-      "Know your best sellers, peak days, and outstanding balances instantly.",
-    className: "md:col-span-2 md:row-span-1 bg-brand-900 text-white",
+      "Know your best sellers, peak days, outstanding balances, and active tailoring demands.",
+    className: "md:col-span-1 md:row-span-1 bg-brand-900 text-white",
   },
   {
     id: "storefront",
     icon: <Store className="w-6 h-6 text-brand-400" />,
-    title: "Your public storefront",
+    title: "Public storefront & Custom Requests",
     description:
-      "Get a clean, fast, shareable store page (vendra.ng/yourname) that updates in real-time.",
+      "Get a clean, shareable link (vendra.ng/store/yourname) where buyers can shop your ready-made items or submit custom bespoke inquiries.",
     className: "md:col-span-3 md:row-span-1 bg-brand-100",
   },
 ];
+
 
 const Features = () => {
   return (

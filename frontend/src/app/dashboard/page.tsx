@@ -133,16 +133,17 @@ export default function DashboardPage() {
 
       {(overview.data?.totalDebt ?? 0) > 0 && (
         <Link
-          href="/dashboard/orders?status=pending"
-          className="mt-4 flex flex-col gap-1 rounded-lg border border-accent-200 bg-accent-50 p-4 text-sm text-accent-800 sm:flex-row sm:items-center sm:justify-between"
+          href="/dashboard/orders?payment=unpaid"
+          className="mt-4 flex flex-col gap-1 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 sm:flex-row sm:items-center sm:justify-between shadow-xs hover:bg-amber-100/70 transition-colors"
         >
           <span>
             {formatCurrency(overview.data?.totalDebt ?? 0)} outstanding across{" "}
-            {overview.data?.debtOrderCount ?? 0} orders.
+            {overview.data?.debtOrderCount ?? 0} orders with open balances.
           </span>
-          <span className="font-medium">Review balances</span>
+          <span className="font-semibold text-brand-800">Review open balances &rarr;</span>
         </Link>
       )}
+
 
       <div className="mt-6 grid gap-6 xl:grid-cols-[1.7fr_1fr]">
         <section className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">

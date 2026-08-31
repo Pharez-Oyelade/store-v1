@@ -4,6 +4,7 @@ import {
   verifyUpgrade,
   paystackWebhook,
   getCurrentSubscription,
+  checkSubscriptionLifecycle,
 } from "../controllers/subscription.controller.js";
 import { protect } from "../middleware/protect.js";
 
@@ -18,5 +19,7 @@ subscriptionRouter.use(protect);
 subscriptionRouter.post("/initialize", initializeUpgrade);
 subscriptionRouter.post("/verify", verifyUpgrade);
 subscriptionRouter.get("/current", getCurrentSubscription);
+subscriptionRouter.post("/check-lifecycle", checkSubscriptionLifecycle);
 
 export default subscriptionRouter;
+

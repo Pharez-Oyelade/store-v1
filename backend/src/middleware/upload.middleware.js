@@ -69,10 +69,11 @@ const upload = multer({
   storage: multer.memoryStorage(),
   fileFilter,
   limits: {
-    fileSize: 5 * 1024 * 1024,
+    fileSize: 15 * 1024 * 1024, // 15MB per file
     files: 5,
   },
 });
+
 
 /*
  * Uploads a single buffer to Cloudinary.
