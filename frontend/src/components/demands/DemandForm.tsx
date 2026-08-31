@@ -35,15 +35,16 @@ const demandSchema = z.object({
   customerEmail: z.string().email("Invalid email").optional().or(z.literal("")),
   category: z.enum(["clothing", "accessories", "alteration", "repair", "other"]),
   description: z.string().optional(),
-  estimatedPrice: z.coerce.number().min(0).default(0),
-  agreedPrice: z.coerce.number().min(0).default(0),
-  depositPaid: z.coerce.number().min(0).default(0),
+  estimatedPrice: z.number().min(0).default(0),
+  agreedPrice: z.number().min(0).default(0),
+  depositPaid: z.number().min(0).default(0),
   deadline: z.string().optional(),
   source: z.enum(["dm", "call", "walk_in", "storefront", "referral"]).default("dm"),
   notes: z.string().optional(),
 });
 
 type DemandFormSchema = z.infer<typeof demandSchema>;
+
 
 interface DemandFormProps {
   initialData?: CustomRequest;
@@ -621,23 +622,24 @@ export default function DemandForm({ initialData }: DemandFormProps) {
                 type="number"
                 placeholder="0"
                 error={errors.estimatedPrice?.message}
-                {...register("estimatedPrice")}
+                {...register("estimatedPrice", { valueAsNumber: true })}
               />
               <Input
                 label="Agreed Final Price (₦)"
                 type="number"
                 placeholder="0"
                 error={errors.agreedPrice?.message}
-                {...register("agreedPrice")}
+                {...register("agreedPrice", { valueAsNumber: true })}
               />
               <Input
                 label="Deposit Paid (₦)"
                 type="number"
                 placeholder="0"
                 error={errors.depositPaid?.message}
-                {...register("depositPaid")}
+                {...register("depositPaid", { valueAsNumber: true })}
               />
             </div>
+
 
             {/* Balance Calculation Pill */}
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
