@@ -13,68 +13,74 @@ export function VendraNeedleIcon({
   theme = "auto",
   ...props
 }: LogoProps) {
+  const isDark = theme === "dark";
+
+  const pixelSize =
+    typeof size === "number"
+      ? size
+      : size === "sm"
+      ? 26
+      : size === "md"
+      ? 34
+      : size === "lg"
+      ? 46
+      : size === "xl"
+      ? 56
+      : 34;
+
+  // Solid, highly visible color palette (no fragile url(#id) gradient dependencies)
+  const needleFill = "#FFFFFF";
+  const needleStroke = isDark ? "#475569" : "#0F172A";
+  const eyeFill = isDark ? "#0F172A" : "#0F172A";
+  const threadColor = isDark ? "#34D399" : "#10B981"; // Luminous Emerald/Mint in Dark, Emerald in Light
+
   return (
     <svg
-      width={size}
-      height={size}
-      viewBox="0 0 100 100"
+      width={pixelSize}
+      height={pixelSize}
+      viewBox="0 0 32 32"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"
-      className={cn("shrink-0", className)}
+      className={cn("shrink-0 block", className)}
       {...props}
     >
-      <defs>
-        {/* Needle Metallic Gradient */}
-        <linearGradient id="needle-gradient" x1="20" y1="10" x2="60" y2="90" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#FFFFFF" />
-          <stop offset="35%" stopColor="#CBD5E1" />
-          <stop offset="70%" stopColor="#94A3B8" />
-          <stop offset="100%" stopColor="#64748B" />
-        </linearGradient>
+      {/* 1. LEFT ARM: Solid White Tailor's Needle */}
+      <path
+        d="M5.5 4.5 C4.8 3.2 7.2 2.0 8.5 2.8 L16.8 28.0 C17.1 29.0 16.0 29.5 15.3 28.5 L5.8 6.0 C5.6 5.5 5.5 5.0 5.5 4.5 Z"
+        fill={needleFill}
+        stroke={needleStroke}
+        strokeWidth="1"
+        strokeLinejoin="round"
+      />
 
-        {/* Emerald Thread Gradient */}
-        <linearGradient id="thread-gradient" x1="20" y1="20" x2="90" y2="85" gradientUnits="userSpaceOnUse">
-          <stop offset="0%" stopColor="#34D399" />
-          <stop offset="60%" stopColor="#10B981" />
-          <stop offset="100%" stopColor="#0D9488" />
-        </linearGradient>
+      {/* 2. NEEDLE EYE: Visible Hole */}
+      <ellipse
+        cx="7.0"
+        cy="5.0"
+        rx="0.9"
+        ry="2.2"
+        transform="rotate(-20 7.0 5.0)"
+        fill={eyeFill}
+      />
 
-        <filter id="thread-glow" x="-20%" y="-20%" width="140%" height="140%" filterUnits="userSpaceOnUse">
-          <feDropShadow dx="0" dy="1" stdDeviation="1.5" floodColor="#10B981" floodOpacity="0.3" />
-        </filter>
-      </defs>
+      {/* 3. THREAD TAIL: Left thread exiting eye */}
+      <path
+        d="M2.5 9.2 C2.0 6.2 4.5 5.0 6.8 4.8"
+        stroke={threadColor}
+        strokeWidth="3.2"
+        strokeLinecap="round"
+        fill="none"
+      />
 
-      <g filter="url(#thread-glow)">
-        {/* Tailor's Sewing Needle (Left arm of V) */}
-        {/* Needle shaft tapering to bottom point */}
-        <path
-          d="M26 18 C24 14 29 10 33 13 L53 82 C53.5 84 52.5 85 51 83 L27 24 C26.2 22 26 20 26 18 Z"
-          fill="url(#needle-gradient)"
-        />
-
-        {/* Needle Eye Slot */}
-        <ellipse cx="30" cy="22" rx="1.8" ry="5.5" transform="rotate(-18 30 22)" fill="#0F172A" opacity="0.8" />
-
-        {/* Flowing Tailor's Thread (Threading through needle eye & creating right arm of V) */}
-        {/* Left thread tail exiting eye */}
-        <path
-          d="M18 35 C17 26 23 23 29 22"
-          stroke="url(#thread-gradient)"
-          strokeWidth="4"
-          strokeLinecap="round"
-          fill="none"
-        />
-
-        {/* Main thread loop through the eye, across top, looping into right arm of V */}
-        <path
-          d="M30 22 C38 21 54 28 66 26 C78 24 86 18 84 32 C82 44 68 45 62 58 L52 82"
-          stroke="url(#thread-gradient)"
-          strokeWidth="4.2"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          fill="none"
-        />
-      </g>
+      {/* 4. RIGHT ARM: Bold Emerald Thread looping to complete the V */}
+      <path
+        d="M7.0 4.8 C10.0 4.2 16.5 6.5 21.0 5.5 C25.8 4.4 29.2 2.8 28.4 8.2 C27.2 14.5 21.5 15.2 19.5 20.8 L16.0 28.0"
+        stroke={threadColor}
+        strokeWidth="3.4"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        fill="none"
+      />
     </svg>
   );
 }
@@ -131,9 +137,9 @@ export default function Logo({
       : "text-brand-600 dark:text-brand-400";
 
   return (
-    <div className={cn("inline-flex items-center gap-2.5 select-none", className)}>
+    <div className={cn("inline-flex items-center gap-3 select-none shrink-0", className)}>
       <VendraNeedleIcon size={iconPixelSize} theme={theme} />
-      <span className={cn(textClasses, textColorClass, "font-sans font-semibold tracking-[-0.02em] flex items-center")}>
+      <span className={cn(textClasses, textColorClass, "font-sans font-bold tracking-tight flex items-center")}>
         <span>Ven</span>
         <span className={cn(draColorClass, "font-bold")}>dra</span>
       </span>

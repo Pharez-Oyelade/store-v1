@@ -23,6 +23,7 @@ import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { getInitials } from "@/lib/utils";
 import { useLogout } from "@/hooks/useAuth";
+import Logo from "../brand/Logo";
 
 const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
@@ -32,10 +33,14 @@ const NAV_ITEMS = [
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: Handshake },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
-  { label: "Storefront", href: "/dashboard/storefront", icon: Store, badge: "Soon" },
+  {
+    label: "Storefront",
+    href: "/dashboard/storefront",
+    icon: Store,
+    badge: "Soon",
+  },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
-
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
@@ -52,15 +57,19 @@ export default function DashboardSidebar() {
   const sidebarContent = (
     <div className="flex flex-col h-full">
       {/* Logo Area */}
-      <div className="flex items-center gap-3 px-4 h-16 border-b border-white/10 shrink-0">
-        <div className="w-8 h-8 rounded-lg bg-brand-500 flex items-center justify-center text-white font-bold text-sm">
-          V
-        </div>
-        {!collapsed && (
-          <span className="text-white font-semibold text-lg tracking-tight">
-            Vendra
-          </span>
+      <div
+        className={cn(
+          "flex items-center h-16 border-b border-white/10 shrink-0 px-4",
+          collapsed && "justify-center px-0",
         )}
+      >
+        <Link href="/dashboard" className="flex items-center">
+          {collapsed ? (
+            <Logo variant="icon" size={32} theme="dark" />
+          ) : (
+            <Logo size="md" theme="dark" />
+          )}
+        </Link>
       </div>
 
       {/* Navigation */}
@@ -95,7 +104,6 @@ export default function DashboardSidebar() {
         })}
       </nav>
 
-
       {/* Vendor Info + Logout */}
       <div className="px-3 py-4 border-t border-white/10 shrink-0">
         <div
@@ -113,20 +121,29 @@ export default function DashboardSidebar() {
                 {vendor?.businessName || "Vendor"}
               </p>
               <p className="text-xs text-gray-500 truncate capitalize">
-                {vendor?.subscriptionPlan || vendor?.subscription?.plan || "free"} plan
+                {vendor?.subscriptionPlan ||
+                  vendor?.subscription?.plan ||
+                  "free"}{" "}
+                plan
               </p>
             </div>
           )}
         </div>
-        
-        {(!vendor?.subscriptionPlan || vendor.subscriptionPlan === "free") && !collapsed && (
-          <div className="mt-3 mb-1 px-3 py-3 bg-brand-500/10 border border-brand-500/20 rounded-lg">
-            <p className="text-xs text-brand-200 font-medium mb-2">You are on the Free plan. Upgrade to unlock more features.</p>
-            <Link href="/dashboard/settings" className="block text-center w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold py-1.5 rounded transition-colors">
-              Upgrade Now
-            </Link>
-          </div>
-        )}
+
+        {(!vendor?.subscriptionPlan || vendor.subscriptionPlan === "free") &&
+          !collapsed && (
+            <div className="mt-3 mb-1 px-3 py-3 bg-brand-500/10 border border-brand-500/20 rounded-lg">
+              <p className="text-xs text-brand-200 font-medium mb-2">
+                You are on the Free plan. Upgrade to unlock more features.
+              </p>
+              <Link
+                href="/dashboard/settings"
+                className="block text-center w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold py-1.5 rounded transition-colors"
+              >
+                Upgrade Now
+              </Link>
+            </div>
+          )}
 
         <button
           onClick={() => logout()}
