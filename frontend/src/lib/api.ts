@@ -39,16 +39,21 @@ api.interceptors.response.use(
     const status = error.response?.status;
     const serverMessage = error.response?.data?.message;
 
-    // Handle 401 unautorized - auth cookie expired or missing, redirect to /login if not already there
+    // Handle 401 unauthorized - auth cookie expired or missing.
+    // Only redirect to /login when the user is on a protected route.
+    // Public pages (homepage, landing, etc.) intentionally call /auth/me
+    // to check auth status — a 401 there is expected and should NOT redirect.
 
     if (status === 401 || status === 403) {
-      if (
-        typeof window !== "undefined"
-      ) {
-        // Clear Zustand auth store to prevent infinite redirect loops or ghost sessions
+      if (typeof window !== "undefined") {
+        const { pathname } = window.location;
+        const isProtectedRoute =
+          pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+
+        // Clear Zustand auth store to prevent ghost sessions
         useAuthStore.getState().clearVendor();
-        
-        if (!window.location.pathname.startsWith("/login")) {
+
+        if (isProtectedRoute && !pathname.startsWith("/login")) {
           window.location.href = "/login";
         }
       }

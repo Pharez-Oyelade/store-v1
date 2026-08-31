@@ -21,7 +21,7 @@ interface OrderItemDraft {
   productId: string;
   productName: string;
   variantLabel: string;
-  price: number;
+  price: number | "";
   quantity: number;
 }
 
@@ -29,7 +29,7 @@ const blankItem: OrderItemDraft = {
   productId: "",
   productName: "",
   variantLabel: "",
-  price: 0,
+  price: "",
   quantity: 1,
 };
 
@@ -95,7 +95,7 @@ export default function OrderForm() {
         productId: "",
         productName: "",
         variantLabel: "",
-        price: 0,
+        price: "",
       });
       return;
     }

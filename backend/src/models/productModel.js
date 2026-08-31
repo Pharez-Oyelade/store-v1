@@ -32,7 +32,6 @@ const productSchema = new mongoose.Schema(
       default: [],
     },
 
-    /* Up to 5 images, stored as Cloudinary public URLs */
     images: {
       type: [
         {
@@ -62,7 +61,7 @@ const productSchema = new mongoose.Schema(
           },
           size: { type: String, trim: true, default: "" },
           color: { type: String, trim: true, default: "" },
-          custom: { type: String, trim: true, default: "" }, // e.g. "Fabric: Ankara"
+          custom: { type: String, trim: true, default: "" },
           sku: { type: String, trim: true, default: "" },
           price: {
             type: Number,

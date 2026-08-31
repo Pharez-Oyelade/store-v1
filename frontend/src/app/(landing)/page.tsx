@@ -6,23 +6,23 @@ import Marquee from "./components/Marquee";
 import Problem from "./components/Problem";
 import Features from "./components/Features";
 import Process from "./components/Process";
-import Testimonials from "./components/Testimonials";
-import Newsletter from "./components/Newsletter";
+import FAQ from "./components/FAQ";
+import CTA from "./components/CTA";
 import Footer from "@/components/layout/Footer";
 
 const page = () => {
   return (
-    <>
+    <div className="bg-white overflow-x-hidden">
       <Navbar />
       <Hero />
       <Marquee />
       <Problem />
       <Features />
       <Process />
-      <Testimonials />
-      <Newsletter />
+      <FAQ />
+      <CTA />
       <Footer />
-    </>
+    </div>
   );
 };
 

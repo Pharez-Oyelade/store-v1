@@ -1,8 +1,8 @@
 "use client";
 
 import { Title } from "@/components/ui/Title";
-import { Icon } from "lucide-react";
-import React, { useState } from "react";
+import { motion } from "framer-motion";
+import React from "react";
 import { cn } from "@/lib/utils";
 import {
   Package,
@@ -13,178 +13,118 @@ import {
   ArrowRight,
 } from "lucide-react";
 
-const tabs = [
+const bentoFeatures = [
   {
-    icon: <Package />,
-    label: "Inventory",
-    content: {
-      tagline: "fashion-specific",
-      heading: "Inventory built for fashion",
-      paragraph:
-        "Not a generic product list. Track sizes, colour variants, fabrics, and quantities, the way a fashion vendor actually thinks.",
-      list: [
-        "Add products with sizes (XS–XXL or custom), colour variants, and quantity per variant",
-        "Low-stock alerts sent to your WhatsApp when stock hits your threshold",
-        "Mark items as sold out, restocked, or discontinued with one tap",
-        "Bulk price updates across multiple items at once",
-        "Product photos — up to 5 per item",
-        "Quick-add mode for vendors with large catalogues",
-      ],
-    },
+    id: "inventory",
+    icon: <Package className="w-8 h-8 text-brand-500" />,
+    title: "Inventory built for fashion",
+    description:
+      "Track sizes, colour variants, fabrics, and quantities. Mark items as sold out, restocked, or discontinued with one tap.",
+    className: "md:col-span-2 md:row-span-2 bg-brand-50",
   },
   {
-    icon: <Clipboard />,
-    label: "Orders",
-    content: {
-      tagline: "works with whatsapp",
-      heading: "Manage orders without chaos.",
-      paragraph:
-        "Log orders from any channel: DM, WhatsApp, in-person, and track them in one place. Works alongside your existing workflow, not against it.",
-      list: [
-        "Log orders with customer name, item, size, colour, price, and deposit paid",
-        "One-tap WhatsApp message generator — send a pre-formatted confirmation in seconds",
-        "Order status: Pending → Confirmed → Ready → Dispatched → Completed",
-        "Balance tracking — see who still owes you and how much",
-        "Order history with search and filter by date, status, or customer",
-        "Completing an order automatically updates your inventory",
-      ],
-    },
+    id: "orders",
+    icon: <Clipboard className="w-6 h-6 text-accent-500" />,
+    title: "Manage orders without chaos",
+    description:
+      "Log orders from DM or WhatsApp. One-tap WhatsApp confirmation messages.",
+    className: "md:col-span-1 md:row-span-2 bg-accent-50",
   },
   {
-    icon: <Users />,
-    label: "Customers",
-    content: {
-      tagline: "built-in crm",
-      heading: "Know your customers.",
-      paragraph:
-        "Every customer you've sold to, their full order history, their preferences, and their balance, always at your fingertips.",
-      list: [
-        "Auto-create customer profiles when you log their first order",
-        "Full order history, total spend, and last purchase date per customer",
-        "Add private notes — sizes, preferences, payment history",
-        "Flag VIP customers to prioritise them during restocks",
-        "Export your full customer list as CSV anytime",
-      ],
-    },
+    id: "customers",
+    icon: <Users className="w-6 h-6 text-success-500" />,
+    title: "Built-in CRM",
+    description:
+      "Full order history, total spend, and last purchase date per customer.",
+    className: "md:col-span-1 md:row-span-1 bg-white",
   },
   {
-    icon: <ChartColumnBig />,
-    label: "Analytics",
-    content: {
-      tagline: "clear, visual, mobile-first",
-      heading: "See what's actually working.",
-      paragraph:
-        "Simple insights that don't require a spreadsheet to understand. Know your best sellers, your peak days, and your total outstanding balance at a glance.",
-      list: [
-        "Revenue dashboard — today, this week, this month, custom range",
-        "Best-selling products by quantity and by revenue",
-        "Slow-moving inventory alert for items not ordered in 30+ days",
-        "Peak order days and hours — know when your customers are buying",
-        "Total balance owed summary across all customers",
-      ],
-    },
+    id: "analytics",
+    icon: <ChartColumnBig className="w-6 h-6 text-info-500" />,
+    title: "Clear, visual analytics",
+    description:
+      "Know your best sellers, peak days, and outstanding balances instantly.",
+    className: "md:col-span-2 md:row-span-1 bg-brand-900 text-white",
   },
   {
-    icon: <Store />,
-    label: "Storefront",
-    content: {
-      tagline: "your public face",
-      heading: "A storefront that sells",
-      paragraph:
-        "Every vendor gets a clean, fast, shareable store page. Share the link in your Instagram bio and let buyers browse what's in stock — no DM required to check availability.",
-      list: [
-        "Your own link: vendra.ng/yourname — shareable anywhere",
-        "Shows real-time available products, sizes, and prices",
-      ],
-    },
+    id: "storefront",
+    icon: <Store className="w-6 h-6 text-brand-400" />,
+    title: "Your public storefront",
+    description:
+      "Get a clean, fast, shareable store page (vendra.ng/yourname) that updates in real-time.",
+    className: "md:col-span-3 md:row-span-1 bg-brand-100",
   },
 ];
 
 const Features = () => {
-  const [tabOption, setTabOption] = useState("Inventory");
-
-  const activeTab = tabs.find((tab) => tab.label === tabOption);
-
   return (
-    <section className="px-5 md:px-15 py-20">
-      <div>
+    <section className="px-5 md:px-15 py-24 bg-surface-base">
+      <div className="mb-16 flex flex-col items-center md:items-start">
         <Title
           eyebrowTitle="Features"
           headingStart="Everything your store needs."
           headingSpan="Nothing"
           headingEnd="it doesn't"
+          text="A powerful toolkit disguised as a simple dashboard. Built specifically for the workflow of a modern Nigerian fashion vendor."
         />
       </div>
 
-      {/* Features article */}
-      <article
-        id="case-article"
-        className="h-auto flex flex-col md:flex-row gap-20 mt-10"
-      >
-        {/* section tags - left side */}
-        <aside className="w-full md:w-1/3">
-          <div className="sticky top-[15%]">
-            <div className="flex flex-col border-x border-gray-400 border-t rounded-lg">
-              {tabs.map((tab) => (
-                <div key={tab.label} onClick={() => setTabOption(tab.label)}>
-                  <div
-                    className={cn(
-                      "flex items-center gap-5 p-5 border-b",
-                      "cursor-pointer rounded-md",
-                      tabOption === tab.label
-                        ? "bg-accent-100"
-                        : "bg-transparent",
-                    )}
-                  >
-                    {tab.icon}
-                    <span>{tab.label}</span>
-                  </div>
+      {/* Bento Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 auto-rows-[minmax(180px,auto)]">
+        {bentoFeatures.map((feature, i) => (
+          <motion.div
+            key={feature.id}
+            initial={{ opacity: 0, y: 20 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-50px" }}
+            transition={{ duration: 0.5, delay: i * 0.1, ease: "easeOut" }}
+            className={cn(
+              "relative rounded-3xl p-8 overflow-hidden group border border-gray-200/50 shadow-sm hover:shadow-xl transition-all duration-300",
+              feature.className,
+            )}
+          >
+            {/* Hover subtle scale background (pseudo-element effect without pseudo element for simplicity) */}
+            <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300 pointer-events-none" />
 
-                  {/* ................ MOBILE ACCORDION CONTENT ................ */}
-                  {tab.label === tabOption && (
-                    <div className="md:hidden border-b border-gray-400 py-3 px-5 space-y-1">
-                      <span className="uppercase font-bold text-xs text-accent-600">
-                        {activeTab?.content.tagline}
-                      </span>
-                      <h2 className="text-2xl font-bold tracking-tight capitalize">
-                        {activeTab?.content.heading}
-                      </h2>
-                      <p>{activeTab?.content.paragraph}</p>
-                    </div>
+            <div className="relative z-10 flex flex-col h-full justify-between gap-6">
+              <div className="bg-white/80 backdrop-blur p-3 rounded-2xl w-fit shadow-sm border border-gray-100 group-hover:scale-110 transition-transform duration-300">
+                {feature.icon}
+              </div>
+
+              <div className="space-y-3 mt-auto">
+                <h3
+                  className={cn(
+                    "text-2xl font-bold tracking-tight",
+                    feature.id === "analytics" ? "text-white" : "text-gray-900",
                   )}
-                </div>
-              ))}
+                >
+                  {feature.title}
+                </h3>
+                <p
+                  className={cn(
+                    "text-base leading-relaxed max-w-sm",
+                    feature.id === "analytics"
+                      ? "text-gray-300"
+                      : "text-gray-600",
+                  )}
+                >
+                  {feature.description}
+                </p>
+              </div>
             </div>
-          </div>
-        </aside>
 
-        {/* Dynamic right side display corresponding to selected tab option */}
-        <div className="hidden md:block w-full">
-          <div className="bg-gray-600 p-10 space-y-3 rounded-tr-lg rounded-tl-lg">
-            <span className="uppercase font-bold text-sm text-accent-600">
-              {activeTab?.content.tagline}
-            </span>
-            <h2 className="text-6xl font-bold max-w-lg tracking-tight text-white">
-              {activeTab?.content.heading}
-            </h2>
-            <p className="text-lg text-gray-400">
-              {activeTab?.content.paragraph}
-            </p>
-          </div>
-
-          <ul className="border-2 border-gray-400 p-10 rounded-bl-lg rounded-br-lg">
-            {activeTab?.content.list?.map((l, index) => (
-              <li
-                key={index}
-                className="flex items-center gap-2 py-3 border-b border-b-gray-300"
-              >
-                <ArrowRight className="w-4 h-4" />
-                {l}
-              </li>
-            ))}
-          </ul>
-        </div>
-      </article>
+            {/* Decorative arrow on hover */}
+            <div className="absolute bottom-8 right-8 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
+              <ArrowRight
+                className={cn(
+                  "w-6 h-6",
+                  feature.id === "analytics" ? "text-white" : "text-brand-500",
+                )}
+              />
+            </div>
+          </motion.div>
+        ))}
+      </div>
     </section>
   );
 };

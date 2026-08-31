@@ -406,7 +406,7 @@ export interface OrderFormValues {
     productId: string;
     productName?: string;
     variantLabel: string;
-    price: number;
+    price: number | "";
     quantity: number;
   }[];
   depositPaid: number;
@@ -580,4 +580,3 @@ export interface AnnouncementFormValues {
   expiresAt: string | null;
   isActive?: boolean;
 }
-
