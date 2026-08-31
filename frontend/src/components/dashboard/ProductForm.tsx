@@ -13,6 +13,8 @@ import {
 } from "@/components/dashboard/DashboardPrimitives";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { ProductStatus, type Product, type ProductVariant } from "@/types";
+import toast from "react-hot-toast";
+
 
 type VariantDraft = Omit<ProductVariant, "sold"> & { sold?: number };
 
