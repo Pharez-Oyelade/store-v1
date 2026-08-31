@@ -1,0 +1,41 @@
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <filter id="crisp-outline-pwa" x="-10%" y="-10%" width="120%" height="120%">
+      <feDropShadow dx="0" dy="12" stdDeviation="16" floodColor="#0F172A" floodOpacity="0.35" />
+    </filter>
+  </defs>
+
+  <g filter="url(#crisp-outline-pwa)">
+    <!-- LEFT ARM: Bold White & Silver Needle -->
+    <path
+      d="M80 72 C68 52 108 30 130 42 L268 456 C273 472 256 476 244 460 L86 98 C82 89 80 80 80 72 Z"
+      fill="#FFFFFF"
+      stroke="#0F172A"
+      stroke-width="18"
+      stroke-linejoin="round"
+    />
+    
+    <!-- Needle Eye Slot -->
+    <ellipse cx="108" cy="78" rx="14" ry="36" transform="rotate(-20 108 78)" fill="#0F172A" />
+
+    <!-- RIGHT ARM: Bold Emerald-Teal Thread -->
+    <!-- Left Thread Tail -->
+    <path
+      d="M40 144 C32 96 72 80 104 78"
+      stroke="#10B981"
+      stroke-width="48"
+      stroke-linecap="round"
+      fill="none"
+    />
+
+    <!-- Main Thread Loop forming Right Arm of V -->
+    <path
+      d="M108 78 C152 68 264 104 336 88 C416 68 472 40 456 128 C435 232 344 240 312 328 L256 456"
+      stroke="#10B981"
+      stroke-width="52"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+  </g>
+</svg>

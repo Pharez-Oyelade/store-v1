@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Store, Instagram, MessageCircle, Mail } from "lucide-react";
+import Logo from "../brand/Logo";
 
 const footerLinks = {
   Product: [
@@ -31,10 +32,11 @@ export default function Footer() {
               href="/"
               className="flex items-center gap-2 text-white font-bold text-xl mb-4"
             >
-              <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-700">
+              {/* <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-700">
                 <Store size={18} />
               </span>
-              Vendra
+              Vendra */}
+              <Logo size="xl" theme="dark" />
             </Link>
             <p className="text-sm leading-relaxed max-w-xs">
               Organize Nigeria&apos;s unorganized fashion ecosystem into a
