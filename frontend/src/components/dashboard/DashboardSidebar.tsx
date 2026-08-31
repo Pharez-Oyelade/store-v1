@@ -42,12 +42,52 @@ const NAV_ITEMS = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
+const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
+  owner: [
+    "/dashboard",
+    "/dashboard/products",
+    "/dashboard/orders",
+    "/dashboard/demands",
+    "/dashboard/customers",
+    "/dashboard/suppliers",
+    "/dashboard/analytics",
+    "/dashboard/storefront",
+    "/dashboard/settings",
+  ],
+  manager: [
+    "/dashboard",
+    "/dashboard/products",
+    "/dashboard/orders",
+    "/dashboard/demands",
+    "/dashboard/customers",
+    "/dashboard/suppliers",
+    "/dashboard/analytics",
+    "/dashboard/storefront",
+    "/dashboard/settings",
+  ],
+  tailor: [
+    "/dashboard",
+    "/dashboard/demands",
+    "/dashboard/customers",
+  ],
+  sales: [
+    "/dashboard",
+    "/dashboard/products",
+    "/dashboard/orders",
+    "/dashboard/customers",
+  ],
+};
+
 export default function DashboardSidebar() {
   const pathname = usePathname();
   const vendor = useAuthStore((s) => s.vendor);
   const { mutate: logout } = useLogout();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const userRole = (vendor?.user?.role || vendor?.role || "owner") as string;
+  const allowedPaths = ROLE_ALLOWED_PATHS[userRole] || ROLE_ALLOWED_PATHS.owner;
+  const visibleNavItems = NAV_ITEMS.filter((item) => allowedPaths.includes(item.href));
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -74,7 +114,7 @@ export default function DashboardSidebar() {
 
       {/* Navigation */}
       <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto">
-        {NAV_ITEMS.map((item) => {
+        {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
           return (
@@ -113,34 +153,34 @@ export default function DashboardSidebar() {
           )}
         >
           <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {vendor ? getInitials(vendor.businessName) : "V"}
+            {vendor ? getInitials(vendor.user?.name || vendor.businessName) : "V"}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
               <p className="text-sm font-medium text-white truncate">
-                {vendor?.businessName || "Vendor"}
+                {vendor?.user?.name || vendor?.businessName || "Vendor"}
               </p>
-              <p className="text-xs text-gray-500 truncate capitalize">
-                {vendor?.subscriptionPlan ||
-                  vendor?.subscription?.plan ||
-                  "free"}{" "}
-                plan
+              <p className="text-xs text-gray-400 truncate capitalize">
+                {vendor?.user?.isTeamMember
+                  ? `${vendor.user.role} • ${vendor.businessName}`
+                  : `${vendor?.subscriptionPlan || vendor?.subscription?.plan || "free"} plan`}
               </p>
             </div>
           )}
         </div>
 
-        {(!vendor?.subscriptionPlan || vendor.subscriptionPlan === "free") &&
+        {!vendor?.user?.isTeamMember &&
+          (!vendor?.subscriptionPlan || vendor.subscriptionPlan === "free") &&
           !collapsed && (
             <div className="mt-3 mb-1 px-3 py-3 bg-brand-500/10 border border-brand-500/20 rounded-lg">
               <p className="text-xs text-brand-200 font-medium mb-2">
                 You are on the Free plan. Upgrade to unlock more features.
               </p>
               <Link
-                href="/dashboard/settings"
-                className="block text-center w-full bg-brand-500 hover:bg-brand-600 text-white text-xs font-semibold py-1.5 rounded transition-colors"
+                href="/dashboard/settings?tab=billing"
+                className="block text-center text-xs font-semibold text-white bg-brand-700 hover:bg-brand-800 py-1.5 px-3 rounded-md transition-colors"
               >
-                Upgrade Now
+                Upgrade Now &rarr;
               </Link>
             </div>
           )}
@@ -156,6 +196,7 @@ export default function DashboardSidebar() {
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
+
 
       {/* Collapse Toggle (desktop only) */}
       <button

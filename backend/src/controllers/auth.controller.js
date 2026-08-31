@@ -1,6 +1,7 @@
 import jwt from "jsonwebtoken";
 import crypto from "node:crypto";
 import Vendor from "../models/vendorModel.js";
+import TeamMember from "../models/teamMemberModel.js";
 import Subscription from "../models/subscriptionModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
@@ -12,14 +13,12 @@ import {
 import { createNotification } from "../services/notification.service.js";
 import { syncVendorSubscription } from "../services/subscription.service.js";
 
-
 const COOKIE_NAME = "access_token";
 
-
-// jwt token
+// jwt token for store owner
 const signTokenAndSetCookie = (res, vendor) => {
   const token = jwt.sign(
-    { id: vendor._id, role: vendor.role },
+    { id: vendor._id, role: vendor.role || "owner", isTeamMember: false },
     process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
@@ -30,24 +29,62 @@ const signTokenAndSetCookie = (res, vendor) => {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
-    maxAge: 7 * 24 * 60 * 60 * 1000, //7 days in ms - consistent with JWT expiry
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days in ms
+  });
+
+  return token;
+};
+
+// jwt token for team members
+const signTeamMemberTokenAndSetCookie = (res, member, vendor) => {
+  const token = jwt.sign(
+    {
+      userId: member._id,
+      vendorId: vendor._id,
+      role: member.role,
+      isTeamMember: true,
+    },
+    process.env.JWT_SECRET,
+    {
+      expiresIn: process.env.JWT_EXPIRES_IN || "7d",
+    }
+  );
+
+  res.cookie(COOKIE_NAME, token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === "production",
+    sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+    maxAge: 7 * 24 * 60 * 60 * 1000,
   });
 
   return token;
 };
 
 // AuthUser response
-const buildAuthUserResponse = (vendor) => ({
-  _id: vendor._id,
-  businessName: vendor.businessName,
-  handle: vendor.handle,
-  phone: vendor.phone,
-  email: vendor.email || null,
-  logo: vendor.logo,
-  role: vendor.role,
-  subscriptionPlan: vendor.subscriptionPlan,
-  subscriptionStatus: vendor.subscriptionStatus,
-});
+const buildAuthUserResponse = (vendor, user = null) => {
+  const currentUser = user || {
+    _id: vendor._id,
+    name: vendor.businessName,
+    email: vendor.email || null,
+    phone: vendor.phone,
+    role: "owner",
+    isTeamMember: false,
+  };
+
+  return {
+    _id: vendor._id,
+    businessName: vendor.businessName,
+    handle: vendor.handle,
+    phone: vendor.phone,
+    email: vendor.email || null,
+    logo: vendor.logo,
+    role: currentUser.role || vendor.role || "owner",
+    user: currentUser,
+    subscriptionPlan: vendor.subscriptionPlan,
+    subscriptionStatus: vendor.subscriptionStatus,
+  };
+};
+
 
 /* Register -------------------------------- */
 export const register = asyncHandler(async (req, res) => {
@@ -142,52 +179,111 @@ export const register = asyncHandler(async (req, res) => {
 export const login = asyncHandler(async (req, res) => {
   const { credential, password } = req.body;
 
+  if (!credential || !password) {
+    return sendError(res, "Please provide email/phone and password.", 400);
+  }
+
   // accepting either email or phone as credential
   const isEmail = validator.isEmail(credential);
-
-  // use .select("+password") since password as select: false in schema
   const query = isEmail
-    ? { email: credential.toLowerCase() }
-    : { phone: credential };
+    ? { email: credential.toLowerCase().trim() }
+    : { phone: credential.trim() };
+
+  // 1. Check if a primary Store Owner (Vendor) matches
   const vendor = await Vendor.findOne(query).select("+password");
 
-  if (!vendor) {
-    return sendError(
+  if (vendor) {
+    if (!vendor.isActive) {
+      return sendError(
+        res,
+        "Your account has been deactivated. Please contact support.",
+        403,
+      );
+    }
+
+    const isPasswordCorrect = await vendor.comparePassword(password);
+
+    if (!isPasswordCorrect) {
+      return sendError(
+        res,
+        "Invalid credentials. Please check your details.",
+        401,
+      );
+    }
+
+    // Real-time subscription sync on login
+    await syncVendorSubscription(vendor._id);
+    const updatedVendor = await Vendor.findById(vendor._id);
+
+    signTokenAndSetCookie(res, updatedVendor || vendor);
+
+    return sendSuccess(
       res,
-      "Invalid credentials. Please check your details",
-      401,
+      buildAuthUserResponse(updatedVendor || vendor),
+      `Welcome back, ${vendor.businessName}`,
     );
   }
 
-  if (!vendor.isActive) {
-    return sendError(
+  // 2. Check if an invited Team Member matches
+  const teamMember = await TeamMember.findOne(query)
+    .select("+password")
+    .populate("vendor");
+
+  if (teamMember) {
+    if (!teamMember.isActive) {
+      return sendError(
+        res,
+        "Your team access has been deactivated. Please contact your store manager.",
+        403
+      );
+    }
+
+    if (!teamMember.vendor || !teamMember.vendor.isActive) {
+      return sendError(
+        res,
+        "This store account has been deactivated. Please contact support.",
+        403
+      );
+    }
+
+    const isPasswordCorrect = await teamMember.comparePassword(password);
+
+    if (!isPasswordCorrect) {
+      return sendError(
+        res,
+        "Invalid credentials. Please check your details.",
+        401
+      );
+    }
+
+    await syncVendorSubscription(teamMember.vendor._id);
+    const freshVendor = await Vendor.findById(teamMember.vendor._id);
+
+    teamMember.lastLogin = new Date();
+    await teamMember.save();
+
+    signTeamMemberTokenAndSetCookie(res, teamMember, freshVendor || teamMember.vendor);
+
+    const userProfile = {
+      _id: teamMember._id,
+      name: teamMember.name,
+      email: teamMember.email,
+      phone: teamMember.phone,
+      role: teamMember.role,
+      isTeamMember: true,
+    };
+
+    return sendSuccess(
       res,
-      "Your account has been deactivated. Please contact support.",
-      403,
+      buildAuthUserResponse(freshVendor || teamMember.vendor, userProfile),
+      `Welcome back, ${teamMember.name}`
     );
   }
 
-  // compare password (comparePassword method in schema)
-  const isPasswordCorrect = await vendor.comparePassword(password);
-
-  if (!isPasswordCorrect) {
-    return sendError(
-      res,
-      "Invalid credentials. Please check your details.",
-      401,
-    );
-  }
-
-  // Real-time subscription sync on login
-  await syncVendorSubscription(vendor._id);
-  const updatedVendor = await Vendor.findById(vendor._id);
-
-  signTokenAndSetCookie(res, updatedVendor || vendor);
-
-  return sendSuccess(
+  return sendError(
     res,
-    buildAuthUserResponse(updatedVendor || vendor),
-    `Welcome back, ${vendor.businessName}`,
+    "Invalid credentials. Please check your details.",
+    401,
   );
 });
 
@@ -203,7 +299,7 @@ export const logout = asyncHandler(async (req, res) => {
   return sendSuccess(res, null, "signed out successfully");
 });
 
-/* -------------- Get Me (current vendor) ---------------- */
+/* -------------- Get Me (current vendor / user) ---------------- */
 export const getMe = asyncHandler(async (req, res) => {
   // Sync real-time subscription lifecycle (expiry/downgrade check)
   await syncVendorSubscription(req.vendor._id);
@@ -211,10 +307,11 @@ export const getMe = asyncHandler(async (req, res) => {
 
   return sendSuccess(
     res,
-    buildAuthUserResponse(freshVendor || req.vendor),
+    buildAuthUserResponse(freshVendor || req.vendor, req.user),
     "Authenticated",
   );
 });
+
 
 
 /* -------------- Forgot Password ---------------- */

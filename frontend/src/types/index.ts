@@ -62,6 +62,45 @@ export const PLAN_LIMITS: Record<
   [SubscriptionPlan.Maison]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
 };
 
+/* ── Team Seats & Roles ────────────────────────────────────────── */
+export type TeamRole = "owner" | "manager" | "tailor" | "sales";
+
+export interface TeamMember {
+  _id: string;
+  vendor: string;
+  name: string;
+  email: string;
+  phone?: string;
+  role: TeamRole;
+  isActive: boolean;
+  lastLogin?: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface TeamStats {
+  plan: SubscriptionPlan;
+  maxSeats: number;
+  totalUsedSeats: number;
+  activeStaffCount: number;
+  availableSeats: number;
+  canInvite: boolean;
+}
+
+export interface TeamSummaryResponse {
+  members: TeamMember[];
+  stats: TeamStats;
+}
+
+export interface InviteTeamMemberPayload {
+  name: string;
+  email: string;
+  phone?: string;
+  role: "manager" | "tailor" | "sales";
+  password?: string;
+}
+
+
 
 export enum OrderSource {
   DM = "dm",
@@ -323,7 +362,17 @@ export type AuthUser = Pick<
   | "subscriptionPlan"
   | "subscriptionStatus"
   | "role"
->;
+> & {
+  user?: {
+    _id: string;
+    name: string;
+    email: string;
+    phone?: string;
+    role: TeamRole;
+    isTeamMember: boolean;
+  };
+};
+
 /*
  * What is Pick<>?
  * Pick<Type, Keys> creates a new type that only includes the

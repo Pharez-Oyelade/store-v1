@@ -44,11 +44,9 @@ api.interceptors.response.use(
     const serverMessage = error.response?.data?.message;
 
     // Handle 401 unauthorized - auth cookie expired or missing.
-    // Only redirect to /login when the user is on a protected route.
-    // Public pages (homepage, landing, etc.) intentionally call /auth/me
-    // to check auth status — a 401 there is expected and should NOT redirect.
-
-    if (status === 401 || status === 403) {
+    // Only redirect to /login when the user is on a protected route and status is 401.
+    // Status 403 (Forbidden) is an authorization restriction and must NOT clear the user session.
+    if (status === 401) {
       if (typeof window !== "undefined") {
         const { pathname } = window.location;
         const isProtectedRoute =
@@ -62,6 +60,7 @@ api.interceptors.response.use(
         }
       }
     }
+
     const message =
       serverMessage ||
       (status === 404

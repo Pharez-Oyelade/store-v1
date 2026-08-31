@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import Vendor from "../models/vendorModel.js";
+import TeamMember from "../models/teamMemberModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendError } from "../utils/apiResponse.js";
 import { syncVendorSubscription } from "../services/subscription.service.js";
@@ -12,10 +13,6 @@ import { syncVendorSubscription } from "../services/subscription.service.js";
 const TOKEN_COOKIE = "access_token";
 
 export const protect = asyncHandler(async (req, res, next) => {
-  /*
-   * req.cookies is populated by cookie-parser middleware in server.js.
-   * We extract the JWT from the cookie.
-   */
   const token = req.cookies[TOKEN_COOKIE];
 
   if (!token) {
@@ -24,7 +21,53 @@ export const protect = asyncHandler(async (req, res, next) => {
 
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  // Sync real-time subscription lifecycle check
+  if (decoded.isTeamMember) {
+    // Authenticate as invited Team Member
+    const member = await TeamMember.findById(decoded.userId);
+
+    if (!member) {
+      return sendError(res, "Team member account no longer exists.", 401);
+    }
+
+    if (!member.isActive) {
+      return sendError(
+        res,
+        "Your team access has been deactivated. Please contact your store manager.",
+        403
+      );
+    }
+
+    const vendor = await Vendor.findById(decoded.vendorId || member.vendor);
+
+    if (!vendor) {
+      return sendError(res, "Store workspace no longer exists.", 401);
+    }
+
+    if (!vendor.isActive) {
+      return sendError(
+        res,
+        "This store account has been deactivated. Please contact support.",
+        403
+      );
+    }
+
+    await syncVendorSubscription(vendor._id);
+
+    req.vendor = vendor;
+    req.teamMember = member;
+    req.user = {
+      _id: member._id,
+      name: member.name,
+      email: member.email,
+      phone: member.phone,
+      role: member.role,
+      isTeamMember: true,
+    };
+
+    return next();
+  }
+
+  // Authenticate as primary Store Owner / Vendor
   await syncVendorSubscription(decoded.id);
 
   const vendor = await Vendor.findById(decoded.id);
@@ -33,23 +76,27 @@ export const protect = asyncHandler(async (req, res, next) => {
     return sendError(res, "Vendor no longer exists.", 401);
   }
 
-
   if (!vendor.isActive) {
     return sendError(
       res,
       "Your account has been deactivated. Please contact support.",
-      403,
+      403
     );
   }
 
-  /*
-   * Attach the vendor to the request object.
-   * All downstream route handlers can access req.vendor.
-   * This is the Express pattern for passing data between middleware.
-   */
   req.vendor = vendor;
+  req.user = {
+    _id: vendor._id,
+    name: vendor.businessName,
+    email: vendor.email,
+    phone: vendor.phone,
+    role: "owner",
+    isTeamMember: false,
+  };
+
   next();
 });
+
 
 /* ── Optional: restrict to specific roles ───────────────────── */
 export const restrictTo = (...roles) => {
