@@ -41,12 +41,15 @@ export interface Subscription {
   trialStartDate?: string;
   trialEndDate?: string;
   expiryNoticeSent?: boolean;
+  paystackCustomerCode?: string;
+  paystackSubscriptionCode?: string;
   currentPeriodStart?: string;
   currentPeriodEnd?: string;
   cancelAtPeriodEnd?: boolean;
   createdAt: string;
   updatedAt: string;
 }
+
 
 export const PLAN_LIMITS: Record<
   SubscriptionPlan,
@@ -118,20 +121,6 @@ export interface Product {
   updatedAt: string;
 }
 
-// subscription
-export interface Subscription {
-  _id: string;
-  vendor: string;
-  plan: SubscriptionPlan;
-  status: SubscriptionStatus;
-  paystackCustomerCode?: string; // for Paystack integration
-  paystackSubscriptionCode?: string;
-  currentPeriodStart?: string;
-  currentPeriodEnd?: string;
-  cancelAtPeriodEnd: boolean; // if true, subscription will cancel at the end of the current billing period
-  createdAt: string;
-  updatedAt: string;
-}
 
 // vendor
 export interface Vendor {
