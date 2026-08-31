@@ -86,6 +86,23 @@ export const errorHandler = (err, req, res, next) => {
     message = "Your session has expired. Please login again.";
   }
 
+  /*
+   * Multer Errors (from multer package):
+   * - LIMIT_FILE_SIZE: file exceeded fileSize limit
+   * - LIMIT_FILE_COUNT: too many files uploaded
+   */
+  if (err.name === "MulterError") {
+    statusCode = 400;
+    if (err.code === "LIMIT_FILE_SIZE") {
+      message = "File too large. Maximum allowed image size is 15MB per file.";
+    } else if (err.code === "LIMIT_FILE_COUNT") {
+      message = "Too many files. Maximum 5 images allowed per upload.";
+    } else {
+      message = `Upload error: ${err.message}`;
+    }
+  }
+
+
   /* ── Log errors in development ──────────────────────────── */
   if (process.env.NODE_ENV !== "production") {
     console.error(`\n❌ ERROR [${statusCode}]: ${message}`);

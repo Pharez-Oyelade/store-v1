@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import Vendor from "../models/vendorModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendError } from "../utils/apiResponse.js";
+import { syncVendorSubscription } from "../services/subscription.service.js";
 
 /*
  * The cookie name MUST match what the frontend checks.
@@ -18,44 +19,20 @@ export const protect = asyncHandler(async (req, res, next) => {
   const token = req.cookies[TOKEN_COOKIE];
 
   if (!token) {
-    /*
-     * We pass a custom error object with statusCode.
-     * The errorHandler middleware reads statusCode from the error.
-     * This is cleaner than calling sendError() directly here because
-     * it goes through the centralized error handler.
-     */
     return sendError(res, "Not authenticated. Please login.", 401);
   }
 
-  /*
-   * jwt.verify(token, secret) does two things:
-   * 1. Verifies the signature (tamper detection)
-   * 2. Checks the expiry date (exp field in payload)
-   *
-   * If either fails, it THROWS:
-   * - JsonWebTokenError (bad signature)
-   * - TokenExpiredError (past expiry)
-   *
-   * These are caught by asyncHandler → next(err) → errorHandler.
-   */
   const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-  /*
-   * decoded = { id: "vendor_id", iat: 1234567890, exp: 1234567890 }
-   *
-   * We fetch the fresh vendor from DB to:
-   * 1. Confirm they still exist (not deleted)
-   * 2. Confirm they're still active
-   * 3. Get fresh data (in case role/subscription changed)
-   *
-   * Note: no .select("+password") here — we don't need the password
-   * in protected route handlers.
-   */
+  // Sync real-time subscription lifecycle check
+  await syncVendorSubscription(decoded.id);
+
   const vendor = await Vendor.findById(decoded.id);
 
   if (!vendor) {
     return sendError(res, "Vendor no longer exists.", 401);
   }
+
 
   if (!vendor.isActive) {
     return sendError(

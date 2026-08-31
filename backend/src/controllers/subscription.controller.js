@@ -8,6 +8,11 @@ import {
   verifyWebhookSignature,
 } from "../services/paystack.service.js";
 import { createNotification } from "../services/notification.service.js";
+import {
+  syncVendorSubscription,
+  processAllSubscriptionExpiries,
+} from "../services/subscription.service.js";
+
 
 /**
  * Initialize a subscription upgrade/payment
@@ -95,14 +100,15 @@ export const verifyUpgrade = asyncHandler(async (req, res) => {
   await vendor.save();
 
   // Also update or create the Subscription record
-  const subscriptionPeriodEnd = new Date();
-  subscriptionPeriodEnd.setMonth(subscriptionPeriodEnd.getMonth() + 1); // 1 month access
+  const subscriptionPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days access
 
   await Subscription.findOneAndUpdate(
     { vendor: vendor._id },
     {
       plan,
       status: "active",
+      isTrial: false,
+      expiryNoticeSent: false,
       paystackCustomerCode: paymentData.customer?.customer_code,
       currentPeriodStart: new Date(),
       currentPeriodEnd: subscriptionPeriodEnd,
@@ -145,14 +151,15 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
         subscriptionStatus: "active",
       });
       
-      const subscriptionPeriodEnd = new Date();
-      subscriptionPeriodEnd.setMonth(subscriptionPeriodEnd.getMonth() + 1);
+      const subscriptionPeriodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000); // 30 days renewal
       
       await Subscription.findOneAndUpdate(
         { vendor: vendorId },
         {
           plan,
           status: "active",
+          isTrial: false,
+          expiryNoticeSent: false,
           paystackCustomerCode: paymentData.customer?.customer_code,
           currentPeriodStart: new Date(),
           currentPeriodEnd: subscriptionPeriodEnd,
@@ -177,6 +184,9 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
  * GET /api/subscriptions/current
  */
 export const getCurrentSubscription = asyncHandler(async (req, res) => {
+  // Sync real-time lifecycle check
+  await syncVendorSubscription(req.vendor._id);
+
   let sub = await Subscription.findOne({ vendor: req.vendor._id });
   
   if (!sub) {
@@ -189,3 +199,13 @@ export const getCurrentSubscription = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, sub, "Subscription details fetched");
 });
+
+/**
+ * Background / Admin trigger to check all subscription expiries
+ * POST /api/subscriptions/check-lifecycle
+ */
+export const checkSubscriptionLifecycle = asyncHandler(async (req, res) => {
+  await processAllSubscriptionExpiries();
+  return sendSuccess(res, null, "Subscription lifecycles checked and processed");
+});
+
