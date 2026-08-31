@@ -38,9 +38,9 @@ const Hero = () => {
           transition={{ duration: 0.5, ease: easeOut }}
           className="inline-flex items-center gap-2.5 px-4 py-2 rounded-full glass-card border-brand-200"
         >
-          <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+          {/* <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" /> */}
           <span className="text-brand-700 text-xs md:text-sm font-semibold uppercase tracking-wider">
-            14-Day Free Trial on The Stitch Plan
+            Built for Nigerian Fashion Vendors
           </span>
         </motion.div>
 
@@ -62,7 +62,7 @@ const Hero = () => {
           className="max-w-xl text-base md:text-lg text-gray-600 leading-relaxed"
         >
           Built for ready-to-wear boutiques, thrifts, and bespoke tailors who
-          sew on demand. Stop losing orders in messy DMs and notebooks — Vendra
+          sew on demand. Stop losing orders in messy DMs and notebooks. Vendra
           gives fashion creators one clean dashboard for inventory, customer
           measurements, and orders.
         </motion.p>
@@ -117,7 +117,6 @@ const Hero = () => {
             </div>
           ))}
         </motion.div>
-
       </motion.div>
 
       {/* Hero Image — right column */}

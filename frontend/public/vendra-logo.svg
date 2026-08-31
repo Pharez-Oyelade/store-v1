@@ -1,0 +1,53 @@
+<svg width="380" height="90" viewBox="0 0 380 90" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Needle Silver Gradient -->
+    <linearGradient id="vl-needle" x1="16" y1="8" x2="36" y2="70" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#FFFFFF" />
+      <stop offset="35%" stopColor="#CBD5E1" />
+      <stop offset="70%" stopColor="#94A3B8" />
+      <stop offset="100%" stopColor="#64748B" />
+    </linearGradient>
+
+    <!-- Emerald Thread Gradient -->
+    <linearGradient id="vl-thread" x1="14" y1="14" x2="68" y2="68" gradientUnits="userSpaceOnUse">
+      <stop offset="0%" stopColor="#34D399" />
+      <stop offset="60%" stopColor="#10B981" />
+      <stop offset="100%" stopColor="#0D9488" />
+    </linearGradient>
+  </defs>
+
+  <!-- Needle & Thread 'V' Mark -->
+  <g transform="translate(6, 4)">
+    <!-- Needle Left Arm -->
+    <path
+      d="M22 16C20 13 24 10 27 12L44 68C44.5 70 43.8 70.5 42.5 69L23 21C22.3 19.5 22 18 22 16Z"
+      fill="url(#vl-needle)"
+    />
+    <!-- Needle Eye -->
+    <ellipse cx="25.5" cy="19" rx="1.4" ry="4.4" transform="rotate(-18 25.5 19)" fill="#0F172A" />
+
+    <!-- Thread Tail -->
+    <path
+      d="M15 28C14 21 19 19 24 18"
+      stroke="url(#vl-thread)"
+      stroke-width="3.2"
+      stroke-linecap="round"
+      fill="none"
+    />
+
+    <!-- Main Thread Loop forming Right Arm of V -->
+    <path
+      d="M25 18C31 17 44 23 54 21C64 19 70 14 69 26C67 36 56 37 51 47L43 68"
+      stroke="url(#vl-thread)"
+      stroke-width="3.4"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      fill="none"
+    />
+  </g>
+
+  <!-- Uniform Typography (Vendra) -->
+  <text x="96" y="54" font-family="system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif" font-size="38" font-weight="700" letter-spacing="-0.5px" fill="#0F172A">
+    Ven<tspan fill="#2722C5" font-weight="700">dra</tspan>
+  </text>
+</svg>

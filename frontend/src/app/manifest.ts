@@ -11,6 +11,11 @@ export default function manifest(): MetadataRoute.Manifest {
     theme_color: '#1e3a8a',
     icons: [
       {
+        src: '/vendra-icon.svg',
+        sizes: 'any',
+        type: 'image/svg+xml',
+      },
+      {
         src: '/icon-192.png',
         sizes: '192x192',
         type: 'image/png',

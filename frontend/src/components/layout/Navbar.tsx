@@ -7,6 +7,7 @@ import { Menu, X, Store } from "lucide-react";
 import { cn } from "@/lib/utils";
 import Button from "@/components/custom/Button";
 import { useIsAuthenticated, useCurrentVendor } from "@/store/authStore";
+import Logo from "../brand/Logo";
 
 const navLinks = [
   {
@@ -26,7 +27,6 @@ const navLinks = [
     label: "Contact",
   },
 ];
-
 
 const Navbar = () => {
   const pathname = usePathname();
@@ -74,12 +74,13 @@ const Navbar = () => {
             href="/"
             className="flex items-center gap-2 font-bold text-xl text-gray-900"
           >
-            <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-700 text-white">
+            {/* <span className="flex items-center justify-center w-8 h-8 rounded-lg bg-brand-700 text-white">
               <Store size={18} />
             </span>
             <span>
               Vend<span className="text-brand-700">ra</span>
-            </span>
+            </span> */}
+            <Logo size="md" />
           </Link>
 
           {/* DESKTOP NAV + CTA */}

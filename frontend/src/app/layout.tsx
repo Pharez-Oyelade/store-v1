@@ -25,7 +25,14 @@ export const metadata: Metadata = {
     template: "%s | Vendra",
   },
   description:
-    "Practice project for Vendra, an e-commerce platform for vendors to manage their products and orders.",
+    "Built for ready-to-wear boutiques, thrifts, and bespoke tailors who sew on demand",
+  icons: {
+    icon: [
+      { url: "/favicon.svg", type: "image/svg+xml" },
+      { url: "/vendra-icon.svg", type: "image/svg+xml" },
+    ],
+    apple: "/vendra-icon.svg",
+  },
 };
 
 export default function RootLayout({
