@@ -21,7 +21,12 @@ const navLinks = [
     href: "/about",
     label: "About",
   },
+  {
+    href: "/contact",
+    label: "Contact",
+  },
 ];
+
 
 const Navbar = () => {
   const pathname = usePathname();

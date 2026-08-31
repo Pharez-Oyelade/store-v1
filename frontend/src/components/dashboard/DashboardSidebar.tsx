@@ -17,6 +17,7 @@ import {
   ChevronRight,
   Menu,
   X,
+  Scissors,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -27,12 +28,14 @@ const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
+  { label: "Demands", href: "/dashboard/demands", icon: Scissors },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: Handshake },
   { label: "Analytics", href: "/dashboard/analytics", icon: BarChart3 },
   { label: "Storefront", href: "/dashboard/storefront", icon: Store },
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
+
 
 export default function DashboardSidebar() {
   const pathname = usePathname();

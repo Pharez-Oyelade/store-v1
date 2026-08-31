@@ -60,8 +60,10 @@ const Hero = () => {
           transition={{ delay: 0.3, duration: 0.6, ease: easeOut }}
           className="max-w-xl text-base md:text-lg text-gray-600 leading-relaxed"
         >
-          Stop managing orders in DMs and inventory in notebooks. Vendra gives
-          fashion vendors one clean, powerful dashboard for everything.
+          Built for ready-to-wear boutiques, thrifts, and bespoke tailors who
+          sew on demand. Stop losing orders in messy DMs and notebooks, Vendra
+          gives fashion creators one clean dashboard for inventory, customer
+          measurements, and orders.
         </motion.p>
 
         {/* CTAs */}

@@ -17,9 +17,10 @@ export default function StoreNotFound() {
           href="/"
           className="block w-full rounded-xl bg-brand-700 px-4 py-3 text-sm font-medium text-white shadow-sm hover:bg-brand-800 transition-colors"
         >
-          Return to SabiStore
+          Return to Vendra
         </Link>
       </div>
     </div>
   );
 }
+

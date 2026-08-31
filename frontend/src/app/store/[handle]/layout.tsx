@@ -38,9 +38,10 @@ export async function generateMetadata({
 
   return {
     title: vendor.businessName,
-    description: vendor.bio || `Shop products from ${vendor.businessName} on SabiStore.`,
+    description: vendor.bio || `Shop products and request bespoke designs from ${vendor.businessName} on Vendra.`,
   };
 }
+
 
 export default async function StorefrontLayout({
   children,
@@ -86,9 +87,10 @@ export default async function StorefrontLayout({
               </a>
             )}
           </div>
-          <p className="text-sm text-gray-400">Powered by <span className="font-semibold text-brand-600">SabiStore</span></p>
+          <p className="text-sm text-gray-400">Powered by <span className="font-semibold text-brand-700">Vendra</span></p>
         </div>
       </footer>
     </div>
   );
 }
+

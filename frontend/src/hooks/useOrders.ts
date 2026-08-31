@@ -38,10 +38,12 @@ export function useOrders(params?: OrderQueryParams) {
       if (params?.page) sp.set("page", String(params.page));
       if (params?.limit) sp.set("limit", String(params.limit));
       if (params?.status) sp.set("status", params.status);
+      if (params?.type) sp.set("type", params.type);
       if (params?.startDate) sp.set("startDate", params.startDate);
       if (params?.endDate) sp.set("endDate", params.endDate);
       const q = sp.toString();
       return apiGet<OrderListResponse>(`/orders${q ? `?${q}` : ""}`);
+
     },
   });
 }

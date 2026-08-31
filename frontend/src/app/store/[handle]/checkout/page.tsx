@@ -47,10 +47,12 @@ export default function StorefrontCheckout({ params }: { params: Promise<{ handl
         items: items.map(item => ({
           productId: item.productId,
           variantId: item.variantId,
+          variantLabel: item.variantLabel,
           quantity: item.quantity,
           price: item.price,
         }))
       };
+
 
       // 1. Submit the order to our new public endpoint
       await apiPost(`/storefront/${handle}/orders`, payload);

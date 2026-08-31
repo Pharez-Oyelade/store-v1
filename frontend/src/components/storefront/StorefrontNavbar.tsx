@@ -25,7 +25,14 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
             </Link>
           </div>
           
-          <div className="flex items-center">
+          <div className="flex items-center gap-3">
+            <Link
+              href={`/store/${vendor.handle}/request`}
+              className="text-xs font-semibold px-3 py-1.5 rounded-lg border border-brand-700 text-brand-700 hover:bg-brand-50 transition-colors"
+            >
+              Custom Request
+            </Link>
+
             <Link 
               href={`/store/${vendor.handle}/checkout`}
               className="relative p-2 text-gray-400 hover:text-gray-500 transition-colors"
@@ -33,7 +40,7 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
               <span className="sr-only">Cart</span>
               <ShoppingBag className="h-6 w-6" />
               {cartMounted && totalItems > 0 && (
-                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-600 rounded-full">
+                <span className="absolute top-0 right-0 inline-flex items-center justify-center px-2 py-1 text-xs font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 bg-brand-700 rounded-full">
                   {totalItems}
                 </span>
               )}
@@ -44,3 +51,4 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
     </nav>
   );
 }
+

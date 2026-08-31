@@ -43,7 +43,7 @@ export default function Footer() {
             {/* Social links */}
             <div className="flex gap-4 mt-6">
               <a
-                href="https://instagram.com/sabistore"
+                href="https://instagram.com/vendra_ng"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-700 hover:text-white transition-colors"
@@ -61,7 +61,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="https://wa.me/2348137742724"
+                href="https://wa.me/2348012345678"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-700 hover:text-white transition-colors"

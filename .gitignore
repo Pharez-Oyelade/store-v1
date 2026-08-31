@@ -3,6 +3,11 @@ implementation_plan.md
 .vscode/
 .agents/
 
+# environment variables
+.env
+.env.*
+!.env.example
+
 *.docx
 *.md
-*.txt
+*.txt
