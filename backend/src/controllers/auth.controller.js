@@ -4,8 +4,10 @@ import Vendor from "../models/vendorModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import validator from "validator";
+import { sendPasswordResetEmail } from "../services/email.service.js";
 
 const COOKIE_NAME = "access_token";
+
 
 // jwt token
 const signTokenAndSetCookie = (res, vendor) => {
@@ -209,17 +211,26 @@ export const forgotPassword = asyncHandler(async (req, res) => {
   vendor.passwordResetExpires = Date.now() + 24 * 60 * 60 * 1000; // 24 hours
   await vendor.save({ validateBeforeSave: false });
 
-  /*
-   * TODO: Send the reset token via email or SMS.
-   * For now, returning it in the response for development.
-   * In production, remove the token from the response and send via Termii/email.
-   */
+  const resetUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/reset-password/${resetToken}`;
+
+  if (vendor.email) {
+    await sendPasswordResetEmail(vendor.email, resetUrl);
+  }
+
+  // In development, also log the reset URL to the server console for rapid testing
+  if (process.env.NODE_ENV !== "production") {
+    console.log(`\n🔑 [DEV ONLY] Password Reset Token: ${resetToken}`);
+    console.log(`🔗 [DEV ONLY] Reset URL: ${resetUrl}\n`);
+  }
+
   return sendSuccess(
     res,
-    { resetToken }, // REMOVE in production — send via email/SMS instead
-    "Password reset token generated",
+    null,
+    "If an account with that credential exists, a password reset link has been sent.",
   );
 });
+
+
 
 /* -------------- Reset Password ---------------- */
 export const resetPassword = asyncHandler(async (req, res) => {

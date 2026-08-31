@@ -90,8 +90,12 @@ export const errorHandler = (err, req, res, next) => {
   if (process.env.NODE_ENV !== "production") {
     console.error(`\n❌ ERROR [${statusCode}]: ${message}`);
     if (errors) console.error("Field errors:", errors);
-    if (statusCode === 500) console.error(err.stack);
+    if (statusCode === 500 && err.stack) console.error(err.stack);
+  } else if (statusCode === 500) {
+    // In production, mask raw internal 500 error messages
+    message = "An unexpected server error occurred. Please try again later.";
   }
 
   return sendError(res, message, statusCode, errors);
 };
+

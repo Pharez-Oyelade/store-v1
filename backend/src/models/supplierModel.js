@@ -92,11 +92,14 @@ const supplierSchema = new mongoose.Schema(
           paidAmount: { type: Number, default: 0, min: 0 },
           status: { type: String, enum: ["ordered", "delivered"], default: "ordered" },
           date: { type: Date, default: Date.now },
-        }
+          customRequest: { type: mongoose.Schema.Types.ObjectId, ref: "CustomRequest", default: null },
+          materialIndex: { type: Number, default: null },
+        },
       ],
-      default: []
-    }
+      default: [],
+    },
   },
+
   { timestamps: true },
 );
 

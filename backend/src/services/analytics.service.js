@@ -2,12 +2,13 @@ import mongoose from "mongoose";
 import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
 import Customer from "../models/customerModel.js";
+import CustomRequest from "../models/customRequestModel.js";
 
 const { Types } = mongoose;
 
 /**
  * Revenue overview for the dashboard metric cards.
- * Returns: today / this week / this month revenue + order counts + debt + low stock
+ * Returns: today / this week / this month revenue + order counts + debt + low stock + bespoke metrics
  */
 export async function getRevenueOverview(vendorId) {
   const now = new Date();
@@ -18,10 +19,9 @@ export async function getRevenueOverview(vendorId) {
 
   const vid = new Types.ObjectId(vendorId);
 
-  const [revenueData, debtData, lowStockData] = await Promise.all([
+  const [revenueData, bespokeRevenueData, debtData, lowStockData, bespokeData] = await Promise.all([
     /*
      * Revenue aggregation: group completed orders by time window.
-     * Using $facet to compute all three date ranges in a single query.
      */
     Order.aggregate([
       {
@@ -43,6 +43,76 @@ export async function getRevenueOverview(vendorId) {
           month: [
             { $match: { createdAt: { $gte: startOfMonth } } },
             { $group: { _id: null, revenue: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
+          ],
+        },
+      },
+    ]),
+
+    /*
+     * Bespoke completed requests revenue aggregation
+     */
+    CustomRequest.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: "completed",
+        },
+      },
+      {
+        $facet: {
+          today: [
+            { $match: { updatedAt: { $gte: startOfDay } } },
+            {
+              $group: {
+                _id: null,
+                revenue: {
+                  $sum: {
+                    $cond: [
+                      { $gt: ["$agreedPrice", 0] },
+                      "$agreedPrice",
+                      { $ifNull: ["$estimatedPrice", 0] },
+                    ],
+                  },
+                },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          week: [
+            { $match: { updatedAt: { $gte: startOfWeek } } },
+            {
+              $group: {
+                _id: null,
+                revenue: {
+                  $sum: {
+                    $cond: [
+                      { $gt: ["$agreedPrice", 0] },
+                      "$agreedPrice",
+                      { $ifNull: ["$estimatedPrice", 0] },
+                    ],
+                  },
+                },
+                count: { $sum: 1 },
+              },
+            },
+          ],
+          month: [
+            { $match: { updatedAt: { $gte: startOfMonth } } },
+            {
+              $group: {
+                _id: null,
+                revenue: {
+                  $sum: {
+                    $cond: [
+                      { $gt: ["$agreedPrice", 0] },
+                      "$agreedPrice",
+                      { $ifNull: ["$estimatedPrice", 0] },
+                    ],
+                  },
+                },
+                count: { $sum: 1 },
+              },
+            },
           ],
         },
       },
@@ -77,23 +147,65 @@ export async function getRevenueOverview(vendorId) {
       },
       { $count: "lowStockCount" },
     ]),
+
+    /* Bespoke / Custom requests metrics */
+    Promise.all([
+      CustomRequest.countDocuments({
+        vendor: vid,
+        status: { $nin: ["completed", "cancelled"] },
+      }),
+      CustomRequest.countDocuments({
+        vendor: vid,
+        status: { $nin: ["completed", "cancelled"] },
+        deadline: { $lt: now, $ne: null },
+      }),
+      CustomRequest.aggregate([
+        {
+          $match: {
+            vendor: vid,
+            status: { $ne: "cancelled" },
+            balanceOwed: { $gt: 0 },
+          },
+        },
+        {
+          $group: {
+            _id: null,
+            totalBespokeDebt: { $sum: "$balanceOwed" },
+            bespokeDebtCount: { $sum: 1 },
+          },
+        },
+      ]),
+    ]),
   ]);
 
   const r = revenueData[0] ?? { today: [], week: [], month: [] };
+  const br = bespokeRevenueData[0] ?? { today: [], week: [], month: [] };
+
   const today = r.today[0] ?? { revenue: 0, count: 0 };
+  const bToday = br.today[0] ?? { revenue: 0, count: 0 };
+
   const week = r.week[0] ?? { revenue: 0, count: 0 };
+  const bWeek = br.week[0] ?? { revenue: 0, count: 0 };
+
   const month = r.month[0] ?? { revenue: 0, count: 0 };
+  const bMonth = br.month[0] ?? { revenue: 0, count: 0 };
+
+  const [activeDemands, overdueDemands, bespokeDebtAgg] = bespokeData || [0, 0, []];
+  const totalBespokeDebt = bespokeDebtAgg[0]?.totalBespokeDebt ?? 0;
+  const bespokeDebtCount = bespokeDebtAgg[0]?.bespokeDebtCount ?? 0;
 
   return {
-    revenueToday: today.revenue,
-    ordersToday: today.count,
-    revenueThisWeek: week.revenue,
-    ordersThisWeek: week.count,
-    revenueThisMonth: month.revenue,
-    ordersThisMonth: month.count,
-    totalDebt: debtData[0]?.totalDebt ?? 0,
-    debtOrderCount: debtData[0]?.debtOrderCount ?? 0,
+    revenueToday: today.revenue + bToday.revenue,
+    ordersToday: today.count + bToday.count,
+    revenueThisWeek: week.revenue + bWeek.revenue,
+    ordersThisWeek: week.count + bWeek.count,
+    revenueThisMonth: month.revenue + bMonth.revenue,
+    ordersThisMonth: month.count + bMonth.count,
+    totalDebt: (debtData[0]?.totalDebt ?? 0) + totalBespokeDebt,
+    debtOrderCount: (debtData[0]?.debtOrderCount ?? 0) + bespokeDebtCount,
     lowStockCount: lowStockData[0]?.lowStockCount ?? 0,
+    activeDemandsCount: activeDemands,
+    overdueDemandsCount: overdueDemands,
   };
 }
 
@@ -122,30 +234,71 @@ export async function getRevenueSeries(vendorId, period = "daily") {
     groupByFormat = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
   }
 
-  const data = await Order.aggregate([
-    {
-      $match: {
-        vendor: vid,
-        status: "completed",
-        createdAt: { $gte: startDate },
+  const [ordersData, bespokeData] = await Promise.all([
+    Order.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: "completed",
+          createdAt: { $gte: startDate },
+        },
       },
-    },
-    {
-      $group: {
-        _id: groupByFormat,
-        revenue: { $sum: "$totalAmount" },
-        orderCount: { $sum: 1 },
+      {
+        $group: {
+          _id: groupByFormat,
+          revenue: { $sum: "$totalAmount" },
+          orderCount: { $sum: 1 },
+        },
       },
-    },
-    { $sort: { _id: 1 } },
+      { $sort: { _id: 1 } },
+    ]),
+    CustomRequest.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: "completed",
+          updatedAt: { $gte: startDate },
+        },
+      },
+      {
+        $group: {
+          _id: groupByFormat,
+          revenue: {
+            $sum: {
+              $cond: [
+                { $gt: ["$agreedPrice", 0] },
+                "$agreedPrice",
+                { $ifNull: ["$estimatedPrice", 0] },
+              ],
+            },
+          },
+          orderCount: { $sum: 1 },
+        },
+      },
+      { $sort: { _id: 1 } },
+    ]),
   ]);
 
-  return data.map(({ _id, revenue, orderCount }) => ({
-    date: _id,
-    revenue,
-    orderCount,
-  }));
+  // Merge map by date key
+  const seriesMap = new Map();
+
+  ordersData.forEach(({ _id, revenue, orderCount }) => {
+    seriesMap.set(_id, { date: _id, revenue, orderCount });
+  });
+
+  bespokeData.forEach(({ _id, revenue, orderCount }) => {
+    if (seriesMap.has(_id)) {
+      const existing = seriesMap.get(_id);
+      existing.revenue += revenue;
+      existing.orderCount += orderCount;
+    } else {
+      seriesMap.set(_id, { date: _id, revenue, orderCount });
+    }
+  });
+
+  return Array.from(seriesMap.values()).sort((a, b) => (a.date > b.date ? 1 : -1));
 }
+
 
 /**
  * Top products by units sold and revenue.

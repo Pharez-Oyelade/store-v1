@@ -365,11 +365,14 @@ export const getActiveAnnouncementsForVendor = asyncHandler(async (req, res) => 
 
   const announcements = await Announcement.find({
     isActive: true,
-    $or: [{ targetTier: null }, { targetTier: vendorPlan }],
-    $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }],
+    $and: [
+      { $or: [{ targetTier: null }, { targetTier: vendorPlan }] },
+      { $or: [{ expiresAt: null }, { expiresAt: { $gt: now } }] },
+    ],
   })
     .sort({ createdAt: -1 })
     .select("title message type expiresAt createdAt");
+
 
   sendSuccess(res, announcements, "Active announcements retrieved");
 });

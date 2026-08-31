@@ -2,10 +2,13 @@ import Vendor from "../models/vendorModel.js";
 import Product from "../models/productModel.js";
 import Customer from "../models/customerModel.js";
 import Order from "../models/orderModel.js";
+import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { normalizeOrderItems } from "./order.controller.js";
 import { createNotification } from "../services/notification.service.js";
+import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 
 /* ── GET /api/storefront/:handle ────────────────────────────────── */
 export const getVendorStorefront = asyncHandler(async (req, res) => {
@@ -147,3 +150,128 @@ export const createStorefrontOrder = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { orderId: order._id }, "Order placed successfully", 201);
 });
+
+/* ── Helper: Normalize measurements ────────────────────────────── */
+function normalizeMeasurements(raw) {
+  if (!raw) return {};
+  if (typeof raw === "string") {
+    try {
+      const parsed = JSON.parse(raw);
+      return typeof parsed === "object" && parsed !== null ? normalizeMeasurements(parsed) : {};
+    } catch {
+      return {};
+    }
+  }
+  if (raw instanceof Map) {
+    return Object.fromEntries(raw);
+  }
+  if (typeof raw === "object") {
+    if (typeof raw.toJSON === "function") {
+      return normalizeMeasurements(raw.toJSON());
+    }
+    const clean = {};
+    for (const [k, v] of Object.entries(raw)) {
+      if (!k.startsWith("$") && !k.startsWith("_") && typeof v !== "object" && typeof v !== "function") {
+        clean[k] = String(v);
+      }
+    }
+    return clean;
+  }
+  return {};
+}
+
+/* ── POST /api/storefront/:handle/custom-requests ───────────────── */
+export const createStorefrontCustomRequest = asyncHandler(async (req, res) => {
+  const { handle } = req.params;
+  const {
+    customerName,
+    customerPhone,
+    customerEmail = "",
+    title,
+    description = "",
+    category = "clothing",
+    measurements,
+    notes = "",
+  } = req.body;
+
+  const vendor = await Vendor.findOne({ handle: handle.toLowerCase(), isActive: true });
+  if (!vendor) return sendError(res, "Store not found", 404);
+
+  const vendorId = vendor._id;
+  const parsedMeasurements = normalizeMeasurements(measurements);
+
+  let customer = await Customer.findOne({ vendor: vendorId, phone: customerPhone });
+  if (!customer) {
+    customer = await Customer.create({
+      vendor: vendorId,
+      name: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+      measurements: parsedMeasurements,
+    });
+  } else {
+    if (customerName) customer.name = customerName;
+    if (customerEmail) customer.email = customerEmail;
+    if (Object.keys(parsedMeasurements).length > 0) {
+      if (!customer.measurements) customer.measurements = new Map();
+      for (const [k, v] of Object.entries(parsedMeasurements)) {
+        if (typeof customer.measurements.set === "function") {
+          customer.measurements.set(k, String(v));
+        } else {
+          customer.measurements[k] = String(v);
+        }
+      }
+    }
+    await customer.save();
+  }
+
+  // Upload reference images if any
+  const referenceImages = await Promise.all(
+    (req.files || []).map(async (file) => {
+      const result = await uploadToCloudinary(file.buffer);
+      return { url: result.secure_url, publicId: result.public_id };
+    })
+  );
+
+  let finalMeasurements = parsedMeasurements;
+  if (Object.keys(finalMeasurements).length === 0 && customer.measurements) {
+    finalMeasurements = normalizeMeasurements(customer.measurements);
+  }
+
+  const customRequest = await CustomRequest.create({
+    vendor: vendorId,
+    customer: customer._id,
+    customerSnapshot: {
+      name: customerName,
+      phone: customerPhone,
+      email: customerEmail,
+    },
+    title,
+    description,
+    category,
+    referenceImages,
+    measurements: finalMeasurements,
+    source: "storefront",
+    notes,
+    status: "inquiry",
+  });
+
+
+  await createNotification(vendorId, {
+    title: "New Bespoke Inquiry",
+    message: `Customer ${customerName} submitted a bespoke inquiry: "${title}".`,
+    type: "storefront_enquiry",
+    actionUrl: `/dashboard/demands/${customRequest._id}`,
+  });
+
+  const reqObj = customRequest.toObject({ flattenMaps: true });
+  const quoteLink = buildCustomRequestWhatsAppLink(vendor, reqObj, "quote");
+
+  return sendSuccess(
+    res,
+    { requestId: customRequest._id, whatsappLink: quoteLink },
+    "Bespoke request submitted successfully",
+    201
+  );
+});
+

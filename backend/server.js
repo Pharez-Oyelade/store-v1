@@ -4,9 +4,10 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
-import mongoSanitize from "express-mongo-sanitize";
+import { sanitizeRequest } from "./src/middleware/sanitize.middleware.js";
 import rateLimit from "express-rate-limit";
 import dns from "node:dns";
+
 
 import connectDB from "./src/config/db.js";
 
@@ -22,6 +23,10 @@ import supplierRouter from "./src/routes/supplier.routes.js";
 import subscriptionRouter from "./src/routes/subscription.routes.js";
 import notificationRouter from "./src/routes/notification.routes.js";
 import adminRouter from "./src/routes/admin.routes.js";
+import customRequestRouter from "./src/routes/customRequest.routes.js";
+import contactRouter from "./src/routes/contact.routes.js";
+import newsletterRouter from "./src/routes/newsletter.routes.js";
+
 
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
@@ -70,13 +75,24 @@ const adminLimiter = rateLimit({
   },
 });
 
+/* Storefront limiter: generous for shopping, protects against scraping / spam orders */
+const storefrontLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: {
+    success: false,
+    message: "Too many storefront requests. Please try again later.",
+  },
+});
+
 /* ── Body Parsing ───────────────────────────────────────────────── */
 app.use(express.json({ limit: "10kb" }));
 app.use(express.urlencoded({ extended: true, limit: "10kb" }));
 app.use(cookieParser());
-// app.use(mongoSanitize());
+app.use(sanitizeRequest);
 
 /* ── Logging ────────────────────────────────────────────────────── */
+
 if (process.env.NODE_ENV !== "production") {
   app.use(morgan("dev"));
 }
@@ -100,23 +116,49 @@ app.use("/api/auth", apiLimiter, authRouter);
 app.use("/api/vendor", apiLimiter, vendorRouter);
 app.use("/api/products", apiLimiter, productRouter);
 app.use("/api/orders", apiLimiter, orderRouter);
+app.use("/api/custom-requests", apiLimiter, customRequestRouter);
 app.use("/api/customers", apiLimiter, customerRouter);
 app.use("/api/suppliers", apiLimiter, supplierRouter);
 app.use("/api/analytics", apiLimiter, analyticsRouter);
 app.use("/api/subscriptions", subscriptionRouter); // Note: webhook handles its own rate limit, endpoints use their own logic or apiLimiter
 app.use("/api/notifications", apiLimiter, notificationRouter);
-app.use("/api/storefront", storefrontRouter); // Public — no rate limit
+app.use("/api/contact", apiLimiter, contactRouter);
+app.use("/api/newsletter", apiLimiter, newsletterRouter);
+app.use("/api/storefront", storefrontLimiter, storefrontRouter);
 app.use("/api/admin", adminLimiter, adminRouter);
+
 
 /* ── Error Handling (must be LAST) ──────────────────────────────── */
 app.use(notFound);
 app.use(errorHandler);
 
-/* ── Start Server ───────────────────────────────────────────────── */
+/* ── Start Server & Graceful Shutdown ───────────────────────────── */
 const PORT = parseInt(process.env.PORT || "5000", 10);
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`✅ Vendra API running on http://localhost:${PORT}`);
 });
 
+const gracefulShutdown = (signal) => {
+  console.log(`\n🛑 ${signal} received. Closing HTTP server and database connection...`);
+  server.close(() => {
+    import("mongoose").then(({ default: mongoose }) => {
+      mongoose.connection.close(false).then(() => {
+        console.log("MongoDB connection closed gracefully.");
+        process.exit(0);
+      });
+    }).catch(() => process.exit(0));
+  });
+
+  // Force close after 10 seconds if graceful shutdown hangs
+  setTimeout(() => {
+    console.error("Forcefully shutting down after timeout.");
+    process.exit(1);
+  }, 10000);
+};
+
+process.on("SIGTERM", () => gracefulShutdown("SIGTERM"));
+process.on("SIGINT", () => gracefulShutdown("SIGINT"));
+
 export default app;
+

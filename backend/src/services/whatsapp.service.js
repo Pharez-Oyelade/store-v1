@@ -69,3 +69,32 @@ export const buildDynamicWhatsAppLink = async (vendor, order, messageType) => {
 
   return `https://wa.me/${normalizePhone(targetPhone)}?text=${encodeURIComponent(message)}`;
 };
+
+/**
+ * Generates a WhatsApp message link for bespoke / custom demands
+ */
+export const buildCustomRequestWhatsAppLink = (vendor, request, actionType = "quote") => {
+  if (!vendor) throw new Error("Vendor not found");
+
+  const { customerSnapshot, title, estimatedPrice, agreedPrice, depositPaid, balanceOwed, deadline } = request;
+  const price = agreedPrice > 0 ? agreedPrice : estimatedPrice;
+
+  const deadlineStr = deadline ? new Date(deadline).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "To be scheduled";
+
+  let message = "";
+  if (actionType === "quote") {
+    message = `Hi ${customerSnapshot.name}! Here is your quote from *${vendor.businessName}* for "${title}":\n\n💰 *Estimated Total:* ₦${price.toLocaleString("en-NG")}\n📅 *Estimated Completion:* ${deadlineStr}\n\nPlease let us know if you'd like to proceed!`;
+  } else if (actionType === "confirmed") {
+    message = `Hi ${customerSnapshot.name}! Your custom order for *"${title}"* with *${vendor.businessName}* has been confirmed.\n\n💰 *Total:* ₦${price.toLocaleString("en-NG")}\n💵 *Deposit Paid:* ₦${(depositPaid || 0).toLocaleString("en-NG")}\n⚖️ *Balance Due:* ₦${(balanceOwed || 0).toLocaleString("en-NG")}\n📅 *Expected Completion:* ${deadlineStr}\n\nWe'll update you as work begins!`;
+  } else if (actionType === "fitting") {
+    message = `Hi ${customerSnapshot.name}! Great news — your custom outfit *"${title}"* is ready for fitting/review with *${vendor.businessName}*! Please reach out to arrange a convenient time.`;
+  } else if (actionType === "completed") {
+    message = `Hi ${customerSnapshot.name}! Your bespoke order for *"${title}"* is completed and ready for pickup/delivery. Thank you for choosing *${vendor.businessName}*!`;
+  } else {
+    message = `Hi ${customerSnapshot.name}, update on your custom order *"${title}"* with *${vendor.businessName}*: Status is currently "${request.status}".`;
+  }
+
+  const targetPhone = customerSnapshot.phone;
+  return `https://wa.me/${normalizePhone(targetPhone)}?text=${encodeURIComponent(message)}`;
+};
+
