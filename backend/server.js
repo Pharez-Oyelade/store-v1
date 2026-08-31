@@ -26,6 +26,8 @@ import adminRouter from "./src/routes/admin.routes.js";
 import customRequestRouter from "./src/routes/customRequest.routes.js";
 import contactRouter from "./src/routes/contact.routes.js";
 import newsletterRouter from "./src/routes/newsletter.routes.js";
+import teamRouter from "./src/routes/team.routes.js";
+
 
 
 /* ── Error Handling ─────────────────────────────────────────────── */
@@ -125,7 +127,9 @@ app.use("/api/notifications", apiLimiter, notificationRouter);
 app.use("/api/contact", apiLimiter, contactRouter);
 app.use("/api/newsletter", apiLimiter, newsletterRouter);
 app.use("/api/storefront", storefrontLimiter, storefrontRouter);
+app.use("/api/team", apiLimiter, teamRouter);
 app.use("/api/admin", adminLimiter, adminRouter);
+
 
 
 /* ── Error Handling (must be LAST) ──────────────────────────────── */

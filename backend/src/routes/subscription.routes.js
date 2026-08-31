@@ -7,6 +7,7 @@ import {
   checkSubscriptionLifecycle,
 } from "../controllers/subscription.controller.js";
 import { protect } from "../middleware/protect.js";
+import { requireRole } from "../middleware/rbac.middleware.js";
 
 const subscriptionRouter = Router();
 
@@ -16,10 +17,11 @@ subscriptionRouter.post("/webhook", paystackWebhook);
 // Protect the rest
 subscriptionRouter.use(protect);
 
-subscriptionRouter.post("/initialize", initializeUpgrade);
-subscriptionRouter.post("/verify", verifyUpgrade);
+subscriptionRouter.post("/initialize", requireRole("owner"), initializeUpgrade);
+subscriptionRouter.post("/verify", requireRole("owner"), verifyUpgrade);
 subscriptionRouter.get("/current", getCurrentSubscription);
 subscriptionRouter.post("/check-lifecycle", checkSubscriptionLifecycle);
 
 export default subscriptionRouter;
+
 
