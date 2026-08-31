@@ -176,7 +176,9 @@ export interface SupplierPurchase {
   paidAmount: number;
   status: "ordered" | "delivered";
   date: string;
+  customRequest?: string | { _id: string; title?: string };
 }
+
 
 export interface Supplier {
   _id: string;
@@ -392,10 +394,15 @@ export interface OrderQueryParams {
   page?: number;
   limit?: number;
   status?: OrderStatus | string;
+  payment?: "all" | "paid" | "unpaid" | "debt" | string;
+  search?: string;
   type?: "all" | "ready_to_wear" | "bespoke";
   startDate?: string; // ISO date string for filtering orders created after this date
   endDate?: string;
+  sort?: string;
+  order?: "asc" | "desc";
 }
+
 
 
 export interface CustomerQeryParams {

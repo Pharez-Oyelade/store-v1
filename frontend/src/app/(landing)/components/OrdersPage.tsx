@@ -30,16 +30,24 @@ const BESPOKE_STATUS_OPTIONS = [
 ];
 
 export default function OrdersPage() {
+  const searchParams = useSearchParams();
+  const initialStatus = searchParams.get("status") || "all";
+  const initialPayment = searchParams.get("payment") || "all";
+  const initialSearch = searchParams.get("search") || "";
+
   const [page, setPage] = useState(1);
   const [orderType, setOrderType] = useState<"all" | "ready_to_wear" | "bespoke">("all");
-  const searchParams = useSearchParams();
-  const initialStatus = searchParams.get("status") as OrderStatus | null;
+  const [status, setStatus] = useState<string>(initialStatus);
+  const [payment, setPayment] = useState<string>(initialPayment);
+  const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
 
   const orders = useOrders({
     page,
     limit: 15,
     type: orderType,
-    status: initialStatus ?? undefined,
+    status: status !== "all" ? status : undefined,
+    payment: payment !== "all" ? payment : undefined,
+    search: searchTerm.trim() || undefined,
   });
   const deleteOrder = useDeleteOrder();
 
@@ -68,53 +76,104 @@ export default function OrdersPage() {
         }
       />
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 mb-6 border-b border-gray-100 pb-3">
-        <button
-          type="button"
-          onClick={() => {
-            setOrderType("all");
-            setPage(1);
-          }}
-          className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            orderType === "all"
-              ? "bg-brand-700 text-white shadow-xs"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          All Orders
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setOrderType("ready_to_wear");
-            setPage(1);
-          }}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            orderType === "ready_to_wear"
-              ? "bg-brand-700 text-white shadow-xs"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          <ShoppingBag className="size-3.5" />
-          Ready-to-Wear
-        </button>
-        <button
-          type="button"
-          onClick={() => {
-            setOrderType("bespoke");
-            setPage(1);
-          }}
-          className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-            orderType === "bespoke"
-              ? "bg-brand-700 text-white shadow-xs"
-              : "bg-gray-100 text-gray-600 hover:bg-gray-200"
-          }`}
-        >
-          <Scissors className="size-3.5" />
-          Bespoke Demands
-        </button>
+      {/* Filter Tabs & Search Bar */}
+      <div className="space-y-4 mb-6">
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-gray-100 pb-3">
+          <div className="flex gap-2 overflow-x-auto">
+            <button
+              type="button"
+              onClick={() => {
+                setOrderType("all");
+                setPage(1);
+              }}
+              className={`px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                orderType === "all"
+                  ? "bg-brand-700 text-white shadow-xs"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              All Orders
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOrderType("ready_to_wear");
+                setPage(1);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                orderType === "ready_to_wear"
+                  ? "bg-brand-700 text-white shadow-xs"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <ShoppingBag className="size-3.5" />
+              Ready-to-Wear
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                setOrderType("bespoke");
+                setPage(1);
+              }}
+              className={`inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl text-xs font-semibold transition-all whitespace-nowrap ${
+                orderType === "bespoke"
+                  ? "bg-brand-700 text-white shadow-xs"
+                  : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+              }`}
+            >
+              <Scissors className="size-3.5" />
+              Bespoke Demands
+            </button>
+          </div>
+        </div>
+
+        {/* Filter Controls Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+          <input
+            type="text"
+            placeholder="Search by customer, phone, or item..."
+            value={searchTerm}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              setPage(1);
+            }}
+            className="w-full bg-white border border-gray-200 rounded-xl px-3.5 py-2 text-xs focus:outline-none focus:border-brand-500 focus:ring-1 focus:ring-brand-500"
+          />
+
+          <NativeSelect
+            value={payment}
+            onChange={(e) => {
+              setPayment(e.target.value);
+              setPage(1);
+            }}
+            className="text-xs h-9"
+          >
+            <option value="all">All Payment Statuses</option>
+            <option value="unpaid">Unpaid / Open Balance (Debt)</option>
+            <option value="paid">Fully Paid</option>
+          </NativeSelect>
+
+          <NativeSelect
+            value={status}
+            onChange={(e) => {
+              setStatus(e.target.value);
+              setPage(1);
+            }}
+            className="text-xs h-9"
+          >
+            <option value="all">All Fulfillment Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="confirmed">Confirmed</option>
+            <option value="in_progress">In Progress</option>
+            <option value="fitting">Fitting</option>
+            <option value="ready">Ready for Pickup</option>
+            <option value="dispatched">Dispatched</option>
+            <option value="completed">Completed</option>
+            <option value="cancelled">Cancelled</option>
+          </NativeSelect>
+        </div>
       </div>
+
 
       {orders.data?.orders.length ? (
         <>

@@ -37,16 +37,20 @@ export function useOrders(params?: OrderQueryParams) {
       const sp = new URLSearchParams();
       if (params?.page) sp.set("page", String(params.page));
       if (params?.limit) sp.set("limit", String(params.limit));
-      if (params?.status) sp.set("status", params.status);
+      if (params?.status && params.status !== "all") sp.set("status", params.status);
+      if (params?.payment && params.payment !== "all") sp.set("payment", params.payment);
+      if (params?.search) sp.set("search", params.search);
       if (params?.type) sp.set("type", params.type);
       if (params?.startDate) sp.set("startDate", params.startDate);
       if (params?.endDate) sp.set("endDate", params.endDate);
+      if (params?.sort) sp.set("sort", params.sort);
+      if (params?.order) sp.set("order", params.order);
       const q = sp.toString();
       return apiGet<OrderListResponse>(`/orders${q ? `?${q}` : ""}`);
-
     },
   });
 }
+
 
 /* ── Single Order ───────────────────────────────────────────────── */
 export function useOrder(id: string) {

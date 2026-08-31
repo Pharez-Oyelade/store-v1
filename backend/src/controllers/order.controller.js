@@ -14,6 +14,8 @@ export const getOrders = asyncHandler(async (req, res) => {
     page = 1,
     limit = 20,
     status,
+    payment,
+    search,
     type = "all", // "all" | "ready_to_wear" | "bespoke"
     startDate,
     endDate,
@@ -26,12 +28,50 @@ export const getOrders = asyncHandler(async (req, res) => {
   if (endDate) dateFilter.$lte = new Date(endDate);
 
   const orderFilter = { vendor: vendorId };
-  if (status && status !== "all") orderFilter.status = status;
   if (startDate || endDate) orderFilter.createdAt = dateFilter;
 
   const customFilter = { vendor: vendorId };
-  if (status && status !== "all") customFilter.status = status;
   if (startDate || endDate) customFilter.createdAt = dateFilter;
+
+  // Status Filter
+  if (status && status !== "all") {
+    orderFilter.status = status;
+    if (status === "pending") {
+      customFilter.status = { $in: ["inquiry", "quoted", "confirmed", "in_progress", "fitting"] };
+    } else {
+      customFilter.status = status;
+    }
+  }
+
+  // Payment / Debt Filter
+  if (payment === "unpaid" || payment === "pending" || payment === "debt") {
+    orderFilter.balanceOwed = { $gt: 0 };
+    customFilter.balanceOwed = { $gt: 0 };
+  } else if (payment === "paid") {
+    orderFilter.balanceOwed = { $lte: 0 };
+    customFilter.balanceOwed = { $lte: 0 };
+  }
+
+  // Search Filter
+  if (search && search.trim()) {
+    const searchRegex = { $regex: search.trim(), $options: "i" };
+    orderFilter.$or = [
+      { "customerSnapshot.name": searchRegex },
+      { "customerSnapshot.phone": searchRegex },
+      { "customerSnapshot.email": searchRegex },
+      { "items.productName": searchRegex },
+      { notes: searchRegex },
+    ];
+    customFilter.$or = [
+      { "customerSnapshot.name": searchRegex },
+      { "customerSnapshot.phone": searchRegex },
+      { "customerSnapshot.email": searchRegex },
+      { title: searchRegex },
+      { description: searchRegex },
+      { notes: searchRegex },
+    ];
+  }
+
 
   const skip = (Number(page) - 1) * Number(limit);
   const sortDir = sortOrder === "asc" ? 1 : -1;
