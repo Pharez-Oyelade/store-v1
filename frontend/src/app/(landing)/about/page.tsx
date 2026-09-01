@@ -125,60 +125,75 @@ const page = () => {
         </div>
       </section>
 
-      {/* Impact Stats Section */}
-      <section className="bg-brand-950 text-white py-16 px-4 md:px-15">
+      {/* Measurable Product Value Stats Section */}
+      <section className="bg-brand-950 text-white py-16 px-4 md:px-15 border-y border-white/10">
         <div className="max-w-7xl mx-auto">
           <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5, ease: "easeOut" }}
-              className="space-y-2"
+              className="space-y-1.5"
             >
-              <h3 className="text-4xl md:text-5xl font-extrabold text-accent-400">
-                1,500+
+              <h3 className="text-3xl md:text-5xl font-extrabold text-accent-400">
+                &lt; 60s
               </h3>
-              <p className="text-sm md:text-base text-brand-200 uppercase font-bold tracking-wider">
-                Active Vendors
+              <p className="text-xs md:text-sm text-brand-200 uppercase font-bold tracking-wider">
+                Store Onboarding
+              </p>
+              <p className="text-[11px] text-gray-400 max-w-xs mx-auto hidden sm:block">
+                Claim your brand link and launch in under a minute
               </p>
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="space-y-2"
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.1 }}
+              className="space-y-1.5"
             >
-              <h3 className="text-4xl md:text-5xl font-extrabold text-accent-400">
-                ₦250M+
+              <h3 className="text-3xl md:text-5xl font-extrabold text-accent-400">
+                1-Click
               </h3>
-              <p className="text-sm md:text-base text-brand-200 uppercase font-bold tracking-wider">
-                Volume Managed
+              <p className="text-xs md:text-sm text-brand-200 uppercase font-bold tracking-wider">
+                WhatsApp Dispatch
+              </p>
+              <p className="text-[11px] text-gray-400 max-w-xs mx-auto hidden sm:block">
+                Formatted order & receipt updates sent directly to buyers
               </p>
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="space-y-2"
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.2 }}
+              className="space-y-1.5"
             >
-              <h3 className="text-4xl md:text-5xl font-extrabold text-accent-400">
-                150,000+
+              <h3 className="text-3xl md:text-5xl font-extrabold text-accent-400">
+                100%
               </h3>
-              <p className="text-sm md:text-base text-brand-200 uppercase font-bold tracking-wider">
-                Orders Processed
+              <p className="text-xs md:text-sm text-brand-200 uppercase font-bold tracking-wider">
+                Debt & Deposit Clarity
+              </p>
+              <p className="text-[11px] text-gray-400 max-w-xs mx-auto hidden sm:block">
+                Real-time tracking of unpaid balances & supplier credit
               </p>
             </motion.div>
+
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5, ease: "easeOut" }}
-              className="space-y-2"
+              transition={{ duration: 0.5, ease: "easeOut", delay: 0.3 }}
+              className="space-y-1.5"
             >
-              <h3 className="text-4xl md:text-5xl font-extrabold text-accent-400">
-                10h+
+              <h3 className="text-3xl md:text-5xl font-extrabold text-accent-400">
+                14 Days
               </h3>
-              <p className="text-sm md:text-base text-brand-200 uppercase font-bold tracking-wider">
-                Weekly Time Saved
+              <p className="text-xs md:text-sm text-brand-200 uppercase font-bold tracking-wider">
+                Free Trial on Stitch
+              </p>
+              <p className="text-[11px] text-gray-400 max-w-xs mx-auto hidden sm:block">
+                Test bespoke boards and inventory risk-free
               </p>
             </motion.div>
           </div>
@@ -205,8 +220,8 @@ const page = () => {
               Generic e-commerce platforms don't understand the nuance of
               fashion. They don't support custom measurements, or
               WhatsApp-driven workflows, or multiple fabric variations. Vendra
-              was born to bridge that gap — a platform built specifically for
-              the Nigerian fashion ecosystem.
+              was born to bridge that gap, a platform built specifically for the
+              Nigerian fashion ecosystem.
             </p>
           </div>
 
@@ -383,14 +398,13 @@ const page = () => {
             <div className="absolute left-[-6px] top-1.5 md:left-auto md:left-[-6px] w-3 h-3 rounded-full bg-accent-500" />
             <div className="md:pl-8">
               <span className="bg-accent-100 text-accent-700 text-xs px-2.5 py-0.5 rounded-full font-semibold">
-                July, 2026
+                September, 2026
               </span>
               <h3 className="text-lg font-bold text-gray-900 mt-2">
                 Beta Launch
               </h3>
               <p className="text-gray-600 text-sm mt-1">
-                Released prototype to fashion brands. Logged over 5,000 orders
-                in the first 30 days.
+                Released prototype to fashion brands.
               </p>
             </div>
           </div>
@@ -441,28 +455,40 @@ const page = () => {
             <h2 className="text-3xl md:text-5xl font-bold text-gray-900">
               Meet the{" "}
               <span className="text-brand-600 font-cursive text-4xl md:text-6xl">
-                Visionaries
+                Visionary
               </span>
             </h2>
-            <p className="text-gray-600 max-w-xl mx-auto">
+            {/* <p className="text-gray-600 max-w-xl mx-auto">
               A passionate team of builders, designers, and former retail
               managers trying to make retail business easy.
+            </p> */}
+            <p className="text-gray-600 max-w-xl mx-auto">
+              A passionate builder and software engineer trying to make retail
+              business easy.
             </p>
           </div>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8"> */}
+          <div className="flex justify-center">
             {/* Team Member 1 */}
             <div className="space-y-4 group">
-              <div className="aspect-[4/5] bg-gradient-to-br from-brand-100 to-brand-300 rounded-xl relative overflow-hidden flex items-end justify-center p-6 border border-gray-150">
-                <div className="absolute inset-0 bg-brand-950/20 group-hover:bg-brand-950/45 transition-colors duration-300" />
+              <div className="aspect-[4/5] rounded-xl relative overflow-hidden flex items-end justify-center border border-gray-150">
+                {/* <div className="absolute inset-0 bg-brand-950/20 group-hover:bg-brand-950/45 transition-colors duration-300" />
                 <div className="relative text-center z-10 space-y-1">
                   <span className="text-white font-bold text-lg block">
-                    Co-Founder & CEO
+                    Founder & CEO
                   </span>
                   <span className="text-brand-200 text-xs font-medium uppercase tracking-wider block">
                     [Executive Leadership]
                   </span>
-                </div>
+                </div> */}
+                <Image
+                  src="/pharez.jpg"
+                  alt="Pharez Oyelade"
+                  width={400}
+                  height={400}
+                  className="object-cover hover:scale-105 transition-transform duration-300"
+                />
               </div>
               <div>
                 <h4 className="text-lg font-bold text-gray-900">
@@ -475,7 +501,7 @@ const page = () => {
             </div>
 
             {/* Team Member 2 */}
-            <div className="space-y-4 group">
+            {/* <div className="space-y-4 group">
               <div className="aspect-[4/5] bg-gradient-to-br from-accent-100 to-accent-300 rounded-xl relative overflow-hidden flex items-end justify-center p-6 border border-gray-150">
                 <div className="absolute inset-0 bg-brand-950/20 group-hover:bg-brand-950/45 transition-colors duration-300" />
                 <div className="relative text-center z-10 space-y-1">
@@ -495,10 +521,10 @@ const page = () => {
                   Product Strategy & Design
                 </p>
               </div>
-            </div>
+            </div> */}
 
             {/* Team Member 3 */}
-            <div className="space-y-4 group">
+            {/* <div className="space-y-4 group">
               <div className="aspect-[4/5] bg-gradient-to-br from-emerald-100 to-emerald-300 rounded-xl relative overflow-hidden flex items-end justify-center p-6 border border-gray-150">
                 <div className="absolute inset-0 bg-brand-950/20 group-hover:bg-brand-950/45 transition-colors duration-300" />
                 <div className="relative text-center z-10 space-y-1">
@@ -516,10 +542,10 @@ const page = () => {
                   Architecture & Code
                 </p>
               </div>
-            </div>
+            </div> */}
 
             {/* Team Member 4 */}
-            <div className="space-y-4 group">
+            {/* <div className="space-y-4 group">
               <div className="aspect-[4/5] bg-gradient-to-br from-indigo-100 to-indigo-300 rounded-xl relative overflow-hidden flex items-end justify-center p-6 border border-gray-150">
                 <div className="absolute inset-0 bg-brand-950/20 group-hover:bg-brand-950/45 transition-colors duration-300" />
                 <div className="relative text-center z-10 space-y-1">
@@ -539,7 +565,7 @@ const page = () => {
                   Vendor Engagement
                 </p>
               </div>
-            </div>
+            </div> */}
           </div>
         </div>
       </section>

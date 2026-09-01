@@ -78,7 +78,9 @@ export default function ContactPage() {
                 We&apos;d love to hear from you
               </h1>
               <p className="text-gray-300 text-sm leading-relaxed mb-8">
-                Have questions about onboarding your fashion store, managing bespoke demands, or custom pricing tiers? Our team is here to help.
+                Have questions about onboarding your fashion store, managing
+                bespoke demands, or custom pricing tiers? Our team is here to
+                help.
               </p>
 
               <div className="space-y-6 text-sm">
@@ -92,7 +94,8 @@ export default function ContactPage() {
                       href="mailto:hello@vendra.ng"
                       className="font-medium hover:text-brand-300 transition-colors"
                     >
-                      hello@vendra.ng
+                      {/* hello@vendra.ng */}
+                      pharezoyelade@gmail.com
                     </a>
                   </div>
                 </div>
@@ -102,14 +105,16 @@ export default function ContactPage() {
                     <Phone size={18} />
                   </div>
                   <div>
-                    <p className="text-xs text-gray-400">Call / WhatsApp Support</p>
+                    <p className="text-xs text-gray-400">
+                      Call / WhatsApp Support
+                    </p>
                     <a
                       href="https://wa.me/2348012345678"
                       target="_blank"
                       rel="noreferrer"
                       className="font-medium hover:text-brand-300 transition-colors"
                     >
-                      +234 801 234 5678
+                      +234 8137742724
                     </a>
                   </div>
                 </div>
@@ -120,7 +125,7 @@ export default function ContactPage() {
                   </div>
                   <div>
                     <p className="text-xs text-gray-400">Headquarters</p>
-                    <p className="font-medium">Lagos, Nigeria</p>
+                    <p className="font-medium">Oyo, Nigeria</p>
                   </div>
                 </div>
               </div>
@@ -128,7 +133,7 @@ export default function ContactPage() {
 
             <div className="mt-12 pt-8 border-t border-white/10">
               <a
-                href="https://wa.me/2348012345678?text=Hello%20Vendra%20team,%20I%20have%20an%20inquiry%20about%20your%20platform."
+                href="https://wa.me/2348137742724?text=Hello%20Vendra%20team,%20I%20have%20an%20inquiry%20about%20your%20platform."
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center justify-center gap-2 w-full py-3 px-4 rounded-xl bg-brand-700 hover:bg-brand-600 text-white font-medium text-sm transition-colors"
@@ -150,7 +155,8 @@ export default function ContactPage() {
                   Message received!
                 </h2>
                 <p className="text-gray-600 text-sm max-w-md mx-auto mb-8">
-                  Thank you for reaching out. A member of our support team will get back to you within 24 hours.
+                  Thank you for reaching out. A member of our support team will
+                  get back to you within 24 hours.
                 </p>
                 <button
                   type="button"
@@ -220,11 +226,13 @@ export default function ContactPage() {
                   <Button
                     type="submit"
                     variant="primary"
-                    className="w-full sm:w-auto px-8"
+                    className="w-full sm:w-auto px-8 flex"
                     isLoading={loading}
                   >
-                    <Send size={16} className="mr-2" />
-                    Send Message
+                    <div className="flex">
+                      <Send size={16} className="mr-2" />
+                      <span>Send Message</span>
+                    </div>
                   </Button>
                 </form>
               </div>
