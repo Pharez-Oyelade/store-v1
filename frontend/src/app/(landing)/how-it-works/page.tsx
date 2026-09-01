@@ -6,62 +6,67 @@ import Link from "next/link";
 import { Title } from "@/components/ui/Title";
 import Button from "@/components/custom/Button";
 import Card from "@/components/ui/Card";
-import { 
-  UserPlus, 
-  PlusCircle, 
-  Share2, 
-  BarChart3, 
-  ArrowRight, 
-  CheckCircle2, 
-  Smartphone, 
+import {
+  UserPlus,
+  PlusCircle,
+  Share2,
+  BarChart3,
+  ArrowRight,
+  CheckCircle2,
+  Smartphone,
   MessageSquare,
   Sparkles,
   ShoppingBag,
   Clock,
-  ChevronRight
+  ChevronRight,
 } from "lucide-react";
 
 const steps = [
   {
     number: "01",
     title: "Create Your Shop in 60 Seconds",
-    description: "Sign up and claim your brand's unique link (e.g., vendra.ng/yourbrand). Set up your basic shop name, contact details, and currency.",
+    description:
+      "Sign up and set up your basic shop name, and contact details.",
     icon: <UserPlus className="w-6 h-6 text-brand-600" />,
     badge: "Fast Setup",
-    color: "from-brand-50 to-brand-100/50"
+    color: "from-brand-50 to-brand-100/50",
   },
   {
     number: "02",
     title: "Add Products with Fashion Variants",
-    description: "No more generic product listings. Input sizes (UK sizes, custom measurements, or XS-XXL), fabric options, and colorways with up to 5 photos per item.",
+    description:
+      "No more generic product listings. Input sizes (UK sizes, custom measurements, or XS-XXL), fabric options, and colorways with up to 5 photos per item.",
     icon: <PlusCircle className="w-6 h-6 text-accent-600" />,
     badge: "Built for Fashion",
-    color: "from-accent-50 to-accent-100/30"
+    color: "from-accent-50 to-accent-100/30",
   },
   {
     number: "03",
     title: "Share Your Catalog & Stop DM Chaos",
-    description: "Add your new link to your Instagram Bio or WhatsApp status. Customers can browse what's in stock, select their sizes, and order directly — no DM required to ask 'Is this available?'",
+    description:
+      "Add your new link to your Instagram Bio or WhatsApp status. Customers can browse what's in stock, select their sizes, and order directly — no DM required to ask 'Is this available?'",
     icon: <Share2 className="w-6 h-6 text-emerald-600" />,
     badge: "Auto Stock-Sync",
-    color: "from-emerald-50 to-emerald-100/30"
+    color: "from-emerald-50 to-emerald-100/30",
   },
   {
     number: "04",
     title: "Log Offline Orders & Send WhatsApp Alerts",
-    description: "Got an order from an in-person customer or custom DM order? Log it on your dashboard. Vendra generates a pre-formatted receipt/confirmation that you can send to WhatsApp in one tap.",
+    description:
+      "Got an order from an in-person customer or custom DM order? Log it on your dashboard. Vendra generates a pre-formatted receipt/confirmation that you can send to WhatsApp in one tap.",
     icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
     badge: "WhatsApp Ready",
-    color: "from-blue-50 to-blue-100/30"
+    color: "from-blue-50 to-blue-100/30",
   },
   {
     number: "05",
     title: "Ship, Collect Balances, & Track Growth",
-    description: "Track payment statuses (Deposit vs. Full payment). Automatically update inventory upon fulfillment. Review clean mobile-first reports showing revenue, best sellers, and outstanding payments.",
+    description:
+      "Track payment statuses (Deposit vs. Full payment). Automatically update inventory upon fulfillment. Review clean mobile-first reports showing revenue, best sellers, and outstanding payments.",
     icon: <BarChart3 className="w-6 h-6 text-purple-600" />,
     badge: "Clean Analytics",
-    color: "from-purple-50 to-purple-100/30"
-  }
+    color: "from-purple-50 to-purple-100/30",
+  },
 ];
 
 export default function HowItWorksPage() {
@@ -103,7 +108,9 @@ export default function HowItWorksPage() {
           transition={{ delay: 0.2, duration: 0.5 }}
           className="text-lg text-gray-600 max-w-2xl mx-auto leading-relaxed"
         >
-          Go from messy notebooks and DM lists to a clean, structured workflow. Here is the step-by-step path to taking your fashion brand to the next level.
+          Go from messy notebooks and DM lists to a clean, structured workflow.
+          Here is the step-by-step path to taking your fashion brand to the next
+          level.
         </motion.p>
       </section>
 
@@ -146,7 +153,9 @@ export default function HowItWorksPage() {
 
                 {/* Right/Visual Placeholder Mockup */}
                 <div className="w-full md:w-1/2 pl-6 md:pl-0">
-                  <div className={`p-8 rounded-2xl bg-gradient-to-br ${step.color} border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 min-h-[220px] flex flex-col justify-between`}>
+                  <div
+                    className={`p-8 rounded-2xl bg-gradient-to-br ${step.color} border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 min-h-[220px] flex flex-col justify-between`}
+                  >
                     <div className="flex justify-between items-start">
                       <div className="p-3 bg-white rounded-xl shadow-sm">
                         {step.icon}
@@ -173,10 +182,15 @@ export default function HowItWorksPage() {
         <div className="max-w-7xl mx-auto space-y-16">
           <div className="text-center space-y-4">
             <h2 className="text-3xl md:text-5xl font-bold">
-              Why Fashion Vendors <span className="text-accent-400 font-cursive text-4xl md:text-6xl">Prefer</span> Vendra
+              Why Fashion Vendors{" "}
+              <span className="text-accent-400 font-cursive text-4xl md:text-6xl">
+                Prefer
+              </span>{" "}
+              Vendra
             </h2>
             <p className="text-brand-200 max-w-xl mx-auto text-sm md:text-base">
-              Unlike generic shop builders, Vendra is fine-tuned to how you run your business offline and online.
+              Unlike generic shop builders, Vendra is fine-tuned to how you run
+              your business offline and online.
             </p>
           </div>
 
@@ -187,7 +201,8 @@ export default function HowItWorksPage() {
               </div>
               <h4 className="text-xl font-bold">Mobile-First Control</h4>
               <p className="text-brand-200 text-sm leading-relaxed">
-                Log items directly using your phone camera at photoshoot locations or straight from your store back-room.
+                Log items directly using your phone camera at photoshoot
+                locations or straight from your store back-room.
               </p>
             </div>
 
@@ -197,7 +212,8 @@ export default function HowItWorksPage() {
               </div>
               <h4 className="text-xl font-bold">No-App Download Needed</h4>
               <p className="text-brand-200 text-sm leading-relaxed">
-                Your customers don't need to sign up or download anything. They browse and select sizes on a ultra-fast browser storefront.
+                Your customers don't need to sign up or download anything. They
+                browse and select sizes on a ultra-fast browser storefront.
               </p>
             </div>
 
@@ -207,7 +223,8 @@ export default function HowItWorksPage() {
               </div>
               <h4 className="text-xl font-bold">Quick WhatsApp Receipt</h4>
               <p className="text-brand-200 text-sm leading-relaxed">
-                One-tap to send pre-formatted purchase summaries directly to your customer's chat, keeping records clear.
+                One-tap to send pre-formatted purchase summaries directly to
+                your customer's chat, keeping records clear.
               </p>
             </div>
           </div>
@@ -230,16 +247,25 @@ export default function HowItWorksPage() {
             Start saving hours today
           </h2>
           <p className="text-brand-200 max-w-lg mx-auto text-sm md:text-base leading-relaxed">
-            Create your account and list your first product in under two minutes. Experience the ease of Vendra today.
+            Create your account and list your first product in under two
+            minutes. Experience the ease of Vendra today.
           </p>
           <div className="flex flex-col sm:flex-row gap-4 justify-center pt-4">
             <Link href="/login">
-              <Button variant="primary" className="bg-accent-500 hover:bg-accent-600 text-brand-950 border-none font-bold" size="large">
+              <Button
+                variant="primary"
+                className="bg-accent-500 hover:bg-accent-600 text-brand-950 border-none font-bold"
+                size="large"
+              >
                 Get Started Free
               </Button>
             </Link>
             <Link href="/about">
-              <Button variant="outline" className="border-white text-white hover:bg-white/10" size="large">
+              <Button
+                variant="outline"
+                className="border-white text-white hover:bg-white/10"
+                size="large"
+              >
                 Learn About Vendra
               </Button>
             </Link>

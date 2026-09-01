@@ -8,10 +8,11 @@ import {
   getSupplierSummary,
 } from "../controllers/supplier.controller.js";
 import { protect } from "../middleware/protect.js";
+import { requireRole } from "../middleware/rbac.middleware.js";
 
 const supplierRouter = Router();
 
-supplierRouter.use(protect);
+supplierRouter.use(protect, requireRole("owner", "manager"));
 
 supplierRouter.get("/summary", getSupplierSummary);
 supplierRouter.get("/", getSuppliers);
@@ -21,3 +22,4 @@ supplierRouter.put("/:id", updateSupplier);
 supplierRouter.delete("/:id", deleteSupplier);
 
 export default supplierRouter;
+

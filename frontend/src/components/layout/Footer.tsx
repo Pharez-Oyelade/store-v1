@@ -5,13 +5,12 @@ import Logo from "../brand/Logo";
 const footerLinks = {
   Product: [
     { label: "Features", href: "/#features" },
+    { label: "How It Works", href: "/how-it-works" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Storefront Demo", href: "/store/demo" },
   ],
   Company: [
-    { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Contact", href: "/contact" },
+    { label: "About Us", href: "/about" },
+    { label: "Contact Support", href: "/contact" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
@@ -45,7 +44,7 @@ export default function Footer() {
             {/* Social links */}
             <div className="flex gap-4 mt-6">
               <a
-                href="https://instagram.com/vendra_ng"
+                href="https://instagram.com/pharez_ire"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-700 hover:text-white transition-colors"
@@ -63,7 +62,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="https://wa.me/2348012345678"
+                href="https://wa.me/2348137742724"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-700 hover:text-white transition-colors"
@@ -81,7 +80,7 @@ export default function Footer() {
                 </svg>
               </a>
               <a
-                href="mailto:hello@sabistore.ng"
+                href="mailto:pharezoyelade@gmail.com"
                 className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-700 hover:text-white transition-colors"
                 aria-label="Email"
               >
@@ -114,10 +113,10 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="border-t border-gray-800 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+          <p className="text-xs">&copy; {year} Vendra. All rights reserved.</p>
           <p className="text-xs">
-            &copy; {year} SabiStore. All rights reserved.
+            Made by <a href="https://pharez-portfolio.vercel.app/">Pharez</a>
           </p>
-          <p className="text-xs">Made by Pharez</p>
         </div>
       </div>
     </footer>
