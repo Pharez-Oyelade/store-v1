@@ -5,19 +5,19 @@ import Logo from "../brand/Logo";
 const footerLinks = {
   Product: [
     { label: "Features", href: "/#features" },
+    { label: "How It Works", href: "/how-it-works" },
     { label: "Pricing", href: "/pricing" },
-    { label: "Storefront Demo", href: "/store/demo" },
   ],
   Company: [
-    { label: "About", href: "/about" },
-    { label: "Blog", href: "/blog" },
-    { label: "Contact", href: "/contact" },
+    { label: "About Us", href: "/about" },
+    { label: "Contact Support", href: "/contact" },
   ],
   Legal: [
     { label: "Privacy Policy", href: "/privacy" },
     { label: "Terms of Service", href: "/terms" },
   ],
 };
+
 
 export default function Footer() {
   const year = new Date().getFullYear();

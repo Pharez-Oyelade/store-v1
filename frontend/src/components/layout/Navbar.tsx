@@ -15,6 +15,10 @@ const navLinks = [
     label: "Home",
   },
   {
+    href: "/how-it-works",
+    label: "How it Works",
+  },
+  {
     href: "/pricing",
     label: "Pricing",
   },
@@ -27,6 +31,7 @@ const navLinks = [
     label: "Contact",
   },
 ];
+
 
 const Navbar = () => {
   const pathname = usePathname();
