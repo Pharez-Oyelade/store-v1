@@ -20,7 +20,7 @@ const Hero = () => {
   return (
     <section
       ref={containerRef}
-      className="relative px-4 sm:px-8 md:px-16 lg:px-20 pt-32 md:pt-16 pb-8  items-center md:pb-16 flex flex-col md:flex-row md:gap-8 lg:gap-0 min-h-svh overflow-hidden bg-white"
+      className="relative px-4 sm:px-8 md:px-16 lg:px-20 pt-10 md:pt-8 pb-8 items-center md:pb-16 flex flex-col md:flex-row md:gap-8 lg:gap-0 min-h-svh overflow-hidden bg-white"
     >
       {/* Background Animated Gradient Orbs */}
       <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-brand-100 rounded-full blur-[120px] opacity-40 animate-gradient-slow -z-10 translate-x-1/3 -translate-y-1/4" />
