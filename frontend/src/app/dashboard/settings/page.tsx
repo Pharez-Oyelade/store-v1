@@ -3,7 +3,16 @@
 import { useState, useEffect } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
-import { BadgeCheck, CreditCard, Shield, Users, User, Receipt, Sparkles } from "lucide-react";
+import {
+  BadgeCheck,
+  CreditCard,
+  Shield,
+  Users,
+  User,
+  Receipt,
+  Sparkles,
+  ArrowRight,
+} from "lucide-react";
 import VendorProfileForm from "@/components/dashboard/VendorProfileForm";
 import {
   PageHeader,
@@ -14,7 +23,6 @@ import { BillingPanel } from "@/components/dashboard/BillingPanel";
 import TeamPanel from "@/components/dashboard/TeamPanel";
 import { useAuthStore } from "@/store/authStore";
 import { Suspense } from "react";
-
 
 function SettingsContent() {
   const router = useRouter();
@@ -29,12 +37,16 @@ function SettingsContent() {
   const isRestrictedRole = userRole === "tailor" || userRole === "sales";
 
   const [activeTab, setActiveTab] = useState<"profile" | "team" | "billing">(
-    tabParam === "team" || tabParam === "billing" ? tabParam : "profile"
+    tabParam === "team" || tabParam === "billing" ? tabParam : "profile",
   );
 
   // Sync activeTab whenever URL query params change (e.g. ?tab=billing from TeamPanel buttons)
   useEffect(() => {
-    if (tabParam === "team" || tabParam === "billing" || tabParam === "profile") {
+    if (
+      tabParam === "team" ||
+      tabParam === "billing" ||
+      tabParam === "profile"
+    ) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
@@ -51,9 +63,12 @@ function SettingsContent() {
         <div className="size-16 rounded-2xl bg-amber-100 text-amber-800 mx-auto flex items-center justify-center border border-amber-200">
           <Shield size={32} />
         </div>
-        <h2 className="text-xl font-bold text-gray-900">Settings Access Restricted</h2>
+        <h2 className="text-xl font-bold text-gray-900">
+          Settings Access Restricted
+        </h2>
         <p className="text-xs text-gray-600 max-w-md mx-auto leading-relaxed">
-          Store settings, team seats, and subscription billing can only be managed by the store owner and managers.
+          Store settings, team seats, and subscription billing can only be
+          managed by the store owner and managers.
         </p>
         <div className="pt-2">
           <Link
@@ -103,14 +118,18 @@ function SettingsContent() {
             Automated WhatsApp Templates
           </h2>
           <p className="text-xs text-brand-700">
-            Customize personalized order confirmations, fitting reminders, and delivery messages.
+            Customize personalized order confirmations, fitting reminders, and
+            delivery messages.
           </p>
         </div>
         <a
           href="/dashboard/settings/templates"
           className="inline-flex h-9 items-center justify-center rounded-xl bg-brand-700 px-4 text-xs font-bold text-white shadow-xs transition-colors hover:bg-brand-800 shrink-0"
         >
-          <span>Edit Templates &rarr;</span>
+          <div className="flex justify-center items-center gap-2 text-white">
+            <span>Edit Templates</span>
+            <ArrowRight className="w-4 h-4" />
+          </div>
         </a>
       </div>
 
@@ -162,19 +181,24 @@ function SettingsContent() {
 
       {/* Tab Panels */}
       {activeTab === "profile" && <VendorProfileForm />}
-      {isOwner && activeTab === "team" && <TeamPanel onNavigateTab={handleTabChange} />}
+      {isOwner && activeTab === "team" && (
+        <TeamPanel onNavigateTab={handleTabChange} />
+      )}
       {isOwner && activeTab === "billing" && <BillingPanel />}
     </div>
   );
 }
 
-
-
 export default function SettingsPage() {
   return (
-    <Suspense fallback={<div className="p-8 text-center text-sm text-gray-500">Loading settings...</div>}>
+    <Suspense
+      fallback={
+        <div className="p-8 text-center text-sm text-gray-500">
+          Loading settings...
+        </div>
+      }
+    >
       <SettingsContent />
     </Suspense>
   );
 }
-

@@ -18,6 +18,7 @@ import {
   Menu,
   X,
   Scissors,
+  ArrowRight,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -77,11 +78,7 @@ const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
     "/dashboard/storefront",
     "/dashboard/settings",
   ],
-  tailor: [
-    "/dashboard",
-    "/dashboard/demands",
-    "/dashboard/customers",
-  ],
+  tailor: ["/dashboard", "/dashboard/demands", "/dashboard/customers"],
   sales: [
     "/dashboard",
     "/dashboard/products",
@@ -99,7 +96,9 @@ export default function DashboardSidebar() {
 
   const userRole = (vendor?.user?.role || vendor?.role || "owner") as string;
   const allowedPaths = ROLE_ALLOWED_PATHS[userRole] || ROLE_ALLOWED_PATHS.owner;
-  const visibleNavItems = NAV_ITEMS.filter((item) => allowedPaths.includes(item.href));
+  const visibleNavItems = NAV_ITEMS.filter((item) =>
+    allowedPaths.includes(item.href),
+  );
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -165,7 +164,9 @@ export default function DashboardSidebar() {
           )}
         >
           <div className="w-8 h-8 rounded-full bg-brand-600 flex items-center justify-center text-white text-xs font-bold shrink-0">
-            {vendor ? getInitials(vendor.user?.name || vendor.businessName) : "V"}
+            {vendor
+              ? getInitials(vendor.user?.name || vendor.businessName)
+              : "V"}
           </div>
           {!collapsed && (
             <div className="flex-1 min-w-0">
@@ -193,7 +194,9 @@ export default function DashboardSidebar() {
                 href="/dashboard/settings?tab=billing"
                 className="block text-center text-xs font-semibold text-white bg-brand-700 hover:bg-brand-800 py-1.5 px-3 rounded-md transition-colors"
               >
-                Upgrade Now &rarr;
+                <div className="text-white text-center justify-center flex gap-2 items-center">
+                  Upgrade Now <ArrowRight />
+                </div>
               </Link>
             </div>
           )}
@@ -213,7 +216,6 @@ export default function DashboardSidebar() {
         )}
 
         <button
-
           onClick={() => logout()}
           className={cn(
             "flex items-center gap-3 w-full px-3 py-2 mt-1 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors",
@@ -224,7 +226,6 @@ export default function DashboardSidebar() {
           {!collapsed && <span>Sign Out</span>}
         </button>
       </div>
-
 
       {/* Collapse Toggle (desktop only) */}
       <button

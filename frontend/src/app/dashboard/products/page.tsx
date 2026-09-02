@@ -2,7 +2,8 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Edit, PackagePlus, Search, Trash2, AlertCircle } from "lucide-react";
+import { Edit, PackagePlus, Search, Trash2, AlertCircle, Package, Image as ImageIcon } from "lucide-react";
+
 import Input from "@/components/ui/Input";
 import {
   EmptyState,
@@ -177,6 +178,7 @@ function ProductCard({
   const updateProduct = useUpdateProduct(product._id);
   const stock = product.variants.reduce((sum, variant) => sum + variant.quantity, 0);
   const isLow = product.variants.some((variant) => variant.quantity <= product.lowStockThreshold);
+  const firstImage = product.images?.[0]?.url;
 
   function updateStatus(nextStatus: ProductStatus) {
     const formData = new FormData();
@@ -187,12 +189,34 @@ function ProductCard({
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
-      <div className="flex justify-between items-start mb-3">
-        <div>
-          <Link href={`/dashboard/products/${product._id}`} className="font-semibold text-gray-900 text-base block hover:underline">
-            {product.name}
-          </Link>
-          <p className="text-xs text-gray-500 mt-0.5">{product.category || "Uncategorized"} • {product.variants.length} variants</p>
+      <div className="flex justify-between items-start gap-3 mb-3">
+        <div className="flex items-center gap-3 min-w-0 flex-1">
+          {firstImage ? (
+            <img
+              src={firstImage}
+              alt={product.name}
+              style={{ width: "48px", height: "48px", minWidth: "48px", minHeight: "48px" }}
+              className="w-12 h-12 min-w-12 max-w-12 min-h-12 max-h-12 rounded-lg object-cover border border-gray-200 shrink-0 bg-gray-50 shadow-xs"
+            />
+          ) : (
+            <div
+              style={{ width: "48px", height: "48px", minWidth: "48px", minHeight: "48px" }}
+              className="w-12 h-12 min-w-12 max-w-12 min-h-12 max-h-12 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 shrink-0"
+            >
+              <Package className="size-5 opacity-50" />
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <Link
+              href={`/dashboard/products/${product._id}`}
+              className="font-semibold text-gray-900 text-sm block hover:underline truncate"
+            >
+              {product.name}
+            </Link>
+            <p className="text-xs text-gray-500 mt-0.5 truncate">
+              {product.category || "Uncategorized"} • {product.variants.length} variants
+            </p>
+          </div>
         </div>
         <StatusBadge value={product.status} />
       </div>
@@ -239,6 +263,7 @@ function ProductRow({
   const isLow = product.variants.some(
     (variant) => variant.quantity <= product.lowStockThreshold,
   );
+  const firstImage = product.images?.[0]?.url;
 
   function updateStatus(nextStatus: ProductStatus) {
     const formData = new FormData();
@@ -250,14 +275,35 @@ function ProductRow({
   return (
     <tr className="hover:bg-gray-50">
       <td className="px-4 py-3">
-        <Link href={`/dashboard/products/${product._id}`} className="font-medium text-gray-950 hover:underline">
-          {product.name}
-        </Link>
-        <p className="text-xs text-gray-500">
-          {product.category || "Uncategorized"} · {product.variants.length}{" "}
-          variants
-        </p>
+        <div className="flex items-center gap-3">
+          {firstImage ? (
+            <img
+              src={firstImage}
+              alt={product.name}
+              style={{ width: "40px", height: "40px", minWidth: "40px", minHeight: "40px" }}
+              className="w-10 h-10 min-w-10 max-w-10 min-h-10 max-h-10 rounded-lg object-cover border border-gray-200 shrink-0 bg-gray-50 shadow-xs"
+            />
+          ) : (
+            <div
+              style={{ width: "40px", height: "40px", minWidth: "40px", minHeight: "40px" }}
+              className="w-10 h-10 min-w-10 max-w-10 min-h-10 max-h-10 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 shrink-0"
+            >
+              <Package className="size-4 opacity-50" />
+            </div>
+          )}
+          <div className="min-w-0">
+            <Link href={`/dashboard/products/${product._id}`} className="font-medium text-gray-950 hover:underline block truncate">
+              {product.name}
+            </Link>
+            <p className="text-xs text-gray-500 truncate">
+              {product.category || "Uncategorized"} · {product.variants.length}{" "}
+              variants
+            </p>
+          </div>
+        </div>
       </td>
+
+
       <td className="px-4 py-3">
         <span
           className={isLow ? "font-semibold text-accent-700" : "text-gray-700"}
