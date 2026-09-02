@@ -17,8 +17,9 @@ const COOKIE_NAME = "access_token";
 
 // jwt token for store owner
 const signTokenAndSetCookie = (res, vendor) => {
+  const tokenRole = vendor.role === "admin" ? "admin" : (vendor.role || "owner");
   const token = jwt.sign(
-    { id: vendor._id, role: vendor.role || "owner", isTeamMember: false },
+    { id: vendor._id, role: tokenRole, isTeamMember: false },
     process.env.JWT_SECRET,
     {
       expiresIn: process.env.JWT_EXPIRES_IN || "7d",
@@ -62,14 +63,19 @@ const signTeamMemberTokenAndSetCookie = (res, member, vendor) => {
 
 // AuthUser response
 const buildAuthUserResponse = (vendor, user = null) => {
+  const isPlatformAdmin = vendor.role === "admin";
   const currentUser = user || {
     _id: vendor._id,
     name: vendor.businessName,
     email: vendor.email || null,
     phone: vendor.phone,
-    role: "owner",
+    role: isPlatformAdmin ? "admin" : "owner",
     isTeamMember: false,
   };
+
+  const resolvedRole = isPlatformAdmin
+    ? "admin"
+    : (currentUser.role || vendor.role || "owner");
 
   return {
     _id: vendor._id,
@@ -78,12 +84,16 @@ const buildAuthUserResponse = (vendor, user = null) => {
     phone: vendor.phone,
     email: vendor.email || null,
     logo: vendor.logo,
-    role: currentUser.role || vendor.role || "owner",
-    user: currentUser,
+    role: resolvedRole,
+    user: {
+      ...currentUser,
+      role: resolvedRole,
+    },
     subscriptionPlan: vendor.subscriptionPlan,
     subscriptionStatus: vendor.subscriptionStatus,
   };
 };
+
 
 
 /* Register -------------------------------- */
@@ -211,6 +221,15 @@ export const login = asyncHandler(async (req, res) => {
       );
     }
 
+    // Auto-promote configured admin credentials to "admin" role if needed
+    const matchesAdminPhone = process.env.ADMIN_PHONE && vendor.phone === process.env.ADMIN_PHONE;
+    const matchesAdminEmail = process.env.ADMIN_EMAIL && vendor.email && vendor.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase();
+
+    if ((matchesAdminPhone || matchesAdminEmail) && vendor.role !== "admin") {
+      vendor.role = "admin";
+      await vendor.save();
+    }
+
     // Real-time subscription sync on login
     await syncVendorSubscription(vendor._id);
     const updatedVendor = await Vendor.findById(vendor._id);
@@ -223,6 +242,7 @@ export const login = asyncHandler(async (req, res) => {
       `Welcome back, ${vendor.businessName}`,
     );
   }
+
 
   // 2. Check if an invited Team Member matches
   const teamMember = await TeamMember.findOne(query)

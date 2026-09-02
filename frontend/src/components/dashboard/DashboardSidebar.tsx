@@ -43,6 +43,17 @@ const NAV_ITEMS = [
 ];
 
 const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
+  admin: [
+    "/dashboard",
+    "/dashboard/products",
+    "/dashboard/orders",
+    "/dashboard/demands",
+    "/dashboard/customers",
+    "/dashboard/suppliers",
+    "/dashboard/analytics",
+    "/dashboard/storefront",
+    "/dashboard/settings",
+  ],
   owner: [
     "/dashboard",
     "/dashboard/products",
@@ -54,6 +65,7 @@ const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
     "/dashboard/storefront",
     "/dashboard/settings",
   ],
+
   manager: [
     "/dashboard",
     "/dashboard/products",
@@ -171,6 +183,7 @@ export default function DashboardSidebar() {
 
         {!vendor?.user?.isTeamMember &&
           (!vendor?.subscriptionPlan || vendor.subscriptionPlan === "free") &&
+          vendor?.role !== "admin" &&
           !collapsed && (
             <div className="mt-3 mb-1 px-3 py-3 bg-brand-500/10 border border-brand-500/20 rounded-lg">
               <p className="text-xs text-brand-200 font-medium mb-2">
@@ -185,7 +198,22 @@ export default function DashboardSidebar() {
             </div>
           )}
 
+        {vendor?.role === "admin" && !collapsed && (
+          <div className="mt-3 mb-1 px-3 py-2.5 bg-indigo-500/15 border border-indigo-500/30 rounded-xl">
+            <p className="text-[11px] font-bold text-indigo-200 uppercase tracking-wider mb-1">
+              Admin Mode
+            </p>
+            <Link
+              href="/admin"
+              className="block text-center text-xs font-bold text-white bg-indigo-600 hover:bg-indigo-700 py-1.5 px-3 rounded-lg transition-colors shadow-xs"
+            >
+              Open Admin Panel &rarr;
+            </Link>
+          </div>
+        )}
+
         <button
+
           onClick={() => logout()}
           className={cn(
             "flex items-center gap-3 w-full px-3 py-2 mt-1 rounded-lg text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-red-500/10 transition-colors",

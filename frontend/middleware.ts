@@ -64,9 +64,23 @@ export async function middleware(request: NextRequest) {
   }
 
   if (isAuthRoute && isAuthenticated) {
-    // Authenticated user visiting /login or /register → go to dashboard
+    // Authenticated user visiting /login or /register
+    // If admin, send to /admin; otherwise send to /dashboard
+    const jwtSecret = process.env.JWT_SECRET;
+    if (jwtSecret && token?.value) {
+      try {
+        const secret = new TextEncoder().encode(jwtSecret);
+        const { payload } = await jwtVerify(token.value, secret);
+        if (payload.role === "admin") {
+          return NextResponse.redirect(new URL("/admin", request.url));
+        }
+      } catch {
+        // Fall back to dashboard
+      }
+    }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
+
 
   /*
    * Role-based check for admin routes.

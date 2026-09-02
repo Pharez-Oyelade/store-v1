@@ -90,11 +90,12 @@ export const protect = asyncHandler(async (req, res, next) => {
     name: vendor.businessName,
     email: vendor.email,
     phone: vendor.phone,
-    role: "owner",
+    role: vendor.role === "admin" ? "admin" : "owner",
     isTeamMember: false,
   };
 
   next();
+
 });
 
 

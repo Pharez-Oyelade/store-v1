@@ -107,6 +107,13 @@ export default function AdminSidebar() {
             {vendor?.phone}
           </p>
         </div>
+        <Link
+          href="/dashboard"
+          className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-xs font-medium text-white/70 transition-colors hover:bg-white/5 hover:text-white mb-1"
+        >
+          <Store className="size-4 text-indigo-400" />
+          <span>Vendor Dashboard</span>
+        </Link>
         <button
           onClick={handleLogout}
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-white/50 transition-colors hover:bg-red-500/10 hover:text-red-400"
@@ -115,6 +122,7 @@ export default function AdminSidebar() {
           Sign out
         </button>
       </div>
+
     </div>
   );
 
