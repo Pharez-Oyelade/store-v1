@@ -91,12 +91,12 @@ export default function ContactPage() {
                   <div>
                     <p className="text-xs text-gray-400">Email Us</p>
                     <a
-                      href="mailto:hello@vendra.ng"
+                      href="mailto:hello@tryvendra.ng"
                       className="font-medium hover:text-brand-300 transition-colors"
                     >
-                      {/* hello@vendra.ng */}
-                      pharezoyelade@gmail.com
+                      hello@tryvendra.ng
                     </a>
+
                   </div>
                 </div>
 

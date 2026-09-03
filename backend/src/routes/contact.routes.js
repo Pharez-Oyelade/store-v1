@@ -24,12 +24,13 @@ contactRouter.post(
 
     console.log(`\n📬 [CONTACT FORM SUBMISSION] From: ${name} (${email})\nSubject: ${subject}\nMessage: ${message}\n`);
 
-    // Optionally forward email to support team
+    // Forward email to support team
     await sendEmail({
-      to: process.env.SUPPORT_EMAIL || "support@vendra.ng",
+      to: process.env.SUPPORT_EMAIL || "support@tryvendra.ng",
       subject: `[Vendra Contact] ${subject} - from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\n\nMessage:\n${message}`,
     });
+
 
     return sendSuccess(res, null, "Thank you for reaching out! Our team will get back to you soon.");
   })

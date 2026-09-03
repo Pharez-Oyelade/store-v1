@@ -73,9 +73,10 @@ export default function PrivacyPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-3">5. Your Rights & Data Export</h2>
             <p>
               You retain ownership of all customer lists, measurement files, and product catalogs stored in your account. You can update your details or request account closure at any time by contacting{" "}
-              <a href="mailto:privacy@vendra.ng" className="text-brand-700 hover:underline">
-                privacy@vendra.ng
+              <a href="mailto:privacy@tryvendra.ng" className="text-brand-700 hover:underline">
+                privacy@tryvendra.ng
               </a>.
+
             </p>
           </section>
         </div>

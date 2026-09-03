@@ -83,9 +83,10 @@ export default function TermsPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-3">7. Contact Us</h2>
             <p>
               If you have any questions regarding these Terms, please reach out to us at{" "}
-              <a href="mailto:legal@vendra.ng" className="text-brand-700 hover:underline">
-                legal@vendra.ng
+              <a href="mailto:legal@tryvendra.ng" className="text-brand-700 hover:underline">
+                legal@tryvendra.ng
               </a>{" "}
+
               or via our{" "}
               <Link href="/contact" className="text-brand-700 hover:underline">
                 Contact Page
