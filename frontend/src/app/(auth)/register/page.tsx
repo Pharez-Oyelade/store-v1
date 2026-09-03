@@ -51,13 +51,10 @@ const registerSchema = z
     state: z.string().min(1, "Please select your state"),
     city: z.string().min(2, "City is required"),
     area: z.string().optional(),
-    password: z
-      .string()
-      .min(8, "Password must be at least 8 characters")
-      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-      .regex(/[0-9]/, "Password must contain at least one number"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
+
   .superRefine((data, ctx) => {
     if (data.password !== data.confirmPassword) {
       ctx.addIssue({
@@ -234,7 +231,7 @@ export default function RegisterPage() {
                   <Input
                     label="store Handle"
                     placeholder="eris-fashion-house"
-                    helper="Your storefront URL: vendra.ng/store/your-handle"
+                    helper="Your storefront URL: tryvendra.ng/store/your-handle"
                     error={errors.handle?.message}
                     leftElement={
                       <span className="text-xs text-gray-400 whitespace-nowrap">
@@ -312,7 +309,7 @@ export default function RegisterPage() {
                   type={showPassword ? "text" : "password"}
                   placeholder="Create a strong password"
                   error={errors.password?.message}
-                  helper="Min 8 character, 1 uppercase letter, 1 number"
+                  helper="At least 8 characters"
                   leftElement={<Lock size={16} />}
                   rightElement={
                     <button
