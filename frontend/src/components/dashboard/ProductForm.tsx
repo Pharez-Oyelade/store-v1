@@ -18,7 +18,11 @@ import CreatableTagInput from "@/components/ui/CreatableTagInput";
 import { ProductStatus, type Product, type ProductVariant } from "@/types";
 import toast from "react-hot-toast";
 
-type VariantDraft = Omit<ProductVariant, "sold"> & { sold?: number };
+type VariantDraft = Omit<ProductVariant, "sold" | "price" | "quantity"> & {
+  price: number | string;
+  quantity: number | string;
+  sold?: number;
+};
 
 const blankVariant: VariantDraft = {
   label: "",
@@ -26,8 +30,8 @@ const blankVariant: VariantDraft = {
   color: "",
   custom: "",
   sku: "",
-  price: 0,
-  quantity: 0,
+  price: "",
+  quantity: "",
 };
 
 export default function ProductForm({ product }: { product?: Product }) {
@@ -50,7 +54,7 @@ export default function ProductForm({ product }: { product?: Product }) {
   const [category, setCategory] = useState("");
   const [tags, setTags] = useState<string[]>([]);
   const [status, setStatus] = useState<ProductStatus>(ProductStatus.Draft);
-  const [lowStockThreshold, setLowStockThreshold] = useState(5);
+  const [lowStockThreshold, setLowStockThreshold] = useState<number | string>(5);
   const [variants, setVariants] = useState<VariantDraft[]>([blankVariant]);
   const [files, setFiles] = useState<FileList | null>(null);
 
@@ -74,8 +78,7 @@ export default function ProductForm({ product }: { product?: Product }) {
 
         const updated = {
           ...variant,
-          [field]:
-            field === "price" || field === "quantity" ? Number(value) : value,
+          [field]: value,
         };
 
         // Smart auto-label: If user edits size or color and label is empty or matches previous auto-pattern
@@ -117,7 +120,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     formData.append("category", category);
     formData.append("tags", tags.join(", "));
     formData.append("status", status);
-    formData.append("lowStockThreshold", String(lowStockThreshold));
+    formData.append("lowStockThreshold", String(Number(lowStockThreshold) || 0));
     formData.append(
       "variants",
       JSON.stringify(
@@ -130,8 +133,8 @@ export default function ProductForm({ product }: { product?: Product }) {
           color: variant.color,
           custom: variant.custom,
           sku: variant.sku,
-          price: Number(variant.price),
-          quantity: Number(variant.quantity),
+          price: Number(variant.price) || 0,
+          quantity: Number(variant.quantity) || 0,
           sold: variant.sold ?? 0,
         })),
       ),
@@ -140,6 +143,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     Array.from(files ?? []).forEach((file) => formData.append("images", file));
     return formData;
   }
+
 
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -195,8 +199,9 @@ export default function ProductForm({ product }: { product?: Product }) {
             label="Low stock threshold"
             type="number"
             min={0}
+            placeholder="5"
             value={lowStockThreshold}
-            onChange={(event) => setLowStockThreshold(Number(event.target.value))}
+            onChange={(event) => setLowStockThreshold(event.target.value)}
           />
         </div>
         <Input
@@ -276,17 +281,33 @@ export default function ProductForm({ product }: { product?: Product }) {
                     options={colors}
                     placeholder="e.g. Emerald Green"
                   />
-
                 </div>
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="Price" type="number" min={0} value={variant.price} onChange={(event) => updateVariant(index, "price", event.target.value)} required />
-                  <Input label="Quantity" type="number" min={0} value={variant.quantity} onChange={(event) => updateVariant(index, "quantity", event.target.value)} required />
+                  <Input
+                    label="Price"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={variant.price}
+                    onChange={(event) => updateVariant(index, "price", event.target.value)}
+                    required
+                  />
+                  <Input
+                    label="Quantity"
+                    type="number"
+                    min={0}
+                    placeholder="0"
+                    value={variant.quantity}
+                    onChange={(event) => updateVariant(index, "quantity", event.target.value)}
+                    required
+                  />
                 </div>
                 <Input label="SKU / material note" value={variant.sku || variant.custom || ""} onChange={(event) => updateVariant(index, "sku", event.target.value)} />
               </div>
             </div>
           ))}
         </div>
+
 
         <Button type="submit" isLoading={isPending} leftIcon={<Save className="size-4" />} className="w-full">
 

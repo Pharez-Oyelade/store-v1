@@ -5,7 +5,6 @@ import { useProducts } from "@/hooks/useProducts";
 
 import { useAuthStore } from "@/store/authStore";
 
-
 const STORAGE_KEY_PREFIX = "vendra_product_options_";
 
 // Curated Nigerian fashion & apparel presets
@@ -14,13 +13,13 @@ export const DEFAULT_CATEGORIES = [
   "Two-Piece Sets",
   "Gowns",
   "Kaftan & Boubou",
-  "Agbada & Senegalese",
+  "Agbada",
   "Tops & Blouses",
   "Skirts",
   "Trousers & Pants",
   "Jumpsuits",
   "Corsets & Bralettes",
-  "Fabrics & Asoebi",
+  "Asoebi",
   "Accessories",
   "Ready-to-Wear",
   "Bespoke Couture",
@@ -121,7 +120,6 @@ export function useProductOptions() {
     return { categories: [], tags: [], sizes: [], colors: [] };
   });
 
-
   // Persist custom options to localStorage
   const saveCustomOptions = useCallback(
     (next: StoredOptions) => {
@@ -169,7 +167,22 @@ export function useProductOptions() {
   // Merge: Defaults + Harvested from DB + User Custom Added
   const categories = useMemo(() => {
     const map = new Map<string, string>();
-    [...DEFAULT_CATEGORIES, ...harvested.categories, ...customOptions.categories].forEach(
+    [
+      ...DEFAULT_CATEGORIES,
+      ...harvested.categories,
+      ...customOptions.categories,
+    ].forEach((item) => {
+      const trimmed = item.trim();
+      if (trimmed && !map.has(trimmed.toLowerCase())) {
+        map.set(trimmed.toLowerCase(), trimmed);
+      }
+    });
+    return Array.from(map.values());
+  }, [harvested.categories, customOptions.categories]);
+
+  const tags = useMemo(() => {
+    const map = new Map<string, string>();
+    [...DEFAULT_TAGS, ...harvested.tags, ...customOptions.tags].forEach(
       (item) => {
         const trimmed = item.trim();
         if (trimmed && !map.has(trimmed.toLowerCase())) {
@@ -178,38 +191,31 @@ export function useProductOptions() {
       },
     );
     return Array.from(map.values());
-  }, [harvested.categories, customOptions.categories]);
-
-  const tags = useMemo(() => {
-    const map = new Map<string, string>();
-    [...DEFAULT_TAGS, ...harvested.tags, ...customOptions.tags].forEach((item) => {
-      const trimmed = item.trim();
-      if (trimmed && !map.has(trimmed.toLowerCase())) {
-        map.set(trimmed.toLowerCase(), trimmed);
-      }
-    });
-    return Array.from(map.values());
   }, [harvested.tags, customOptions.tags]);
 
   const sizes = useMemo(() => {
     const map = new Map<string, string>();
-    [...DEFAULT_SIZES, ...harvested.sizes, ...customOptions.sizes].forEach((item) => {
-      const trimmed = item.trim();
-      if (trimmed && !map.has(trimmed.toLowerCase())) {
-        map.set(trimmed.toLowerCase(), trimmed);
-      }
-    });
+    [...DEFAULT_SIZES, ...harvested.sizes, ...customOptions.sizes].forEach(
+      (item) => {
+        const trimmed = item.trim();
+        if (trimmed && !map.has(trimmed.toLowerCase())) {
+          map.set(trimmed.toLowerCase(), trimmed);
+        }
+      },
+    );
     return Array.from(map.values());
   }, [harvested.sizes, customOptions.sizes]);
 
   const colors = useMemo(() => {
     const map = new Map<string, string>();
-    [...DEFAULT_COLORS, ...harvested.colors, ...customOptions.colors].forEach((item) => {
-      const trimmed = item.trim();
-      if (trimmed && !map.has(trimmed.toLowerCase())) {
-        map.set(trimmed.toLowerCase(), trimmed);
-      }
-    });
+    [...DEFAULT_COLORS, ...harvested.colors, ...customOptions.colors].forEach(
+      (item) => {
+        const trimmed = item.trim();
+        if (trimmed && !map.has(trimmed.toLowerCase())) {
+          map.set(trimmed.toLowerCase(), trimmed);
+        }
+      },
+    );
     return Array.from(map.values());
   }, [harvested.colors, customOptions.colors]);
 

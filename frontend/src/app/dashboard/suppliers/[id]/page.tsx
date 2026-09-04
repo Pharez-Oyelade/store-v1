@@ -42,11 +42,17 @@ export default function SupplierDetailPage() {
 
   // Purchases state
   const [showNewPurchase, setShowNewPurchase] = useState(false);
-  const [newPurchase, setNewPurchase] = useState({
+  const [newPurchase, setNewPurchase] = useState<{
+    description: string;
+    amount: number | "";
+    paidAmount: number | "";
+    status: "ordered" | "delivered";
+    date: string;
+  }>({
     description: "",
-    amount: 0,
-    paidAmount: 0,
-    status: "ordered" as "ordered" | "delivered",
+    amount: "",
+    paidAmount: "",
+    status: "ordered",
     date: new Date().toISOString().slice(0, 10),
   });
 
@@ -90,9 +96,12 @@ export default function SupplierDetailPage() {
 
   function addPurchase(e: React.FormEvent) {
     e.preventDefault();
-    if (!newPurchase.description || newPurchase.amount <= 0) return;
-
-    const updatedPurchases = [...(supplier.data?.purchases || []), newPurchase];
+    const purchaseToSave = {
+      ...newPurchase,
+      amount: Number(newPurchase.amount) || 0,
+      paidAmount: Number(newPurchase.paidAmount) || 0,
+    };
+    const updatedPurchases = [...(supplier.data?.purchases || []), purchaseToSave];
     updateSupplier.mutate(
       { purchases: updatedPurchases as any },
       {
@@ -100,8 +109,8 @@ export default function SupplierDetailPage() {
           setShowNewPurchase(false);
           setNewPurchase({
             description: "",
-            amount: 0,
-            paidAmount: 0,
+            amount: "",
+            paidAmount: "",
             status: "ordered",
             date: new Date().toISOString().slice(0, 10),
           });
@@ -185,11 +194,13 @@ export default function SupplierDetailPage() {
                     label="Amount"
                     type="number"
                     min={0}
+                    placeholder="0"
                     value={newPurchase.amount}
                     onChange={(e) =>
                       setNewPurchase({
                         ...newPurchase,
-                        amount: Number(e.target.value),
+                        amount:
+                          e.target.value === "" ? "" : Number(e.target.value),
                       })
                     }
                     required
@@ -198,14 +209,17 @@ export default function SupplierDetailPage() {
                     label="Paid Amount"
                     type="number"
                     min={0}
+                    placeholder="0"
                     value={newPurchase.paidAmount}
                     onChange={(e) =>
                       setNewPurchase({
                         ...newPurchase,
-                        paidAmount: Number(e.target.value),
+                        paidAmount:
+                          e.target.value === "" ? "" : Number(e.target.value),
                       })
                     }
                   />
+
                   <div className="space-y-1.5">
                     <FieldLabel>Status</FieldLabel>
                     <NativeSelect
@@ -275,23 +289,24 @@ export default function SupplierDetailPage() {
                             <input
                               type="number"
                               min="0"
+                              placeholder="0"
                               className="w-24 rounded border border-gray-200 px-2 py-1 text-sm focus:border-brand-500 focus:outline-none focus:ring-1 focus:ring-brand-500"
-                              value={purchase.paidAmount ?? 0}
+                              value={
+                                purchase.paidAmount === 0
+                                  ? ""
+                                  : (purchase.paidAmount ?? "")
+                              }
                               onChange={(e) =>
                                 updatePurchaseField(
                                   index,
                                   "paidAmount",
-                                  Number(e.target.value),
-                                )
-                              }
-                              onBlur={(e) =>
-                                updatePurchaseField(
-                                  index,
-                                  "paidAmount",
-                                  Number(e.target.value),
+                                  e.target.value === ""
+                                    ? 0
+                                    : Number(e.target.value),
                                 )
                               }
                             />
+
                           </td>
                           <td className="px-4 py-3">
                             <NativeSelect

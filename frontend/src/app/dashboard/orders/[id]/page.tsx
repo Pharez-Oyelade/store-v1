@@ -222,11 +222,13 @@ function OrderControl({
         label="Deposit paid"
         type="number"
         min={0}
-        defaultValue={order.depositPaid}
+        placeholder="0"
+        defaultValue={order.depositPaid === 0 ? "" : order.depositPaid}
         onBlur={(event) =>
-          updateOrder.mutate({ depositPaid: Number(event.target.value) })
+          updateOrder.mutate({ depositPaid: Number(event.target.value) || 0 })
         }
       />
+
       <div className="space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
         <div className="flex justify-between">
           <span>Total</span>

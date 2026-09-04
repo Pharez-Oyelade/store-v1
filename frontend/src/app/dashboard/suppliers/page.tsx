@@ -217,7 +217,22 @@ function SupplierForm({
 }) {
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier(supplier?._id ?? "");
-  const [form, setForm] = useState({
+  const [form, setForm] = useState<{
+    name: string;
+    category: SupplierCategory;
+    contactName: string;
+    phone: string;
+    email: string;
+    instagram: string;
+    whatsapp: string;
+    location: string;
+    materials: string;
+    notes: string;
+    status: SupplierStatus;
+    lastPurchaseAmount: number | "";
+    outstandingBalance: number | "";
+    lastPurchaseDate: string;
+  }>({
     name: "",
     category: SupplierCategory.Fabric,
     contactName: "",
@@ -229,8 +244,8 @@ function SupplierForm({
     materials: "",
     notes: "",
     status: SupplierStatus.Active,
-    lastPurchaseAmount: 0,
-    outstandingBalance: 0,
+    lastPurchaseAmount: "",
+    outstandingBalance: "",
     lastPurchaseDate: "",
   });
 
@@ -248,8 +263,8 @@ function SupplierForm({
         materials: "",
         notes: "",
         status: SupplierStatus.Active,
-        lastPurchaseAmount: 0,
-        outstandingBalance: 0,
+        lastPurchaseAmount: "",
+        outstandingBalance: "",
         lastPurchaseDate: "",
       });
       return;
@@ -267,8 +282,8 @@ function SupplierForm({
       materials: supplier.materials.join(", "),
       notes: supplier.notes ?? "",
       status: supplier.status,
-      lastPurchaseAmount: supplier.lastPurchaseAmount,
-      outstandingBalance: supplier.outstandingBalance,
+      lastPurchaseAmount: supplier.lastPurchaseAmount || "",
+      outstandingBalance: supplier.outstandingBalance || "",
       lastPurchaseDate: supplier.lastPurchaseDate?.slice(0, 10) ?? "",
     });
   }, [supplier]);
@@ -282,10 +297,16 @@ function SupplierForm({
 
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    if (supplier) await updateSupplier.mutateAsync(form);
-    else await createSupplier.mutateAsync(form);
+    const payload = {
+      ...form,
+      lastPurchaseAmount: Number(form.lastPurchaseAmount) || 0,
+      outstandingBalance: Number(form.outstandingBalance) || 0,
+    };
+    if (supplier) await updateSupplier.mutateAsync(payload);
+    else await createSupplier.mutateAsync(payload);
     onSaved();
   }
+
 
   return (
     <form
@@ -384,21 +405,30 @@ function SupplierForm({
           label="Last purchase"
           type="number"
           min={0}
+          placeholder="0"
           value={form.lastPurchaseAmount}
           onChange={(event) =>
-            update("lastPurchaseAmount", Number(event.target.value))
+            update(
+              "lastPurchaseAmount",
+              event.target.value === "" ? "" : Number(event.target.value),
+            )
           }
         />
         <Input
           label="Outstanding balance"
           type="number"
           min={0}
+          placeholder="0"
           value={form.outstandingBalance}
           onChange={(event) =>
-            update("outstandingBalance", Number(event.target.value))
+            update(
+              "outstandingBalance",
+              event.target.value === "" ? "" : Number(event.target.value),
+            )
           }
         />
       </div>
+
       <Input
         label="Last purchase date"
         type="date"

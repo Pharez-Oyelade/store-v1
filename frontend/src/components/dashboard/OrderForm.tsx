@@ -22,7 +22,7 @@ interface OrderItemDraft {
   productName: string;
   variantLabel: string;
   price: number | "";
-  quantity: number;
+  quantity: number | "";
 }
 
 const blankItem: OrderItemDraft = {
@@ -46,7 +46,7 @@ export default function OrderForm() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [depositPaid, setDepositPaid] = useState(0);
+  const [depositPaid, setDepositPaid] = useState<number | "">("");
   const [source, setSource] = useState<OrderSource>(OrderSource.DM);
   const [notes, setNotes] = useState("");
   const [items, setItems] = useState<OrderItemDraft[]>([blankItem]);
@@ -58,12 +58,12 @@ export default function OrderForm() {
   const total = useMemo(
     () =>
       items.reduce(
-        (sum, item) => sum + Number(item.price) * Number(item.quantity),
+        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
         0,
       ),
     [items],
   );
-  const balance = Math.max(0, total - depositPaid);
+  const balance = Math.max(0, total - (Number(depositPaid) || 0));
 
   function handleCustomerSelect(customerId: string) {
     setSelectedCustomerId(customerId);
@@ -125,13 +125,18 @@ export default function OrderForm() {
       customerName,
       customerPhone,
       customerEmail,
-      depositPaid,
+      depositPaid: Number(depositPaid) || 0,
       source,
       notes,
-      items,
+      items: items.map((item) => ({
+        ...item,
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1,
+      })),
     });
     router.push("/dashboard/orders");
   }
+
 
   return (
     <form
@@ -338,9 +343,15 @@ export default function OrderForm() {
                       label="Price"
                       type="number"
                       min={0}
+                      placeholder="0"
                       value={item.price}
                       onChange={(event) =>
-                        updateItem(index, { price: Number(event.target.value) })
+                        updateItem(index, {
+                          price:
+                            event.target.value === ""
+                              ? ""
+                              : Number(event.target.value),
+                        })
                       }
                       required
                     />
@@ -348,10 +359,14 @@ export default function OrderForm() {
                       label="Qty"
                       type="number"
                       min={1}
+                      placeholder="1"
                       value={item.quantity}
                       onChange={(event) =>
                         updateItem(index, {
-                          quantity: Number(event.target.value),
+                          quantity:
+                            event.target.value === ""
+                              ? ""
+                              : Number(event.target.value),
                         })
                       }
                       required
@@ -370,9 +385,15 @@ export default function OrderForm() {
           label="Deposit paid"
           type="number"
           min={0}
+          placeholder="0"
           value={depositPaid}
-          onChange={(event) => setDepositPaid(Number(event.target.value))}
+          onChange={(event) =>
+            setDepositPaid(
+              event.target.value === "" ? "" : Number(event.target.value),
+            )
+          }
         />
+
         <div className="space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
           <div className="flex justify-between">
             <span className="text-gray-500">Total</span>
