@@ -7,6 +7,7 @@ import { Toaster } from "react-hot-toast";
 import { queryClient } from "@/lib/react-query";
 import { useEffect } from "react";
 import { AuthSync } from "@/components/AuthSync";
+import PWAInstallBanner from "@/components/pwa/PWAInstallBanner";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
@@ -22,6 +23,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
     <QueryClientProvider client={queryClient}>
       <AuthSync />
       {children}
+      <PWAInstallBanner />
 
       <Toaster
         position="top-right"

@@ -19,11 +19,13 @@ import {
   X,
   Scissors,
   ArrowRight,
+  Download,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
 import { getInitials } from "@/lib/utils";
 import { useLogout } from "@/hooks/useAuth";
+import { usePWAInstall } from "@/hooks/usePWAInstall";
 import Logo from "../brand/Logo";
 
 const NAV_ITEMS = [
@@ -91,6 +93,7 @@ export default function DashboardSidebar() {
   const pathname = usePathname();
   const vendor = useAuthStore((s) => s.vendor);
   const { mutate: logout } = useLogout();
+  const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -213,6 +216,20 @@ export default function DashboardSidebar() {
               Open Admin Panel &rarr;
             </Link>
           </div>
+        )}
+
+        {isInstallable && !isInstalled && (
+          <button
+            onClick={() => promptInstall()}
+            className={cn(
+              "flex items-center gap-3 w-full px-3 py-2 mt-1 rounded-lg text-sm font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/10 transition-colors",
+              collapsed && "justify-center px-0",
+            )}
+            title="Install App"
+          >
+            <Download className="w-5 h-5 shrink-0" />
+            {!collapsed && <span>Install App</span>}
+          </button>
         )}
 
         <button
