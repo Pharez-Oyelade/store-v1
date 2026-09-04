@@ -12,9 +12,11 @@ import {
   TextArea,
 } from "@/components/dashboard/DashboardPrimitives";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
+import { useProductOptions } from "@/hooks/useProductOptions";
+import CreatableCombobox from "@/components/ui/CreatableCombobox";
+import CreatableTagInput from "@/components/ui/CreatableTagInput";
 import { ProductStatus, type Product, type ProductVariant } from "@/types";
 import toast from "react-hot-toast";
-
 
 type VariantDraft = Omit<ProductVariant, "sold"> & { sold?: number };
 
@@ -32,10 +34,21 @@ export default function ProductForm({ product }: { product?: Product }) {
   const router = useRouter();
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct(product?._id ?? "");
+  const {
+    categories,
+    tags: suggestedTags,
+    sizes,
+    colors,
+    addCategory,
+    addTag,
+    addSize,
+    addColor,
+  } = useProductOptions();
+
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [tags, setTags] = useState("");
+  const [tags, setTags] = useState<string[]>([]);
   const [status, setStatus] = useState<ProductStatus>(ProductStatus.Draft);
   const [lowStockThreshold, setLowStockThreshold] = useState(5);
   const [variants, setVariants] = useState<VariantDraft[]>([blankVariant]);
@@ -46,7 +59,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     setName(product.name);
     setDescription(product.description ?? "");
     setCategory(product.category ?? "");
-    setTags(product.tags?.join(", ") ?? "");
+    setTags(Array.isArray(product.tags) ? product.tags : []);
     setStatus(product.status);
     setLowStockThreshold(product.lowStockThreshold);
     setVariants(product.variants.map((variant) => ({ ...variant })));
@@ -56,30 +69,63 @@ export default function ProductForm({ product }: { product?: Product }) {
 
   function updateVariant(index: number, field: keyof VariantDraft, value: string) {
     setVariants((current) =>
-      current.map((variant, i) =>
-        i === index
-          ? {
-              ...variant,
-              [field]: field === "price" || field === "quantity" ? Number(value) : value,
-            }
-          : variant,
-      ),
+      current.map((variant, i) => {
+        if (i !== index) return variant;
+
+        const updated = {
+          ...variant,
+          [field]:
+            field === "price" || field === "quantity" ? Number(value) : value,
+        };
+
+        // Smart auto-label: If user edits size or color and label is empty or matches previous auto-pattern
+        const isAutoLabel =
+          !variant.label ||
+          variant.label === `${variant.size} / ${variant.color}` ||
+          variant.label === variant.size ||
+          variant.label === variant.color;
+
+        if ((field === "size" || field === "color") && isAutoLabel) {
+          const nextSize = field === "size" ? value : variant.size;
+          const nextColor = field === "color" ? value : variant.color;
+          if (nextSize && nextColor) {
+            updated.label = `${nextSize} / ${nextColor}`;
+          } else if (nextSize) {
+            updated.label = nextSize;
+          } else if (nextColor) {
+            updated.label = nextColor;
+          }
+        }
+
+        return updated;
+      }),
     );
   }
 
   function buildFormData() {
+    // Also persist any used category or variant options for future products
+    if (category.trim()) addCategory(category.trim());
+    tags.forEach((t) => addTag(t));
+    variants.forEach((v) => {
+      if (v.size?.trim()) addSize(v.size.trim());
+      if (v.color?.trim()) addColor(v.color.trim());
+    });
+
     const formData = new FormData();
     formData.append("name", name);
     formData.append("description", description);
     formData.append("category", category);
-    formData.append("tags", tags);
+    formData.append("tags", tags.join(", "));
     formData.append("status", status);
     formData.append("lowStockThreshold", String(lowStockThreshold));
     formData.append(
       "variants",
       JSON.stringify(
         variants.map((variant) => ({
-          label: variant.label,
+          label:
+            variant.label ||
+            [variant.size, variant.color].filter(Boolean).join(" / ") ||
+            "Standard",
           size: variant.size,
           color: variant.color,
           custom: variant.custom,
@@ -94,6 +140,7 @@ export default function ProductForm({ product }: { product?: Product }) {
     Array.from(files ?? []).forEach((file) => formData.append("images", file));
     return formData;
   }
+
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -114,8 +161,22 @@ export default function ProductForm({ product }: { product?: Product }) {
       <section className="space-y-5 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
         <Input label="Product name" value={name} onChange={(event) => setName(event.target.value)} required />
         <div className="grid gap-4 sm:grid-cols-2">
-          <Input label="Category" value={category} onChange={(event) => setCategory(event.target.value)} />
-          <Input label="Tags" helper="Comma-separated" value={tags} onChange={(event) => setTags(event.target.value)} />
+          <CreatableCombobox
+            label="Category"
+            value={category}
+            onChange={(val) => setCategory(val)}
+            onAddOption={addCategory}
+            options={categories}
+            placeholder="Select or type category (e.g. Dresses)"
+          />
+          <CreatableTagInput
+            label="Tags"
+            value={tags}
+            onChange={(val) => setTags(val)}
+            onAddOption={addTag}
+            options={suggestedTags}
+            placeholder="Select or type tags..."
+          />
         </div>
         <div className="space-y-1.5">
           <FieldLabel>Description</FieldLabel>
@@ -157,7 +218,6 @@ export default function ProductForm({ product }: { product?: Product }) {
         />
       </section>
 
-
       <section className="space-y-4 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
         <div className="flex items-center justify-between">
           <div>
@@ -192,10 +252,31 @@ export default function ProductForm({ product }: { product?: Product }) {
                 )}
               </div>
               <div className="grid gap-3">
-                <Input label="Label" value={variant.label} onChange={(event) => updateVariant(index, "label", event.target.value)} required />
+                <Input
+                  label="Label"
+                  value={variant.label}
+                  placeholder="e.g. M / Black or Standard"
+                  onChange={(event) => updateVariant(index, "label", event.target.value)}
+                  required
+                />
                 <div className="grid grid-cols-2 gap-3">
-                  <Input label="Size" value={variant.size} onChange={(event) => updateVariant(index, "size", event.target.value)} />
-                  <Input label="Color" value={variant.color} onChange={(event) => updateVariant(index, "color", event.target.value)} />
+                  <CreatableCombobox
+                    label="Size"
+                    value={variant.size || ""}
+                    onChange={(val) => updateVariant(index, "size", val)}
+                    onAddOption={addSize}
+                    options={sizes}
+                    placeholder="e.g. M, UK 12"
+                  />
+                  <CreatableCombobox
+                    label="Color"
+                    value={variant.color || ""}
+                    onChange={(val) => updateVariant(index, "color", val)}
+                    onAddOption={addColor}
+                    options={colors}
+                    placeholder="e.g. Emerald Green"
+                  />
+
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                   <Input label="Price" type="number" min={0} value={variant.price} onChange={(event) => updateVariant(index, "price", event.target.value)} required />
@@ -208,6 +289,7 @@ export default function ProductForm({ product }: { product?: Product }) {
         </div>
 
         <Button type="submit" isLoading={isPending} leftIcon={<Save className="size-4" />} className="w-full">
+
           {product ? "Save product" : "Create product"}
         </Button>
       </section>
