@@ -86,8 +86,8 @@ export default function InvoiceDetailPage() {
     const phone = invoice.customerSnapshot?.phone?.replace(/[^0-9]/g, "") || "";
 
     const message = `Hi ${custName}, here is your live invoice #${invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(
-      invoice.totalAmount
-    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n👉 View invoice, pay online, or see transfer details here:\n${liveUrl}`;
+      invoice.totalAmount,
+    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n View invoice, pay online, or see transfer details here:\n${liveUrl}`;
 
     const waUrl = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -153,10 +153,10 @@ export default function InvoiceDetailPage() {
                   invoice.status === "paid"
                     ? "bg-emerald-100 text-emerald-800"
                     : invoice.status === "partially_paid"
-                    ? "bg-blue-100 text-blue-800"
-                    : invoice.status === "cancelled"
-                    ? "bg-gray-100 text-gray-600"
-                    : "bg-amber-100 text-amber-800"
+                      ? "bg-blue-100 text-blue-800"
+                      : invoice.status === "cancelled"
+                        ? "bg-gray-100 text-gray-600"
+                        : "bg-amber-100 text-amber-800"
                 }`}
               >
                 {invoice.status.replace("_", " ")}
@@ -200,7 +200,8 @@ export default function InvoiceDetailPage() {
               Live Customer Invoice Link
             </h2>
             <p className="text-xs text-brand-700/80 mt-0.5">
-              Send this single link to your customer. It automatically reflects deposits and balances in real time.
+              Send this single link to your customer. It automatically reflects
+              deposits and balances in real time.
             </p>
           </div>
 
@@ -264,9 +265,14 @@ export default function InvoiceDetailPage() {
                     {formatCurrency(proof.amount)}
                   </p>
                   <p className="text-xs text-gray-600 mt-0.5">
-                    Sender: <span className="font-semibold">{proof.bankSenderName || "Customer"}</span>
+                    Sender:{" "}
+                    <span className="font-semibold">
+                      {proof.bankSenderName || "Customer"}
+                    </span>
                     {proof.reference && (
-                      <span className="text-gray-400 ml-2">Ref: {proof.reference}</span>
+                      <span className="text-gray-400 ml-2">
+                        Ref: {proof.reference}
+                      </span>
                     )}
                   </p>
                   {proof.notes && (
@@ -354,13 +360,19 @@ export default function InvoiceDetailPage() {
             {invoice.customerSnapshot?.name}
           </p>
           {invoice.customerSnapshot?.phone && (
-            <p className="text-xs text-gray-600">{invoice.customerSnapshot.phone}</p>
+            <p className="text-xs text-gray-600">
+              {invoice.customerSnapshot.phone}
+            </p>
           )}
           {invoice.customerSnapshot?.email && (
-            <p className="text-xs text-gray-600">{invoice.customerSnapshot.email}</p>
+            <p className="text-xs text-gray-600">
+              {invoice.customerSnapshot.email}
+            </p>
           )}
           {invoice.customerSnapshot?.address && (
-            <p className="text-xs text-gray-500">{invoice.customerSnapshot.address}</p>
+            <p className="text-xs text-gray-500">
+              {invoice.customerSnapshot.address}
+            </p>
           )}
         </div>
 
@@ -370,11 +382,13 @@ export default function InvoiceDetailPage() {
           </h3>
           <div className="space-y-1 text-xs text-gray-600">
             <p>
-              <span className="text-gray-400">Created:</span> {formatDate(invoice.createdAt)}
+              <span className="text-gray-400">Created:</span>{" "}
+              {formatDate(invoice.createdAt)}
             </p>
             {invoice.dueDate && (
               <p>
-                <span className="text-gray-400">Due Date:</span> {formatDate(invoice.dueDate)}
+                <span className="text-gray-400">Due Date:</span>{" "}
+                {formatDate(invoice.dueDate)}
               </p>
             )}
             {invoice.order && (
@@ -413,9 +427,14 @@ export default function InvoiceDetailPage() {
 
         <div className="divide-y divide-gray-100">
           {invoice.items.map((item, idx) => (
-            <div key={idx} className="p-4 flex items-center justify-between gap-4">
+            <div
+              key={idx}
+              className="p-4 flex items-center justify-between gap-4"
+            >
               <div>
-                <p className="text-xs font-bold text-gray-900">{item.description}</p>
+                <p className="text-xs font-bold text-gray-900">
+                  {item.description}
+                </p>
                 {item.variantLabel && (
                   <span className="inline-block px-2 py-0.5 text-[10px] rounded bg-gray-100 text-gray-600 font-medium mt-0.5">
                     {item.variantLabel}
@@ -468,7 +487,9 @@ export default function InvoiceDetailPage() {
                       {formatCurrency(pmt.amount)}
                     </span>
                     <span className="text-[10px] px-2 py-0.2 rounded-full font-bold bg-emerald-100 text-emerald-800 uppercase">
-                      {pmt.verifiedBy === "paystack" ? "Paystack Online" : "Manual POS/Cash"}
+                      {pmt.verifiedBy === "paystack"
+                        ? "Paystack Online"
+                        : "Manual POS/Cash"}
                     </span>
                   </div>
                   <p className="text-[11px] text-gray-400 mt-0.5">
@@ -479,7 +500,9 @@ export default function InvoiceDetailPage() {
             ))}
           </div>
         ) : (
-          <p className="text-xs text-gray-400 italic">No payments recorded yet.</p>
+          <p className="text-xs text-gray-400 italic">
+            No payments recorded yet.
+          </p>
         )}
       </div>
 
@@ -506,7 +529,9 @@ export default function InvoiceDetailPage() {
                   required
                   value={payAmount}
                   onChange={(e) =>
-                    setPayAmount(e.target.value === "" ? "" : Number(e.target.value))
+                    setPayAmount(
+                      e.target.value === "" ? "" : Number(e.target.value),
+                    )
                   }
                   className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
                 />
