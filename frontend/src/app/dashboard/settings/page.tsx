@@ -12,6 +12,7 @@ import {
   Receipt,
   Sparkles,
   ArrowRight,
+  Landmark,
 } from "lucide-react";
 import VendorProfileForm from "@/components/dashboard/VendorProfileForm";
 import {
@@ -21,6 +22,7 @@ import {
 import { useVendorProfile } from "@/hooks/useVendorProfile";
 import { BillingPanel } from "@/components/dashboard/BillingPanel";
 import TeamPanel from "@/components/dashboard/TeamPanel";
+import PayoutPanel from "@/components/dashboard/PayoutPanel";
 import { useAuthStore } from "@/store/authStore";
 import { Suspense } from "react";
 
@@ -36,8 +38,10 @@ function SettingsContent() {
   const isManager = userRole === "manager";
   const isRestrictedRole = userRole === "tailor" || userRole === "sales";
 
-  const [activeTab, setActiveTab] = useState<"profile" | "team" | "billing">(
-    tabParam === "team" || tabParam === "billing" ? tabParam : "profile",
+  const [activeTab, setActiveTab] = useState<"profile" | "team" | "billing" | "payouts">(
+    tabParam === "team" || tabParam === "billing" || tabParam === "payouts"
+      ? tabParam
+      : "profile",
   );
 
   // Sync activeTab whenever URL query params change (e.g. ?tab=billing from TeamPanel buttons)
@@ -45,13 +49,14 @@ function SettingsContent() {
     if (
       tabParam === "team" ||
       tabParam === "billing" ||
+      tabParam === "payouts" ||
       tabParam === "profile"
     ) {
       setActiveTab(tabParam);
     }
   }, [tabParam]);
 
-  const handleTabChange = (newTab: "profile" | "team" | "billing") => {
+  const handleTabChange = (newTab: "profile" | "team" | "billing" | "payouts") => {
     setActiveTab(newTab);
     router.replace(`/dashboard/settings?tab=${newTab}`, { scroll: false });
   };
@@ -177,6 +182,21 @@ function SettingsContent() {
             <span>Billing & Plans</span>
           </button>
         )}
+
+        {(isOwner || isManager) && (
+          <button
+            type="button"
+            onClick={() => handleTabChange("payouts")}
+            className={`inline-flex items-center gap-2 py-3 px-4 text-xs font-bold border-b-2 transition-all whitespace-nowrap ${
+              activeTab === "payouts"
+                ? "border-brand-700 text-brand-700"
+                : "border-transparent text-gray-500 hover:text-gray-900"
+            }`}
+          >
+            <Landmark size={16} />
+            <span>Bank & Payouts</span>
+          </button>
+        )}
       </div>
 
       {/* Tab Panels */}
@@ -185,6 +205,7 @@ function SettingsContent() {
         <TeamPanel onNavigateTab={handleTabChange} />
       )}
       {isOwner && activeTab === "billing" && <BillingPanel />}
+      {(isOwner || isManager) && activeTab === "payouts" && <PayoutPanel />}
     </div>
   );
 }

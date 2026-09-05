@@ -20,6 +20,7 @@ import {
   Scissors,
   ArrowRight,
   Download,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
+  { label: "Invoices", href: "/dashboard/invoices", icon: FileText },
   { label: "Demands", href: "/dashboard/demands", icon: Scissors },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: Handshake },
@@ -50,6 +52,7 @@ const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
     "/dashboard",
     "/dashboard/products",
     "/dashboard/orders",
+    "/dashboard/invoices",
     "/dashboard/demands",
     "/dashboard/customers",
     "/dashboard/suppliers",
@@ -61,6 +64,7 @@ const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
     "/dashboard",
     "/dashboard/products",
     "/dashboard/orders",
+    "/dashboard/invoices",
     "/dashboard/demands",
     "/dashboard/customers",
     "/dashboard/suppliers",
@@ -73,6 +77,7 @@ const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
     "/dashboard",
     "/dashboard/products",
     "/dashboard/orders",
+    "/dashboard/invoices",
     "/dashboard/demands",
     "/dashboard/customers",
     "/dashboard/suppliers",
@@ -85,6 +90,7 @@ const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
     "/dashboard",
     "/dashboard/products",
     "/dashboard/orders",
+    "/dashboard/invoices",
     "/dashboard/customers",
   ],
 };
