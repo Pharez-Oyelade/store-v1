@@ -49,8 +49,13 @@ export const checkTeamSeatLimit = async (req, res, next) => {
  */
 export const requireRole = (...allowedRoles) => {
   return (req, res, next) => {
-    // Owner or Super Admin has unrestricted access
-    if (req.user?.role === "owner" || req.vendor?.role === "admin") {
+    // Primary store owner or platform super admin has unrestricted access
+    if (
+      req.user?.role === "owner" ||
+      req.user?.role === "admin" ||
+      req.vendor?.role === "admin" ||
+      req.user?.isTeamMember === false
+    ) {
       return next();
     }
 
