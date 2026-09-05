@@ -27,6 +27,7 @@ import { useCreateCustomRequest, useUpdateCustomRequest } from "@/hooks/useCusto
 import { useCustomers } from "@/hooks/useCustomers";
 import type { CustomRequest, CustomRequestMaterial } from "@/types";
 import toast from "react-hot-toast";
+import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
 
 const demandSchema = z.object({
   title: z.string().min(2, "Title is required (e.g. Agbada Set in Navy Aso-Oke)"),
@@ -58,6 +59,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const customersQuery = useCustomers({ page: 1, limit: 200 });
   const customerList = customersQuery.data?.customers || [];
 
+  const [createdDemand, setCreatedDemand] = useState<any | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     (typeof initialData?.customer === "object"
       ? (initialData?.customer as any)?._id
@@ -231,7 +233,11 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     } else {
       createMutation.mutate(formData, {
         onSuccess: (created: any) => {
-          router.push(`/dashboard/demands/${created._id || ""}`);
+          if (created && created._id) {
+            setCreatedDemand(created);
+          } else {
+            router.push(`/dashboard/demands`);
+          }
         },
       });
     }
@@ -703,6 +709,28 @@ export default function DemandForm({ initialData }: DemandFormProps) {
             </Button>
           </div>
         </div>
+      )}
+
+      {createdDemand && (
+        <PostCreationInvoiceModal
+          isOpen={Boolean(createdDemand)}
+          type="demand"
+          id={createdDemand._id}
+          title={createdDemand.title}
+          customerName={createdDemand.customerSnapshot?.name || ""}
+          totalAmount={createdDemand.agreedPrice || createdDemand.estimatedPrice || 0}
+          depositPaid={createdDemand.depositPaid || 0}
+          balanceDue={
+            createdDemand.balanceOwed !== undefined
+              ? createdDemand.balanceOwed
+              : Math.max(
+                  0,
+                  (createdDemand.agreedPrice || createdDemand.estimatedPrice || 0) -
+                    (createdDemand.depositPaid || 0)
+                )
+          }
+          onDismiss={() => router.push(`/dashboard/demands/${createdDemand._id}`)}
+        />
       )}
     </form>
   );

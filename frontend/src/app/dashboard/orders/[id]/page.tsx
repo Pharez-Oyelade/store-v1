@@ -1,7 +1,7 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { ArrowLeft, MessageCircle, Save } from "lucide-react";
+import { ArrowLeft, MessageCircle, Save, FileText } from "lucide-react";
 import Link from "next/link";
 import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
@@ -69,16 +69,25 @@ export default function OrderDetailPage() {
         title={`Order for ${order.data.customerSnapshot.name}`}
         description={`Created ${formatDate(order.data.createdAt)} from ${order.data.source.replace("_", " ")}.`}
         action={
-          <a
-            href={whatsappLink}
-            target="_blank"
-            rel="noreferrer"
-            onClick={() => updateOrder.mutate({ whatsappSent: true })}
-            className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
-          >
-            <MessageCircle className="size-4 text-white" />
-            <span className="text-white">{whatsappLabel}</span>
-          </a>
+          <div className="flex items-center gap-2 flex-wrap">
+            <Link
+              href={`/dashboard/invoices/new?orderId=${order.data._id}`}
+              className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs"
+            >
+              <FileText className="size-4 text-brand-700" />
+              <span>Generate Invoice</span>
+            </Link>
+            <a
+              href={whatsappLink}
+              target="_blank"
+              rel="noreferrer"
+              onClick={() => updateOrder.mutate({ whatsappSent: true })}
+              className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
+            >
+              <MessageCircle className="size-4 text-white" />
+              <span className="text-white">{whatsappLabel}</span>
+            </a>
+          </div>
         }
       />
 

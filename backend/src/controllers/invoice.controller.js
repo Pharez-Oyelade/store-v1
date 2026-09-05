@@ -56,24 +56,39 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
 
     invoiceCustomer = {
-      name: linkedOrder.customerSnapshot?.name || "Customer",
-      phone: linkedOrder.customerSnapshot?.phone || "",
-      email: linkedOrder.customerSnapshot?.email || "",
-      address: linkedOrder.customerSnapshot?.address || "",
+      name: customerSnapshot?.name?.trim() || linkedOrder.customerSnapshot?.name || "Customer",
+      phone: customerSnapshot?.phone?.trim() ?? (linkedOrder.customerSnapshot?.phone || ""),
+      email: customerSnapshot?.email?.toLowerCase().trim() ?? (linkedOrder.customerSnapshot?.email || ""),
+      address: customerSnapshot?.address?.trim() ?? (linkedOrder.customerSnapshot?.address || ""),
     };
 
-    invoiceItems = linkedOrder.items.map((item) => ({
-      description: item.productName || "Product",
-      variantLabel: item.variantLabel || "",
-      quantity: item.quantity || 1,
-      unitPrice: item.price || 0,
-      subtotal: (item.price || 0) * (item.quantity || 1),
-    }));
+    if (items && Array.isArray(items) && items.length > 0) {
+      invoiceItems = items.map((item) => {
+        const qty = Math.max(1, Number(item.quantity) || 1);
+        const price = Math.max(0, Number(item.unitPrice) || 0);
+        return {
+          description: item.description?.trim() || "Item",
+          variantLabel: item.variantLabel?.trim() || "",
+          quantity: qty,
+          unitPrice: price,
+          subtotal: qty * price,
+        };
+      });
+      invoiceTotal = totalAmount !== undefined ? Math.max(0, Number(totalAmount)) : invoiceItems.reduce((acc, i) => acc + i.subtotal, 0);
+    } else {
+      invoiceItems = linkedOrder.items.map((item) => ({
+        description: item.productName || "Product",
+        variantLabel: item.variantLabel || "",
+        quantity: item.quantity || 1,
+        unitPrice: item.price || 0,
+        subtotal: (item.price || 0) * (item.quantity || 1),
+      }));
+      invoiceTotal = totalAmount !== undefined ? Math.max(0, Number(totalAmount)) : (linkedOrder.totalAmount || 0);
+    }
 
-    invoiceTotal = linkedOrder.totalAmount || 0;
     // Prior payment already paid outside the invoice
     priorPaidAmount = initialPaid !== undefined ? Math.max(0, Number(initialPaid)) : (linkedOrder.depositPaid || 0);
-    invoiceDeposit = priorPaidAmount;
+    invoiceDeposit = depositRequired !== undefined ? Math.max(0, Number(depositRequired)) : 0;
 
     if (priorPaidAmount > 0) {
       initialPayments.push({
@@ -85,6 +100,15 @@ export const createInvoice = asyncHandler(async (req, res) => {
         notes: "Prior deposit / payment recorded on linked order prior to invoice generation",
         paidAt: linkedOrder.createdAt || new Date(),
       });
+    }
+
+    // Synchronize linked Order depositPaid and balanceOwed
+    if (priorPaidAmount > (linkedOrder.depositPaid || 0)) {
+      linkedOrder.depositPaid = priorPaidAmount;
+      if (linkedOrder.depositPaid >= linkedOrder.totalAmount && linkedOrder.status === "pending") {
+        linkedOrder.status = "confirmed";
+      }
+      await linkedOrder.save();
     }
   }
   // 2. If generated from an existing Custom Bespoke Request / Demand
@@ -98,27 +122,42 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
 
     invoiceCustomer = {
-      name: linkedCustomRequest.customerSnapshot?.name || "Bespoke Customer",
-      phone: linkedCustomRequest.customerSnapshot?.phone || "",
-      email: linkedCustomRequest.customerSnapshot?.email || "",
-      address: "",
+      name: customerSnapshot?.name?.trim() || linkedCustomRequest.customerSnapshot?.name || "Bespoke Customer",
+      phone: customerSnapshot?.phone?.trim() ?? (linkedCustomRequest.customerSnapshot?.phone || ""),
+      email: customerSnapshot?.email?.toLowerCase().trim() ?? (linkedCustomRequest.customerSnapshot?.email || ""),
+      address: customerSnapshot?.address?.trim() ?? "",
     };
 
     const bespokePrice = linkedCustomRequest.agreedPrice || linkedCustomRequest.estimatedPrice || 0;
 
-    invoiceItems = [
-      {
-        description: `Bespoke Tailoring: ${linkedCustomRequest.title || "Custom Garment"}`,
-        variantLabel: linkedCustomRequest.category ? `Category: ${linkedCustomRequest.category}` : "Bespoke Garment",
-        quantity: 1,
-        unitPrice: bespokePrice,
-        subtotal: bespokePrice,
-      },
-    ];
+    if (items && Array.isArray(items) && items.length > 0) {
+      invoiceItems = items.map((item) => {
+        const qty = Math.max(1, Number(item.quantity) || 1);
+        const price = Math.max(0, Number(item.unitPrice) || 0);
+        return {
+          description: item.description?.trim() || "Item",
+          variantLabel: item.variantLabel?.trim() || "",
+          quantity: qty,
+          unitPrice: price,
+          subtotal: qty * price,
+        };
+      });
+      invoiceTotal = totalAmount !== undefined ? Math.max(0, Number(totalAmount)) : invoiceItems.reduce((acc, i) => acc + i.subtotal, 0);
+    } else {
+      invoiceItems = [
+        {
+          description: `Bespoke Tailoring: ${linkedCustomRequest.title || "Custom Garment"}`,
+          variantLabel: linkedCustomRequest.category ? `Category: ${linkedCustomRequest.category}` : "Bespoke Garment",
+          quantity: 1,
+          unitPrice: bespokePrice,
+          subtotal: bespokePrice,
+        },
+      ];
+      invoiceTotal = totalAmount !== undefined ? Math.max(0, Number(totalAmount)) : bespokePrice;
+    }
 
-    invoiceTotal = bespokePrice;
     priorPaidAmount = initialPaid !== undefined ? Math.max(0, Number(initialPaid)) : (linkedCustomRequest.depositPaid || 0);
-    invoiceDeposit = priorPaidAmount;
+    invoiceDeposit = depositRequired !== undefined ? Math.max(0, Number(depositRequired)) : 0;
 
     if (priorPaidAmount > 0) {
       initialPayments.push({
@@ -130,6 +169,15 @@ export const createInvoice = asyncHandler(async (req, res) => {
         notes: "Prior deposit recorded on bespoke tailoring demand prior to invoice generation",
         paidAt: linkedCustomRequest.createdAt || new Date(),
       });
+    }
+
+    // Synchronize linked CustomRequest depositPaid and balanceOwed
+    if (priorPaidAmount > (linkedCustomRequest.depositPaid || 0)) {
+      linkedCustomRequest.depositPaid = priorPaidAmount;
+      if (linkedCustomRequest.depositPaid >= bespokePrice && linkedCustomRequest.status === "quoted") {
+        linkedCustomRequest.status = "confirmed";
+      }
+      await linkedCustomRequest.save();
     }
   }
   // 3. Custom Line Items from merchant scratch
@@ -162,11 +210,11 @@ export const createInvoice = asyncHandler(async (req, res) => {
 
     invoiceTotal =
       totalAmount !== undefined
-        ? Number(totalAmount)
+        ? Math.max(0, Number(totalAmount))
         : invoiceItems.reduce((acc, i) => acc + i.subtotal, 0);
 
     priorPaidAmount = Math.max(0, Number(initialPaid || 0));
-    invoiceDeposit = Number(depositRequired || priorPaidAmount || 0);
+    invoiceDeposit = depositRequired !== undefined ? Math.max(0, Number(depositRequired)) : 0;
 
     if (priorPaidAmount > 0) {
       initialPayments.push({

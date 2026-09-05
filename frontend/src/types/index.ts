@@ -277,6 +277,7 @@ export interface OrderItem {
 // order
 export interface Order {
   _id: string;
+  orderNumber?: string;
   isBespoke?: boolean;
   vendor: string;
   customer?: Customer; // optional for walk-in orders or if customer info isn't collected (MongoDB ObjectId)
