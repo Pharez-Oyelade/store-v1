@@ -15,8 +15,12 @@ import {
   ExternalLink,
   ChevronRight,
   Filter,
+  Landmark,
+  Building2,
+  ArrowRight,
+  ShieldCheck,
 } from "lucide-react";
-import { useInvoices } from "@/hooks/useInvoices";
+import { useInvoices, usePayoutAccount } from "@/hooks/useInvoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { InvoiceStatus } from "@/types";
@@ -41,6 +45,18 @@ export default function InvoicesListPage() {
     status: statusFilter,
     search: searchTerm,
   });
+
+  const { data: payoutAccount, isLoading: isLoadingPayout } =
+    usePayoutAccount();
+  const isBankLinked = Boolean(
+    payoutAccount?.isVerified && payoutAccount?.paystackSubaccountCode,
+  );
+  const isBrandNewUser =
+    !isLoading &&
+    !isLoadingPayout &&
+    (data?.metrics?.totalCount ?? 0) === 0 &&
+    !searchTerm &&
+    statusFilter === "all";
 
   const invoices = data?.invoices || [];
   const metrics = data?.metrics || {
@@ -101,6 +117,75 @@ export default function InvoicesListPage() {
           <span className="text-white">New Invoice</span>
         </Link>
       </div>
+
+      {/* New User Onboarding: Setup Settlement Account Banner */}
+      {!isBankLinked && isBrandNewUser && (
+        <div className="relative overflow-hidden rounded-2xl bg-linear-to-br from-brand-900 via-indigo-950 to-brand-900 p-6 sm:p-7 text-white shadow-md border border-brand-800">
+          <div className="relative z-10 max-w-2xl space-y-3">
+            <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-semibold backdrop-blur-md">
+              <Landmark size={14} className="text-emerald-400" />
+              <span>Recommended First Step • Direct Payouts</span>
+            </div>
+            <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-white">
+              Connect your bank account to start receiving invoice payments
+            </h2>
+            <p className="text-xs sm:text-sm text-brand-100 leading-relaxed">
+              Before sending invoices to your customers, connect your Nigerian
+              bank account. Customer payments made online (Card, USSD, Apple
+              Pay) or via direct bank transfer settle directly into your account
+              with 0% platform commission.
+            </p>
+            <div className="flex flex-wrap items-center gap-3 pt-2">
+              <Link
+                href="/dashboard/settings?tab=payouts"
+                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-brand-950 hover:bg-brand-50 transition-colors shadow-xs cursor-pointer"
+              >
+                <Landmark className="size-4 text-brand-700" />
+                <span className="text-brand-950">
+                  Link Settlement Bank Account
+                </span>
+                <ArrowRight className="size-3.5 text-brand-700" />
+              </Link>
+              <Link
+                href="/dashboard/invoices/new"
+                className="inline-flex items-center gap-2 rounded-xl bg-white/10 hover:bg-white/15 px-4 py-2.5 text-xs font-bold text-white transition-colors border border-white/20 cursor-pointer"
+              >
+                <Plus className="size-4 text-white" />
+                <span>Create First Invoice</span>
+              </Link>
+            </div>
+          </div>
+          <Building2 className="absolute -right-6 -bottom-6 size-48 text-white/5 pointer-events-none" />
+        </div>
+      )}
+
+      {/* Existing Invoices without Linked Payout Account Warning */}
+      {!isBankLinked && !isBrandNewUser && !isLoading && !isLoadingPayout && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-300">
+              <AlertCircle className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold">
+                Settlement bank account not connected
+              </p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                Customers viewing your invoices cannot pay online or see your
+                transfer details until you link your Nigerian bank account in
+                Settings.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/settings?tab=payouts"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shrink-0 shadow-xs transition-colors"
+          >
+            <span>Connect Bank</span>
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      )}
 
       {/* Metrics Summary Strip */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
@@ -192,23 +277,59 @@ export default function InvoicesListPage() {
             Loading invoices...
           </div>
         ) : invoices.length === 0 ? (
-          <div className="p-12 text-center space-y-3">
-            <div className="w-12 h-12 bg-gray-50 rounded-2xl text-gray-400 flex items-center justify-center mx-auto">
-              <FileText className="w-6 h-6" />
+          !isBankLinked && isBrandNewUser ? (
+            <div className="p-10 sm:p-12 text-center space-y-4 max-w-md mx-auto">
+              <div className="size-14 bg-brand-50 text-brand-700 rounded-2xl flex items-center justify-center mx-auto border border-brand-200 shadow-xs">
+                <Landmark className="size-7" />
+              </div>
+              <div className="space-y-1.5">
+                <p className="text-base font-bold text-gray-900">
+                  Ready to send your first invoice?
+                </p>
+                <p className="text-xs text-gray-500 leading-relaxed">
+                  Connect your settlement bank account so customer payments
+                  settle directly into your account with 0% platform fee, then
+                  generate your first dynamic invoice.
+                </p>
+              </div>
+              <div className="flex flex-col sm:flex-row items-center justify-center gap-2.5 pt-1">
+                <Link
+                  href="/dashboard/settings?tab=payouts"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                >
+                  <Landmark className="size-4 text-white" />
+                  <span className="text-white">Connect Bank Account</span>
+                </Link>
+                <Link
+                  href="/dashboard/invoices/new"
+                  className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-bold shadow-xs transition-colors cursor-pointer"
+                >
+                  <Plus className="size-4 text-gray-600" />
+                  <span>Create First Invoice</span>
+                </Link>
+              </div>
             </div>
-            <p className="text-sm font-bold text-gray-800">No invoices found</p>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto">
-              Create an invoice for a customer order or tailoring demand to
-              share a live payment link.
-            </p>
-            <Link
-              href="/dashboard/invoices/new"
-              className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs"
-            >
-              <Plus className="w-3.5 h-3.5 text-white" />
-              <span className="text-white">Create First Invoice</span>
-            </Link>
-          </div>
+          ) : (
+            <div className="p-12 text-center space-y-3">
+              <div className="w-12 h-12 bg-gray-50 rounded-2xl text-gray-400 flex items-center justify-center mx-auto">
+                <FileText className="w-6 h-6" />
+              </div>
+              <p className="text-sm font-bold text-gray-800">
+                No invoices found
+              </p>
+              <p className="text-xs text-gray-400 max-w-sm mx-auto">
+                Create an invoice for a customer order or tailoring demand to
+                share a live payment link.
+              </p>
+              <Link
+                href="/dashboard/invoices/new"
+                className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-semibold shadow-xs"
+              >
+                <Plus className="w-3.5 h-3.5 text-white" />
+                <span className="text-white">Create First Invoice</span>
+              </Link>
+            </div>
+          )
         ) : (
           <div className="divide-y divide-gray-100">
             {invoices.map((inv) => {

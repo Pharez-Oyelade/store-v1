@@ -16,8 +16,11 @@ import {
   Mail,
   MapPin,
   Loader2,
+  Landmark,
+  ArrowRight,
+  AlertCircle,
 } from "lucide-react";
-import { useCreateInvoice } from "@/hooks/useInvoices";
+import { useCreateInvoice, usePayoutAccount } from "@/hooks/useInvoices";
 import { useOrders } from "@/hooks/useOrders";
 import { useCustomRequests } from "@/hooks/useCustomRequests";
 import { formatCurrency } from "@/lib/utils";
@@ -68,6 +71,10 @@ export default function NewInvoicePage() {
   // Queries for linked selections
   const ordersQuery = useOrders({ limit: 30 });
   const demandsQuery = useCustomRequests({ limit: 30 });
+  const payoutQuery = usePayoutAccount();
+  const isBankLinked = Boolean(
+    payoutQuery.data?.isVerified && payoutQuery.data?.paystackSubaccountCode
+  );
 
   // Handle auto-population from an Order
   useEffect(() => {
@@ -216,6 +223,30 @@ export default function NewInvoicePage() {
           </p>
         </div>
       </div>
+
+      {/* Account not connected notice */}
+      {!isBankLinked && !payoutQuery.isLoading && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50/90 p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-amber-900 shadow-xs">
+          <div className="flex items-center gap-3">
+            <div className="size-9 rounded-xl bg-amber-100 text-amber-700 flex items-center justify-center shrink-0 border border-amber-300">
+              <Landmark className="size-5" />
+            </div>
+            <div>
+              <p className="text-xs font-bold">Settlement bank account not connected</p>
+              <p className="text-[11px] text-amber-700 mt-0.5">
+                You can create this invoice now, but customers won't be able to pay online or see your transfer details until you connect your Nigerian bank account in Settings.
+              </p>
+            </div>
+          </div>
+          <Link
+            href="/dashboard/settings?tab=payouts"
+            className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shrink-0 shadow-xs transition-colors whitespace-nowrap"
+          >
+            <span>Connect Bank</span>
+            <ArrowRight className="size-3.5" />
+          </Link>
+        </div>
+      )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
         {/* Creation Source Selection */}
