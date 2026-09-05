@@ -3,6 +3,11 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImage } from "../services/cloudinary.service.js";
 import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import {
+  fetchBanks,
+  resolveAccountNumber,
+  createSubaccount,
+} from "../services/paystack.service.js";
 
 /* ── GET /api/vendor/profile ────────────────────────────────────── */
 export const getProfile = asyncHandler(async (req, res) => {
@@ -72,3 +77,86 @@ export const updateLogo = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, { logo: vendor.logo }, "Logo updated successfully");
 });
+
+/* ── GET /api/vendor/payout/banks ───────────────────────────────── */
+export const getBanksList = asyncHandler(async (req, res) => {
+  const rawBanks = await fetchBanks();
+  const bankMap = new Map();
+
+  for (const b of (rawBanks || [])) {
+    if (b.active !== false && b.code && !bankMap.has(b.code)) {
+      bankMap.set(b.code, {
+        id: b.id,
+        name: b.name.trim(),
+        code: b.code.trim(),
+        slug: b.slug,
+      });
+    }
+  }
+
+  const sortedBanks = Array.from(bankMap.values()).sort((a, b) =>
+    a.name.localeCompare(b.name)
+  );
+
+  return sendSuccess(res, sortedBanks, "Banks fetched successfully");
+});
+
+/* ── POST /api/vendor/payout/resolve ────────────────────────────── */
+export const resolveBankDetails = asyncHandler(async (req, res) => {
+  const { accountNumber, bankCode } = req.body;
+  if (!accountNumber || !bankCode) {
+    return sendError(res, "Account number and bank code are required", 400);
+  }
+
+  const resolved = await resolveAccountNumber(accountNumber.trim(), bankCode.trim());
+  return sendSuccess(res, resolved, "Account resolved successfully");
+});
+
+/* ── GET /api/vendor/payout ─────────────────────────────────────── */
+export const getPayoutSettings = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findById(req.vendor._id).select("payoutAccount");
+  return sendSuccess(res, vendor.payoutAccount || {}, "Payout settings fetched");
+});
+
+/* ── PUT /api/vendor/payout ─────────────────────────────────────── */
+export const updatePayoutSettings = asyncHandler(async (req, res) => {
+  const { bankName, bankCode, accountNumber } = req.body;
+  if (!bankName || !bankCode || !accountNumber) {
+    return sendError(res, "Bank name, bank code, and account number are required", 400);
+  }
+
+  // 1. Resolve account name to ensure accuracy
+  const resolved = await resolveAccountNumber(accountNumber.trim(), bankCode.trim());
+  const accountName = resolved.account_name;
+
+  const vendor = await Vendor.findById(req.vendor._id);
+
+  // 2. Create Paystack Subaccount for split settlements
+  let subaccountCode = vendor.payoutAccount?.paystackSubaccountCode;
+  try {
+    const subaccount = await createSubaccount({
+      businessName: `${vendor.businessName} (${accountName})`,
+      settlementBank: bankCode.trim(),
+      accountNumber: accountNumber.trim(),
+      percentageCharge: 0, // 0% platform deduction (vendor gets 100% of order value)
+    });
+    subaccountCode = subaccount.subaccount_code;
+  } catch (err) {
+    console.error("[Paystack Subaccount Error]", err.message);
+    // Even if subaccount creation has a sandbox/key limit, still record the verified bank account
+  }
+
+  vendor.payoutAccount = {
+    bankName: bankName.trim(),
+    bankCode: bankCode.trim(),
+    accountNumber: accountNumber.trim(),
+    accountName,
+    paystackSubaccountCode: subaccountCode || "",
+    isVerified: true,
+  };
+
+  await vendor.save();
+
+  return sendSuccess(res, vendor.payoutAccount, "Payout account updated and verified successfully");
+});
+

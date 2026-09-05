@@ -8,6 +8,7 @@ import {
   bulkAction,
 } from "../controllers/product.controller.js";
 import { protect } from "../middleware/protect.js";
+import { requireRole } from "../middleware/rbac.middleware.js";
 import { uploadMultiple } from "../middleware/upload.middleware.js";
 import {
   createProductValidators,
@@ -18,8 +19,8 @@ import { checkProductLimit } from "../middleware/subscription.middleware.js";
 
 const productRouter = Router();
 
-// All product routes require authentication
-productRouter.use(protect);
+// All product routes require authentication and role check (sales, manager, owner)
+productRouter.use(protect, requireRole("owner", "manager", "sales"));
 
 productRouter.get("/", getProducts);
 productRouter.post("/bulk", bulkAction);

@@ -23,6 +23,7 @@ import {
   Sparkles,
   Maximize2,
   X,
+  FileText,
 } from "lucide-react";
 
 import Button from "@/components/custom/Button";
@@ -143,7 +144,12 @@ export default function DemandDetailPage({
           </p>
         </div>
 
-        <div className="flex items-center gap-2 self-start sm:self-auto">
+        <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
+          <Link href={`/dashboard/invoices/new?demandId=${id}`}>
+            <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+              Generate Invoice
+            </Button>
+          </Link>
           <Link href={`/dashboard/demands/${id}/edit`}>
             <Button variant="secondary" size="small" leftIcon={<Edit size={14} />}>
               Edit Demand
@@ -153,7 +159,7 @@ export default function DemandDetailPage({
             <button
               type="button"
               onClick={handleDelete}
-              className="p-2 text-gray-400 hover:text-red-600 rounded-xl border border-gray-200 bg-white hover:bg-red-50 transition-colors"
+              className="p-2 text-gray-400 hover:text-red-600 rounded-xl border border-gray-200 bg-white hover:bg-red-50 transition-colors cursor-pointer"
               title="Delete demand"
             >
               <Trash2 size={16} />

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
+import { isPathAllowedForRole, getRoleHomePath } from "./src/lib/rbac";
 
 /*
  * The name of the auth cookie set by our backend.
@@ -65,7 +66,7 @@ export async function middleware(request: NextRequest) {
 
   if (isAuthRoute && isAuthenticated) {
     // Authenticated user visiting /login or /register
-    // If admin, send to /admin; otherwise send to /dashboard
+    // If admin, send to /admin; otherwise send to their role workspace home
     const jwtSecret = process.env.JWT_SECRET;
     if (jwtSecret && token?.value) {
       try {
@@ -74,12 +75,15 @@ export async function middleware(request: NextRequest) {
         if (payload.role === "admin") {
           return NextResponse.redirect(new URL("/admin", request.url));
         }
+        const userRole = (payload.role as string) || (payload.isTeamMember ? "tailor" : "owner");
+        return NextResponse.redirect(new URL(getRoleHomePath(userRole), request.url));
       } catch {
         // Fall back to dashboard
       }
     }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
+
 
 
   /*
@@ -119,6 +123,41 @@ export async function middleware(request: NextRequest) {
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
+    }
+  }
+
+  /*
+   * Role-based check for dashboard routes (Team seats & staff access control)
+   *
+   * Verifies that the authenticated role is authorized to access the requested
+   * dashboard section. If unauthorized, immediately redirects to their allowed
+   * workspace home (e.g. tailor -> /dashboard/demands, sales -> /dashboard/orders)
+   * with an ?unauthorized=<role> query parameter before any unauthorized page loads.
+   */
+  if (pathname.startsWith("/dashboard") && isAuthenticated && token?.value) {
+    const jwtSecret = process.env.JWT_SECRET;
+    if (jwtSecret) {
+      try {
+        const secret = new TextEncoder().encode(jwtSecret);
+        const { payload } = await jwtVerify(token.value, secret);
+        const userRole = (payload.role as string) || (payload.isTeamMember ? "tailor" : "owner");
+
+        if (!isPathAllowedForRole(pathname, userRole)) {
+          const homePath = getRoleHomePath(userRole);
+          const redirectUrl = new URL(homePath, request.url);
+          // Only tag with ?unauthorized if the user deliberately navigated to a specific forbidden section (e.g. /dashboard/settings)
+          // Accessing the root /dashboard portal should seamlessly route to their workspace home without an error alert
+          if (pathname !== "/dashboard") {
+            redirectUrl.searchParams.set("unauthorized", userRole);
+            redirectUrl.searchParams.set("from", pathname);
+          }
+          return NextResponse.redirect(redirectUrl);
+        }
+      } catch {
+        const loginUrl = new URL("/login", request.url);
+        loginUrl.searchParams.set("from", pathname);
+        return NextResponse.redirect(loginUrl);
+      }
     }
   }
 

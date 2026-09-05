@@ -20,6 +20,7 @@ import {
   Scissors,
   ArrowRight,
   Download,
+  FileText,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
@@ -32,6 +33,7 @@ const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
+  { label: "Invoices", href: "/dashboard/invoices", icon: FileText },
   { label: "Demands", href: "/dashboard/demands", icon: Scissors },
   { label: "Customers", href: "/dashboard/customers", icon: Users },
   { label: "Suppliers", href: "/dashboard/suppliers", icon: Handshake },
@@ -45,49 +47,7 @@ const NAV_ITEMS = [
   { label: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-const ROLE_ALLOWED_PATHS: Record<string, string[]> = {
-  admin: [
-    "/dashboard",
-    "/dashboard/products",
-    "/dashboard/orders",
-    "/dashboard/demands",
-    "/dashboard/customers",
-    "/dashboard/suppliers",
-    "/dashboard/analytics",
-    "/dashboard/storefront",
-    "/dashboard/settings",
-  ],
-  owner: [
-    "/dashboard",
-    "/dashboard/products",
-    "/dashboard/orders",
-    "/dashboard/demands",
-    "/dashboard/customers",
-    "/dashboard/suppliers",
-    "/dashboard/analytics",
-    "/dashboard/storefront",
-    "/dashboard/settings",
-  ],
-
-  manager: [
-    "/dashboard",
-    "/dashboard/products",
-    "/dashboard/orders",
-    "/dashboard/demands",
-    "/dashboard/customers",
-    "/dashboard/suppliers",
-    "/dashboard/analytics",
-    "/dashboard/storefront",
-    "/dashboard/settings",
-  ],
-  tailor: ["/dashboard", "/dashboard/demands", "/dashboard/customers"],
-  sales: [
-    "/dashboard",
-    "/dashboard/products",
-    "/dashboard/orders",
-    "/dashboard/customers",
-  ],
-};
+import { isPathAllowedForRole, getRoleHomePath } from "@/lib/rbac";
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
@@ -98,9 +58,9 @@ export default function DashboardSidebar() {
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const userRole = (vendor?.user?.role || vendor?.role || "owner") as string;
-  const allowedPaths = ROLE_ALLOWED_PATHS[userRole] || ROLE_ALLOWED_PATHS.owner;
+  const roleHomePath = getRoleHomePath(userRole);
   const visibleNavItems = NAV_ITEMS.filter((item) =>
-    allowedPaths.includes(item.href),
+    isPathAllowedForRole(item.href, userRole),
   );
 
   const isActive = (href: string) => {
@@ -117,7 +77,7 @@ export default function DashboardSidebar() {
           collapsed && "justify-center px-0",
         )}
       >
-        <Link href="/dashboard" className="flex items-center">
+        <Link href={roleHomePath} className="flex items-center">
           {collapsed ? (
             <Logo variant="icon" size={32} theme="dark" />
           ) : (

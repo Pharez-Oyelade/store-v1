@@ -9,6 +9,7 @@ import {
   toggleMaterialAcquired,
 } from "../controllers/customRequest.controller.js";
 import { protect } from "../middleware/protect.js";
+import { requireRole } from "../middleware/rbac.middleware.js";
 import { uploadMultiple } from "../middleware/upload.middleware.js";
 import {
   createCustomRequestValidators,
@@ -19,7 +20,7 @@ import { checkOrderLimit } from "../middleware/subscription.middleware.js";
 
 const customRequestRouter = Router();
 
-customRequestRouter.use(protect);
+customRequestRouter.use(protect, requireRole("owner", "manager", "tailor"));
 
 customRequestRouter.get("/summary", getCustomRequestSummary);
 customRequestRouter.get("/", getCustomRequests);

@@ -15,7 +15,8 @@ import { useCreateOrder } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useProducts";
 import { useCustomers } from "@/hooks/useCustomers";
 import { formatCurrency } from "@/lib/utils";
-import { OrderSource, ProductStatus, type Product } from "@/types";
+import { OrderSource, ProductStatus, type Product, type Order } from "@/types";
+import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
 
 interface OrderItemDraft {
   productId: string;
@@ -42,6 +43,7 @@ export default function OrderForm() {
     status: ProductStatus.Active,
   });
   const customers = useCustomers({ page: 1, limit: 200 });
+  const [createdOrder, setCreatedOrder] = useState<Order | null>(null);
   const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
@@ -121,20 +123,28 @@ export default function OrderForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
-    await createOrder.mutateAsync({
-      customerName,
-      customerPhone,
-      customerEmail,
-      depositPaid: Number(depositPaid) || 0,
-      source,
-      notes,
-      items: items.map((item) => ({
-        ...item,
-        price: Number(item.price) || 0,
-        quantity: Number(item.quantity) || 1,
-      })),
-    });
-    router.push("/dashboard/orders");
+    try {
+      const res = await createOrder.mutateAsync({
+        customerName,
+        customerPhone,
+        customerEmail,
+        depositPaid: Number(depositPaid) || 0,
+        source,
+        notes,
+        items: items.map((item) => ({
+          ...item,
+          price: Number(item.price) || 0,
+          quantity: Number(item.quantity) || 1,
+        })),
+      });
+      if (res && (res as any)._id) {
+        setCreatedOrder(res as any);
+      } else {
+        router.push("/dashboard/orders");
+      }
+    } catch {
+      // Error toast is handled in mutation hook
+    }
   }
 
 
@@ -417,6 +427,31 @@ export default function OrderForm() {
           Create order
         </Button>
       </aside>
+
+      {createdOrder && (
+        <PostCreationInvoiceModal
+          isOpen={Boolean(createdOrder)}
+          type="order"
+          id={createdOrder._id}
+          referenceNumber={
+            createdOrder.orderNumber ||
+            `#ORD-${createdOrder._id.slice(-6).toUpperCase()}`
+          }
+          customerName={createdOrder.customerSnapshot?.name || customerName}
+          totalAmount={createdOrder.totalAmount || total}
+          depositPaid={createdOrder.depositPaid || Number(depositPaid) || 0}
+          balanceDue={
+            createdOrder.balanceOwed !== undefined
+              ? createdOrder.balanceOwed
+              : Math.max(
+                  0,
+                  (createdOrder.totalAmount || total) -
+                    (createdOrder.depositPaid || Number(depositPaid) || 0)
+                )
+          }
+          onDismiss={() => router.push("/dashboard/orders")}
+        />
+      )}
     </form>
   );
 }

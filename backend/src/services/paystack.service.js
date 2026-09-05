@@ -73,3 +73,99 @@ export const verifyWebhookSignature = (signature, rawBody) => {
     
   return hash === signature;
 };
+
+/**
+ * Fetch supported banks list from Paystack
+ * @returns {Promise<Array>} List of banks
+ */
+export const fetchBanks = async () => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("Paystack secret key is missing");
+  }
+
+  const response = await fetch(`${PAYSTACK_BASE_URL}/bank?country=nigeria&perPage=100`, {
+    method: "GET",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+    },
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || "Failed to fetch bank list from Paystack");
+  }
+
+  return result.data;
+};
+
+/**
+ * Resolve NUBAN account number
+ * @param {string} accountNumber - 10 digit NUBAN
+ * @param {string} bankCode - Paystack bank code
+ * @returns {Promise<Object>} Resolved account details { account_number, account_name }
+ */
+export const resolveAccountNumber = async (accountNumber, bankCode) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("Paystack secret key is missing");
+  }
+
+  const response = await fetch(
+    `${PAYSTACK_BASE_URL}/bank/resolve?account_number=${encodeURIComponent(
+      accountNumber
+    )}&bank_code=${encodeURIComponent(bankCode)}`,
+    {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${secretKey}`,
+      },
+    }
+  );
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || "Could not resolve account name. Check details and try again.");
+  }
+
+  return result.data;
+};
+
+/**
+ * Create a Paystack subaccount for merchant split payments
+ * @param {Object} data - businessName, settlementBank, accountNumber, percentageCharge
+ * @returns {Promise<Object>} Subaccount details with subaccount_code
+ */
+export const createSubaccount = async ({
+  businessName,
+  settlementBank,
+  accountNumber,
+  percentageCharge = 0,
+}) => {
+  const secretKey = process.env.PAYSTACK_SECRET_KEY;
+  if (!secretKey) {
+    throw new Error("Paystack secret key is missing");
+  }
+
+  const response = await fetch(`${PAYSTACK_BASE_URL}/subaccount`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${secretKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      business_name: businessName,
+      settlement_bank: settlementBank,
+      account_number: accountNumber,
+      percentage_charge: percentageCharge,
+    }),
+  });
+
+  const result = await response.json();
+  if (!response.ok) {
+    throw new Error(result.message || "Failed to create Paystack subaccount");
+  }
+
+  return result.data;
+};
+

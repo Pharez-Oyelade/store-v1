@@ -277,6 +277,7 @@ export interface OrderItem {
 // order
 export interface Order {
   _id: string;
+  orderNumber?: string;
   isBespoke?: boolean;
   vendor: string;
   customer?: Customer; // optional for walk-in orders or if customer info isn't collected (MongoDB ObjectId)
@@ -762,4 +763,115 @@ export interface CustomRequestFormValues {
   measurements?: Record<string, string>;
   materials?: CustomRequestMaterial[];
 }
+
+/* ── Live Dynamic Invoicing Types ──────────────────────────────── */
+export type InvoiceStatus = "draft" | "issued" | "partially_paid" | "paid" | "cancelled";
+
+export interface InvoiceItem {
+  _id?: string;
+  description: string;
+  variantLabel?: string;
+  quantity: number;
+  unitPrice: number;
+  subtotal: number;
+}
+
+export interface InvoicePaymentRecord {
+  _id?: string;
+  reference: string;
+  amount: number;
+  channel: "card" | "bank_transfer" | "ussd" | "qr" | "cash" | "manual_transfer" | "other";
+  paidAt: string;
+  verifiedBy: "paystack" | "vendor_manual" | "admin";
+  status: "success" | "pending" | "failed";
+  notes?: string;
+}
+
+export interface ManualPaymentProof {
+  _id: string;
+  amount: number;
+  bankSenderName?: string;
+  reference?: string;
+  notes?: string;
+  status: "pending" | "approved" | "rejected";
+  submittedAt: string;
+  reviewedAt?: string;
+}
+
+export interface PayoutAccount {
+  bankName: string;
+  bankCode: string;
+  accountNumber: string;
+  accountName: string;
+  paystackSubaccountCode?: string;
+  isVerified: boolean;
+}
+
+export interface Invoice {
+  _id: string;
+  vendor: {
+    _id: string;
+    businessName: string;
+    handle?: string;
+    phone?: string;
+    email?: string;
+    logo?: { url?: string };
+    payoutAccount?: PayoutAccount;
+  } | string;
+  order?: any;
+  customRequest?: any;
+  customer?: any;
+  invoiceNumber: string;
+  accessToken: string;
+  customerSnapshot: {
+    name: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  items: InvoiceItem[];
+  totalAmount: number;
+  depositRequired: number;
+  totalPaid: number;
+  balanceDue: number;
+  status: InvoiceStatus;
+  dueDate?: string | null;
+  notes?: string;
+  terms?: string;
+  paymentHistory: InvoicePaymentRecord[];
+  manualPaymentProofs: ManualPaymentProof[];
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface InvoiceMetrics {
+  totalInvoiced: number;
+  totalCollected: number;
+  totalOutstanding: number;
+  totalCount: number;
+}
+
+export interface CreateInvoicePayload {
+  orderId?: string;
+  customRequestId?: string;
+  customerSnapshot?: {
+    name: string;
+    phone?: string;
+    email?: string;
+    address?: string;
+  };
+  items?: {
+    description: string;
+    variantLabel?: string;
+    quantity: number | string;
+    unitPrice: number | string;
+  }[];
+  totalAmount?: number | string;
+  depositRequired?: number | string;
+  initialPaid?: number | string;
+  dueDate?: string;
+  notes?: string;
+  terms?: string;
+}
+
 
