@@ -44,11 +44,13 @@ export default function NewInvoicePage() {
 
   // Mode: "custom" | "from_order" | "from_demand"
   const [mode, setMode] = useState<"custom" | "from_order" | "from_demand">(
-    preloadOrderId ? "from_order" : preloadDemandId ? "from_demand" : "custom"
+    preloadOrderId ? "from_order" : preloadDemandId ? "from_demand" : "custom",
   );
 
   const [selectedOrderId, setSelectedOrderId] = useState(preloadOrderId || "");
-  const [selectedDemandId, setSelectedDemandId] = useState(preloadDemandId || "");
+  const [selectedDemandId, setSelectedDemandId] = useState(
+    preloadDemandId || "",
+  );
 
   // Refs to track populated source items and prevent background query refetches from overwriting merchant input
   const loadedOrderIdRef = useRef<string>("");
@@ -72,7 +74,7 @@ export default function NewInvoicePage() {
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [terms, setTerms] = useState(
-    "Thank you for your patronage! Please settle the remaining balance upon delivery or fitting."
+    "Thank you for your patronage! Please settle the remaining balance upon delivery or fitting.",
   );
 
   // Queries for linked selections
@@ -82,7 +84,7 @@ export default function NewInvoicePage() {
   const singleDemandQuery = useCustomRequest(preloadDemandId || "");
   const payoutQuery = usePayoutAccount();
   const isBankLinked = Boolean(
-    payoutQuery.data?.isVerified && payoutQuery.data?.paystackSubaccountCode
+    payoutQuery.data?.isVerified && payoutQuery.data?.paystackSubaccountCode,
   );
 
   // Sync mode and selections when URL searchParams are provided
@@ -119,9 +121,7 @@ export default function NewInvoicePage() {
       const total = d.agreedPrice || d.estimatedPrice || 0;
       const paid = d.depositPaid || 0;
       const balance =
-        d.balanceOwed !== undefined
-          ? d.balanceOwed
-          : Math.max(0, total - paid);
+        d.balanceOwed !== undefined ? d.balanceOwed : Math.max(0, total - paid);
       return balance > 0;
     });
   }, [demandsQuery.data?.requests, onlyUnpaid]);
@@ -132,7 +132,9 @@ export default function NewInvoicePage() {
       if (loadedOrderIdRef.current === selectedOrderId) return;
 
       const ord =
-        (singleOrderQuery.data?._id === selectedOrderId ? singleOrderQuery.data : null) ||
+        (singleOrderQuery.data?._id === selectedOrderId
+          ? singleOrderQuery.data
+          : null) ||
         ordersQuery.data?.orders?.find((o) => o._id === selectedOrderId);
       if (ord) {
         loadedOrderIdRef.current = selectedOrderId;
@@ -147,7 +149,7 @@ export default function NewInvoicePage() {
             variantLabel: i.variantLabel || "",
             quantity: i.quantity,
             unitPrice: i.price,
-          }))
+          })),
         );
 
         setAlreadyPaid(ord.depositPaid ? ord.depositPaid : "");
@@ -162,7 +164,9 @@ export default function NewInvoicePage() {
       if (loadedDemandRef.current === selectedDemandId) return;
 
       const d =
-        (singleDemandQuery.data?._id === selectedDemandId ? singleDemandQuery.data : null) ||
+        (singleDemandQuery.data?._id === selectedDemandId
+          ? singleDemandQuery.data
+          : null) ||
         demandsQuery.data?.requests?.find((r) => r._id === selectedDemandId);
       if (d) {
         loadedDemandRef.current = selectedDemandId;
@@ -173,7 +177,9 @@ export default function NewInvoicePage() {
         setItems([
           {
             description: `Bespoke Tailoring: ${d.title}`,
-            variantLabel: d.category ? `Category: ${d.category}` : "Bespoke Garment",
+            variantLabel: d.category
+              ? `Category: ${d.category}`
+              : "Bespoke Garment",
             quantity: 1,
             unitPrice: d.agreedPrice || d.estimatedPrice || "",
           },
@@ -192,7 +198,7 @@ export default function NewInvoicePage() {
   const calculatedTotal = items.reduce(
     (sum, item) =>
       sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
-    0
+    0,
   );
 
   const currentPaid = Number(alreadyPaid) || 0;
@@ -213,10 +219,10 @@ export default function NewInvoicePage() {
   const updateItem = (
     idx: number,
     field: keyof LineItemDraft,
-    val: string | number
+    val: string | number,
   ) => {
     setItems((prev) =>
-      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item))
+      prev.map((item, i) => (i === idx ? { ...item, [field]: val } : item)),
     );
   };
 
@@ -279,9 +285,12 @@ export default function NewInvoicePage() {
           <ArrowLeft className="w-5 h-5" />
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Create New Invoice</h1>
+          <h1 className="text-xl font-bold text-gray-900">
+            Create New Invoice
+          </h1>
           <p className="text-xs text-gray-500">
-            Issue a live shareable link with real-time balance calculations and online checkout.
+            Issue a live shareable link with real-time balance calculations and
+            online checkout.
           </p>
         </div>
       </div>
@@ -294,9 +303,13 @@ export default function NewInvoicePage() {
               <Landmark className="size-5" />
             </div>
             <div>
-              <p className="text-xs font-bold">Settlement bank account not connected</p>
+              <p className="text-xs font-bold">
+                Settlement bank account not connected
+              </p>
               <p className="text-[11px] text-amber-700 mt-0.5">
-                You can create this invoice now, but customers won't be able to pay online or see your transfer details until you connect your Nigerian bank account in Settings.
+                You can create this invoice now, but customers won't be able to
+                pay online or see your transfer details until you connect your
+                Nigerian bank account in Settings.
               </p>
             </div>
           </div>
@@ -332,7 +345,9 @@ export default function NewInvoicePage() {
             >
               <FileText className="w-4 h-4 mb-1.5 text-brand-600" />
               <p className="text-xs font-bold">Custom Line Items</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Start from scratch</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 hidden sm:block">
+                Start from scratch
+              </p>
             </button>
 
             <button
@@ -349,7 +364,9 @@ export default function NewInvoicePage() {
             >
               <ShoppingBag className="w-4 h-4 mb-1.5 text-emerald-600" />
               <p className="text-xs font-bold">From Ready Order</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Import products & prices</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 hidden sm:block">
+                Import products & prices
+              </p>
             </button>
 
             <button
@@ -366,7 +383,9 @@ export default function NewInvoicePage() {
             >
               <Scissors className="w-4 h-4 mb-1.5 text-indigo-600" />
               <p className="text-xs font-bold">From Bespoke Demand</p>
-              <p className="text-[11px] text-gray-500 mt-0.5">Import tailor agreed quote</p>
+              <p className="text-[11px] text-gray-500 mt-0.5 hidden sm:block">
+                Import tailor agreed quote
+              </p>
             </button>
           </div>
 
@@ -416,7 +435,10 @@ export default function NewInvoicePage() {
                           : Math.max(0, o.totalAmount - paid);
                       return (
                         <option key={o._id} value={o._id}>
-                          {o.customerSnapshot?.name} — Total: {formatCurrency(o.totalAmount)} | Paid: {formatCurrency(paid)} | Balance Due: {formatCurrency(balance)}
+                          {o.customerSnapshot?.name} — Total:{" "}
+                          {formatCurrency(o.totalAmount)} | Paid:{" "}
+                          {formatCurrency(paid)} | Balance Due:{" "}
+                          {formatCurrency(balance)}
                         </option>
                       );
                     })
@@ -472,7 +494,9 @@ export default function NewInvoicePage() {
                           : Math.max(0, total - paid);
                       return (
                         <option key={d._id} value={d._id}>
-                          {d.customerSnapshot?.name} — {d.title} | Total: {formatCurrency(total)} | Paid: {formatCurrency(paid)} | Balance Due: {formatCurrency(balance)}
+                          {d.customerSnapshot?.name} — {d.title} | Total:{" "}
+                          {formatCurrency(total)} | Paid: {formatCurrency(paid)}{" "}
+                          | Balance Due: {formatCurrency(balance)}
                         </option>
                       );
                     })
@@ -573,7 +597,9 @@ export default function NewInvoicePage() {
                     type="text"
                     required
                     value={item.description}
-                    onChange={(e) => updateItem(idx, "description", e.target.value)}
+                    onChange={(e) =>
+                      updateItem(idx, "description", e.target.value)
+                    }
                     placeholder="Item description / garment name"
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
                   />
@@ -583,7 +609,9 @@ export default function NewInvoicePage() {
                   <input
                     type="text"
                     value={item.variantLabel}
-                    onChange={(e) => updateItem(idx, "variantLabel", e.target.value)}
+                    onChange={(e) =>
+                      updateItem(idx, "variantLabel", e.target.value)
+                    }
                     placeholder="Variant / Color (opt)"
                     className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
                   />
@@ -599,7 +627,7 @@ export default function NewInvoicePage() {
                       updateItem(
                         idx,
                         "quantity",
-                        e.target.value === "" ? "" : Number(e.target.value)
+                        e.target.value === "" ? "" : Number(e.target.value),
                       )
                     }
                     placeholder="1"
@@ -617,7 +645,7 @@ export default function NewInvoicePage() {
                       updateItem(
                         idx,
                         "unitPrice",
-                        e.target.value === "" ? "" : Number(e.target.value)
+                        e.target.value === "" ? "" : Number(e.target.value),
                       )
                     }
                     placeholder="Price ₦"
@@ -628,7 +656,8 @@ export default function NewInvoicePage() {
                 <div className="w-24 text-right hidden sm:block">
                   <span className="text-xs font-bold text-gray-900">
                     {formatCurrency(
-                      (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0)
+                      (Number(item.quantity) || 0) *
+                        (Number(item.unitPrice) || 0),
                     )}
                   </span>
                 </div>
@@ -650,7 +679,9 @@ export default function NewInvoicePage() {
           <div className="pt-3 border-t border-gray-100 space-y-2">
             <div className="flex justify-between items-center text-xs text-gray-500">
               <span>Total Items Amount:</span>
-              <span className="font-semibold text-gray-900">{formatCurrency(calculatedTotal)}</span>
+              <span className="font-semibold text-gray-900">
+                {formatCurrency(calculatedTotal)}
+              </span>
             </div>
 
             {currentPaid > 0 && (
@@ -662,8 +693,12 @@ export default function NewInvoicePage() {
 
             <div className="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
               <div>
-                <span className="text-sm font-bold text-gray-900">Balance Due on Invoice:</span>
-                <p className="text-[11px] text-gray-400">Net outstanding balance customer will be billed</p>
+                <span className="text-sm font-bold text-gray-900">
+                  Balance Due on Invoice:
+                </span>
+                <p className="text-[11px] text-gray-400">
+                  Net outstanding balance customer will be billed
+                </p>
               </div>
               <span
                 className={`text-xl font-extrabold ${
@@ -678,7 +713,9 @@ export default function NewInvoicePage() {
               <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-medium flex items-center gap-2 border border-emerald-200 mt-1">
                 <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
                 <span>
-                  This invoice is <strong>Fully Paid</strong>. If you issue this invoice, it will be marked as <strong>Paid in Full</strong> with ₦0 remaining balance.
+                  This invoice is <strong>Fully Paid</strong>. If you issue this
+                  invoice, it will be marked as <strong>Paid in Full</strong>{" "}
+                  with ₦0 remaining balance.
                 </span>
               </div>
             )}
@@ -709,14 +746,15 @@ export default function NewInvoicePage() {
                 value={alreadyPaid}
                 onChange={(e) =>
                   setAlreadyPaid(
-                    e.target.value === "" ? "" : Number(e.target.value)
+                    e.target.value === "" ? "" : Number(e.target.value),
                   )
                 }
                 placeholder="0"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
               />
               <p className="text-[11px] text-gray-400 mt-1">
-                Paid outside this invoice (cash, POS, or transfer). Deducted from balance.
+                Paid outside this invoice (cash, POS, or transfer). Deducted
+                from balance.
               </p>
             </div>
 
@@ -730,14 +768,15 @@ export default function NewInvoicePage() {
                 value={depositRequired}
                 onChange={(e) =>
                   setDepositRequired(
-                    e.target.value === "" ? "" : Number(e.target.value)
+                    e.target.value === "" ? "" : Number(e.target.value),
                   )
                 }
                 placeholder="0 (leave empty for full balance)"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
               />
               <p className="text-[11px] text-gray-400 mt-1">
-                Minimum upfront payment customer can make before paying remainder.
+                Minimum upfront payment customer can make before paying
+                remainder.
               </p>
             </div>
 
@@ -768,16 +807,37 @@ export default function NewInvoicePage() {
                 )}
               </div>
               <div className="flex items-center gap-2 text-xs text-gray-600 flex-wrap">
-                <span>Total: <strong className="text-gray-900">{formatCurrency(calculatedTotal)}</strong></span>
+                <span>
+                  Total:{" "}
+                  <strong className="text-gray-900">
+                    {formatCurrency(calculatedTotal)}
+                  </strong>
+                </span>
                 <span>−</span>
-                <span>Already Paid: <strong className="text-emerald-700">{formatCurrency(currentPaid)}</strong></span>
+                <span>
+                  Already Paid:{" "}
+                  <strong className="text-emerald-700">
+                    {formatCurrency(currentPaid)}
+                  </strong>
+                </span>
                 <span>=</span>
-                <span>Pending Balance: <strong className={netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"}>{formatCurrency(netBalanceDue)}</strong></span>
+                <span>
+                  Pending Balance:{" "}
+                  <strong
+                    className={
+                      netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"
+                    }
+                  >
+                    {formatCurrency(netBalanceDue)}
+                  </strong>
+                </span>
               </div>
             </div>
 
             <div className="text-left sm:text-right">
-              <div className={`text-2xl font-black tracking-tight ${netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"}`}>
+              <div
+                className={`text-2xl font-black tracking-tight ${netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"}`}
+              >
                 {formatCurrency(netBalanceDue)}
               </div>
               <span className="text-[11px] text-gray-500 font-medium">
@@ -792,7 +852,10 @@ export default function NewInvoicePage() {
             <div className="p-3 rounded-xl bg-amber-50 text-amber-800 text-xs font-medium flex items-center gap-2 border border-amber-200">
               <AlertCircle className="size-4 shrink-0 text-amber-600" />
               <span>
-                Already paid amount (<strong>{formatCurrency(currentPaid)}</strong>) exceeds total items amount (<strong>{formatCurrency(calculatedTotal)}</strong>). Balance due is ₦0 and will be marked Paid in Full.
+                Already paid amount (
+                <strong>{formatCurrency(currentPaid)}</strong>) exceeds total
+                items amount (<strong>{formatCurrency(calculatedTotal)}</strong>
+                ). Balance due is ₦0 and will be marked Paid in Full.
               </span>
             </div>
           )}
@@ -819,7 +882,9 @@ export default function NewInvoicePage() {
                 Pending Balance Due
               </span>
               <div className="flex items-baseline gap-2">
-                <span className={`text-xl font-black ${netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"}`}>
+                <span
+                  className={`text-xl font-black ${netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"}`}
+                >
                   {formatCurrency(netBalanceDue)}
                 </span>
                 {currentPaid > 0 && (

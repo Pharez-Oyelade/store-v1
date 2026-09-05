@@ -96,7 +96,7 @@ export default function InvoiceDetailPage() {
 
     const message = `Hi ${custName}, here is your live invoice #${invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(
       invoice.totalAmount,
-    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n👉 View invoice, pay online, or see transfer details here:\n${liveUrl}`;
+    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n View invoice, pay online, or see transfer details here:\n${liveUrl}`;
 
     const waUrl = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -214,7 +214,8 @@ export default function InvoiceDetailPage() {
                 Invoice Cancelled & Voided
               </h2>
               <p className="text-xs text-rose-700 mt-0.5">
-                This invoice has been voided. Customer link sharing, WhatsApp messages, and incoming payments are disabled.
+                This invoice has been voided. Customer link sharing, WhatsApp
+                messages, and incoming payments are disabled.
               </p>
             </div>
           </div>
@@ -232,8 +233,8 @@ export default function InvoiceDetailPage() {
                 Live Customer Invoice Link
               </h2>
               <p className="text-xs text-brand-700/80 mt-0.5">
-                Send this single link to your customer. It automatically reflects
-                deposits and balances in real time.
+                Send this single link to your customer. It automatically
+                reflects deposits and balances in real time.
               </p>
             </div>
 
