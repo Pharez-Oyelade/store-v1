@@ -380,6 +380,10 @@ export const submitManualPaymentProof = asyncHandler(async (req, res) => {
     return sendError(res, "Invoice not found", 404);
   }
 
+  if (invoice.status === "cancelled") {
+    return sendError(res, "This invoice has been cancelled and cannot accept payments", 400);
+  }
+
   invoice.manualPaymentProofs.push({
     amount: Number(amount),
     bankSenderName: bankSenderName?.trim() || "",
@@ -413,6 +417,10 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
 
   if (!invoice) {
     return sendError(res, "Invoice not found", 404);
+  }
+
+  if (invoice.status === "cancelled") {
+    return sendError(res, "Cannot record payment on a cancelled invoice", 400);
   }
 
   const payAmount = Number(amount);
@@ -470,6 +478,10 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
 
   if (!invoice) {
     return sendError(res, "Invoice not found", 404);
+  }
+
+  if (invoice.status === "cancelled") {
+    return sendError(res, "Cannot verify payment proofs on a cancelled invoice", 400);
   }
 
   const proof = invoice.manualPaymentProofs.id(proofId);

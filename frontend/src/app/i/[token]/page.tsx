@@ -18,6 +18,7 @@ import {
   Send,
   Loader2,
   ShieldCheck,
+  Ban,
 } from "lucide-react";
 import {
   usePublicInvoice,
@@ -95,12 +96,13 @@ export default function PublicInvoicePage() {
   }
 
   const vendor = typeof invoice.vendor === "object" ? invoice.vendor : null;
-  const isPaid = invoice.status === "paid" || invoice.balanceDue <= 0;
+  const isCancelled = invoice.status === "cancelled";
+  const isPaid = !isCancelled && (invoice.status === "paid" || invoice.balanceDue <= 0);
   const isPartiallyPaid =
-    invoice.status === "partially_paid" && invoice.balanceDue > 0;
-  const hasPendingProof = invoice.manualPaymentProofs?.some(
-    (p) => p.status === "pending",
-  );
+    !isCancelled && invoice.status === "partially_paid" && invoice.balanceDue > 0;
+  const hasPendingProof =
+    !isCancelled &&
+    invoice.manualPaymentProofs?.some((p) => p.status === "pending");
 
   const handleCopyAccount = (accNumber: string) => {
     navigator.clipboard.writeText(accNumber);
@@ -110,6 +112,10 @@ export default function PublicInvoicePage() {
   };
 
   const handlePayOnline = async () => {
+    if (isCancelled) {
+      toast.error("This invoice has been cancelled and cannot accept payments");
+      return;
+    }
     const amount = Number(customPayAmount) || invoice.balanceDue;
     if (amount <= 0) {
       toast.error("Please enter a valid amount");
@@ -135,6 +141,10 @@ export default function PublicInvoicePage() {
 
   const handleProofSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isCancelled) {
+      toast.error("This invoice has been cancelled and cannot accept payments");
+      return;
+    }
     const amount = Number(customPayAmount) || invoice.balanceDue;
 
     if (!transferSender.trim()) {
@@ -222,17 +232,29 @@ export default function PublicInvoicePage() {
         {/* Dynamic Status Alert Banner */}
         <div
           className={`rounded-3xl p-6 text-white shadow-md relative overflow-hidden ${
-            isPaid
-              ? "bg-gradient-to-r from-emerald-600 to-teal-700"
-              : isPartiallyPaid
-                ? "bg-gradient-to-r from-blue-600 to-indigo-700"
-                : "bg-gradient-to-r from-slate-900 to-slate-800"
+            isCancelled
+              ? "bg-linear-to-r from-rose-950 via-rose-900 to-red-950 border border-rose-800"
+              : isPaid
+                ? "bg-linear-to-r from-emerald-600 to-teal-700"
+                : isPartiallyPaid
+                  ? "bg-linear-to-r from-blue-600 to-indigo-700"
+                  : "bg-linear-to-r from-slate-900 to-slate-800"
           }`}
         >
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-xs uppercase tracking-wider mb-2">
-                {isPaid ? (
+              <span
+                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold uppercase tracking-wider mb-2 ${
+                  isCancelled
+                    ? "bg-rose-500/30 text-rose-200 border border-rose-400/30"
+                    : "bg-white/20 backdrop-blur-xs"
+                }`}
+              >
+                {isCancelled ? (
+                  <>
+                    <Ban className="w-3.5 h-3.5 text-rose-300" /> Cancelled & Voided
+                  </>
+                ) : isPaid ? (
                   <>
                     <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />{" "}
                     Paid in Full
@@ -250,23 +272,36 @@ export default function PublicInvoicePage() {
                 )}
               </span>
 
-              <p className="text-xs text-white/70">Remaining Balance</p>
+              <p className="text-xs text-white/70">
+                {isCancelled ? "Status Notice" : "Remaining Balance"}
+              </p>
               <h2 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-                {formatCurrency(invoice.balanceDue)}
+                {isCancelled
+                  ? "₦0 (Voided)"
+                  : formatCurrency(invoice.balanceDue)}
               </h2>
 
-              {invoice.totalPaid > 0 && (
+              {isCancelled ? (
+                <p className="text-xs text-rose-200 mt-1 max-w-md">
+                  This invoice has been cancelled by the merchant and is no longer active or payable.
+                </p>
+              ) : invoice.totalPaid > 0 ? (
                 <p className="text-xs text-white/80 mt-1">
                   Paid so far: {formatCurrency(invoice.totalPaid)} of{" "}
                   {formatCurrency(invoice.totalAmount)}
                 </p>
-              )}
+              ) : null}
             </div>
 
-            {isPaid ? (
+            {isCancelled ? (
+              <div className="px-3.5 py-2 rounded-xl bg-rose-500/20 border border-rose-400/30 text-xs text-rose-200 flex items-center gap-2 self-start sm:self-auto">
+                <Ban className="w-4 h-4 text-rose-300 shrink-0" />
+                <span>Payment Closed</span>
+              </div>
+            ) : isPaid ? (
               <button
                 onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto"
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto cursor-pointer"
               >
                 <Download className="w-4 h-4" />
                 <span>Save Receipt</span>
@@ -404,8 +439,23 @@ export default function PublicInvoicePage() {
           </div>
         )}
 
-        {/* Payment Action Hub (Only if balance is due) */}
-        {!isPaid && (
+        {/* Cancelled Notice Card */}
+        {isCancelled && (
+          <div className="bg-white rounded-3xl p-6 shadow-sm border border-rose-200 text-center space-y-3">
+            <div className="w-12 h-12 rounded-2xl bg-rose-100 text-rose-600 flex items-center justify-center mx-auto">
+              <Ban className="w-6 h-6" />
+            </div>
+            <h3 className="text-base font-bold text-gray-900">
+              Invoice Cancelled
+            </h3>
+            <p className="text-xs text-gray-600 max-w-md mx-auto leading-relaxed">
+              This invoice has been voided by the merchant. Online checkout and bank transfer payments are deactivated. If you have any inquiries, please contact the merchant directly.
+            </p>
+          </div>
+        )}
+
+        {/* Payment Action Hub (Only if balance is due and not cancelled) */}
+        {!isPaid && !isCancelled && (
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200/70 space-y-6">
             <h3 className="text-sm font-bold text-gray-900">
               Choose Payment Method
@@ -618,7 +668,7 @@ export default function PublicInvoicePage() {
       </div>
 
       {/* Manual Transfer Proof Submission Modal */}
-      {showTransferModal && (
+      {showTransferModal && !isCancelled && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
           <div className="relative w-full max-w-md bg-white rounded-3xl p-6 shadow-2xl border border-gray-100 animate-in slide-in-from-bottom-4 duration-300">
             <h3 className="text-lg font-bold text-gray-900 mb-1">

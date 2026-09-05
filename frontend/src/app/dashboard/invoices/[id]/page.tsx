@@ -20,6 +20,7 @@ import {
   Send,
   Loader2,
   Trash2,
+  Ban,
 } from "lucide-react";
 import {
   useInvoice,
@@ -75,6 +76,10 @@ export default function InvoiceDetailPage() {
       : `/i/${invoice.accessToken}`;
 
   const handleCopyLink = () => {
+    if (invoice.status === "cancelled") {
+      toast.error("Cancelled invoices cannot be sent or shared");
+      return;
+    }
     navigator.clipboard.writeText(liveUrl);
     setCopiedLink(true);
     toast.success("Live customer link copied!");
@@ -82,12 +87,16 @@ export default function InvoiceDetailPage() {
   };
 
   const handleWhatsAppShare = () => {
+    if (invoice.status === "cancelled") {
+      toast.error("Cancelled invoices cannot be sent to customers");
+      return;
+    }
     const custName = invoice.customerSnapshot?.name || "Valued Customer";
     const phone = invoice.customerSnapshot?.phone?.replace(/[^0-9]/g, "") || "";
 
     const message = `Hi ${custName}, here is your live invoice #${invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(
       invoice.totalAmount,
-    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n View invoice, pay online, or see transfer details here:\n${liveUrl}`;
+    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n👉 View invoice, pay online, or see transfer details here:\n${liveUrl}`;
 
     const waUrl = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -149,16 +158,17 @@ export default function InvoiceDetailPage() {
                 {invoice.invoiceNumber}
               </h1>
               <span
-                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider ${
+                className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider inline-flex items-center gap-1 ${
                   invoice.status === "paid"
                     ? "bg-emerald-100 text-emerald-800"
                     : invoice.status === "partially_paid"
                       ? "bg-blue-100 text-blue-800"
                       : invoice.status === "cancelled"
-                        ? "bg-gray-100 text-gray-600"
+                        ? "bg-rose-100 text-rose-700 border border-rose-200"
                         : "bg-amber-100 text-amber-800"
                 }`}
               >
+                {invoice.status === "cancelled" && <Ban className="w-3 h-3" />}
                 {invoice.status.replace("_", " ")}
               </span>
             </div>
@@ -192,59 +202,82 @@ export default function InvoiceDetailPage() {
         </div>
       </div>
 
-      {/* Live Shareable Link Card */}
-      <div className="bg-brand-50/60 rounded-2xl p-5 border border-brand-100 shadow-2xs space-y-3">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div>
-            <h2 className="text-xs font-bold text-brand-900 uppercase tracking-wider">
-              Live Customer Invoice Link
-            </h2>
-            <p className="text-xs text-brand-700/80 mt-0.5">
-              Send this single link to your customer. It automatically reflects
-              deposits and balances in real time.
-            </p>
+      {/* Live Shareable Link Card or Cancelled Notice */}
+      {invoice.status === "cancelled" ? (
+        <div className="bg-rose-50/70 rounded-2xl p-5 border border-rose-200 shadow-2xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0 border border-rose-200">
+              <Ban className="w-5 h-5" />
+            </div>
+            <div>
+              <h2 className="text-xs font-bold text-rose-900 uppercase tracking-wider">
+                Invoice Cancelled & Voided
+              </h2>
+              <p className="text-xs text-rose-700 mt-0.5">
+                This invoice has been voided. Customer link sharing, WhatsApp messages, and incoming payments are disabled.
+              </p>
+            </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              onClick={handleCopyLink}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-brand-200 hover:bg-brand-50 text-brand-800 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
-            >
-              {copiedLink ? (
-                <>
-                  <Check className="w-3.5 h-3.5 text-emerald-600" />
-                  <span>Copied!</span>
-                </>
-              ) : (
-                <>
-                  <Copy className="w-3.5 h-3.5" />
-                  <span>Copy Link</span>
-                </>
-              )}
-            </button>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-rose-100 text-rose-700 border border-rose-200 text-xs font-bold self-start sm:self-auto shrink-0">
+            <Ban className="w-3.5 h-3.5" />
+            Not Sendable
+          </span>
+        </div>
+      ) : (
+        <div className="bg-brand-50/60 rounded-2xl p-5 border border-brand-100 shadow-2xs space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <h2 className="text-xs font-bold text-brand-900 uppercase tracking-wider">
+                Live Customer Invoice Link
+              </h2>
+              <p className="text-xs text-brand-700/80 mt-0.5">
+                Send this single link to your customer. It automatically reflects
+                deposits and balances in real time.
+              </p>
+            </div>
 
-            <button
-              type="button"
-              onClick={handleWhatsAppShare}
-              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
-            >
-              <MessageCircle className="w-3.5 h-3.5" />
-              <span>Share on WhatsApp</span>
-            </button>
+            <div className="flex items-center gap-2">
+              <button
+                type="button"
+                onClick={handleCopyLink}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white border border-brand-200 hover:bg-brand-50 text-brand-800 text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+              >
+                {copiedLink ? (
+                  <>
+                    <Check className="w-3.5 h-3.5 text-emerald-600" />
+                    <span>Copied!</span>
+                  </>
+                ) : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    <span>Copy Link</span>
+                  </>
+                )}
+              </button>
 
-            <a
-              href={`/i/${invoice.accessToken}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="p-2 rounded-xl bg-white border border-brand-200 hover:bg-brand-50 text-brand-800 text-xs transition-colors"
-              title="Preview Customer Page"
-            >
-              <ExternalLink className="w-4 h-4" />
-            </a>
+              <button
+                type="button"
+                onClick={handleWhatsAppShare}
+                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                <span>Share on WhatsApp</span>
+              </button>
+
+              <a
+                href={`/i/${invoice.accessToken}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="p-2 rounded-xl bg-white border border-brand-200 hover:bg-brand-50 text-brand-800 text-xs transition-colors"
+                title="Preview Customer Page"
+              >
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {/* Pending Payment Proofs Alert (Customer submitted bank transfer) */}
       {pendingProofs.length > 0 && (
@@ -326,7 +359,13 @@ export default function InvoiceDetailPage() {
       <div className="grid grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-4.5 border border-gray-100 shadow-xs">
           <p className="text-xs font-semibold text-gray-400">Total Invoiced</p>
-          <p className="text-lg sm:text-xl font-extrabold text-gray-900 mt-1">
+          <p
+            className={`text-lg sm:text-xl font-extrabold mt-1 ${
+              invoice.status === "cancelled"
+                ? "text-gray-400 line-through"
+                : "text-gray-900"
+            }`}
+          >
             {formatCurrency(invoice.totalAmount)}
           </p>
         </div>
@@ -342,10 +381,16 @@ export default function InvoiceDetailPage() {
           <p className="text-xs font-semibold text-gray-400">Balance Due</p>
           <p
             className={`text-lg sm:text-xl font-extrabold mt-1 ${
-              invoice.balanceDue > 0 ? "text-brand-600" : "text-emerald-600"
+              invoice.status === "cancelled"
+                ? "text-rose-600"
+                : invoice.balanceDue > 0
+                  ? "text-brand-600"
+                  : "text-emerald-600"
             }`}
           >
-            {formatCurrency(invoice.balanceDue)}
+            {invoice.status === "cancelled"
+              ? "₦0 (Voided)"
+              : formatCurrency(invoice.balanceDue)}
           </p>
         </div>
       </div>

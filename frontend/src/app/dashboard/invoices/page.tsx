@@ -19,6 +19,7 @@ import {
   Building2,
   ArrowRight,
   ShieldCheck,
+  Ban,
 } from "lucide-react";
 import { useInvoices, usePayoutAccount } from "@/hooks/useInvoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -66,9 +67,14 @@ export default function InvoicesListPage() {
     totalCount: 0,
   };
 
-  const handleCopyLink = (e: React.MouseEvent, token: string) => {
+  const handleCopyLink = (e: React.MouseEvent, inv: any) => {
     e.preventDefault();
     e.stopPropagation();
+    if (inv?.status === "cancelled") {
+      toast.error("Cancelled invoices cannot be sent or shared");
+      return;
+    }
+    const token = typeof inv === "string" ? inv : inv?.accessToken;
     const url = `${window.location.origin}/i/${token}`;
     navigator.clipboard.writeText(url);
     setCopiedToken(token);
@@ -79,6 +85,10 @@ export default function InvoicesListPage() {
   const handleWhatsAppShare = (e: React.MouseEvent, inv: any) => {
     e.preventDefault();
     e.stopPropagation();
+    if (inv?.status === "cancelled") {
+      toast.error("Cancelled invoices cannot be sent to customers");
+      return;
+    }
     const url = `${window.location.origin}/i/${inv.accessToken}`;
     const custName = inv.customerSnapshot?.name || "Valued Customer";
     const phone = inv.customerSnapshot?.phone?.replace(/[^0-9]/g, "") || "";
@@ -333,6 +343,7 @@ export default function InvoicesListPage() {
         ) : (
           <div className="divide-y divide-gray-100">
             {invoices.map((inv) => {
+              const isCancelled = inv.status === "cancelled";
               const hasProof = inv.manualPaymentProofs?.some(
                 (p) => p.status === "pending",
               );
@@ -341,38 +352,61 @@ export default function InvoicesListPage() {
                 <Link
                   key={inv._id}
                   href={`/dashboard/invoices/${inv._id}`}
-                  className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 hover:bg-slate-50/70 transition-colors block group"
+                  className={`p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all block group ${
+                    isCancelled
+                      ? "bg-rose-50/30 hover:bg-rose-50/60 opacity-85 hover:opacity-100"
+                      : "hover:bg-slate-50/70"
+                  }`}
                 >
                   {/* Customer and Invoice Info */}
                   <div className="flex items-start gap-3.5 min-w-0">
                     <div
                       className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold text-xs shrink-0 ${
-                        inv.status === "paid"
-                          ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                          : inv.status === "partially_paid"
-                            ? "bg-blue-50 text-blue-700 border border-blue-200"
-                            : inv.status === "cancelled"
-                              ? "bg-gray-100 text-gray-500"
+                        isCancelled
+                          ? "bg-rose-100 text-rose-600 border border-rose-200 shadow-2xs"
+                          : inv.status === "paid"
+                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                            : inv.status === "partially_paid"
+                              ? "bg-blue-50 text-blue-700 border border-blue-200"
                               : "bg-amber-50 text-amber-700 border border-amber-200"
                       }`}
                     >
-                      <FileText className="w-5 h-5" />
+                      {isCancelled ? (
+                        <Ban className="w-5 h-5" />
+                      ) : (
+                        <FileText className="w-5 h-5" />
+                      )}
                     </div>
 
                     <div className="min-w-0">
                       <div className="flex items-center gap-2 flex-wrap">
-                        <span className="font-mono text-xs font-bold text-gray-900 group-hover:text-brand-600 transition-colors">
+                        <span
+                          className={`font-mono text-xs font-bold transition-colors ${
+                            isCancelled
+                              ? "text-gray-500 line-through"
+                              : "text-gray-900 group-hover:text-brand-600"
+                          }`}
+                        >
                           {inv.invoiceNumber}
                         </span>
                         <span className="text-gray-300">•</span>
-                        <span className="font-semibold text-sm text-gray-900 truncate">
+                        <span
+                          className={`font-semibold text-sm truncate ${
+                            isCancelled ? "text-gray-600" : "text-gray-900"
+                          }`}
+                        >
                           {inv.customerSnapshot?.name}
                         </span>
-                        {hasProof && (
+                        {isCancelled ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-rose-100 text-rose-700 border border-rose-200 uppercase tracking-wider">
+                            <Ban className="w-2.5 h-2.5" />
+                            Cancelled
+                          </span>
+                        ) : hasProof ? (
                           <span className="px-2 py-0.2 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800 animate-pulse">
                             Proof Pending
                           </span>
-                        )}
+                        ) : null}
                       </div>
 
                       <p className="text-xs text-gray-400 mt-0.5">
@@ -385,45 +419,64 @@ export default function InvoicesListPage() {
                   {/* Financials & Actions */}
                   <div className="flex items-center justify-between sm:justify-end gap-5 shrink-0 self-end sm:self-auto w-full sm:w-auto pt-2 sm:pt-0 border-t sm:border-t-0 border-gray-100">
                     <div className="text-left sm:text-right">
-                      <p className="text-sm font-bold text-gray-900">
+                      <p
+                        className={`text-sm font-bold ${
+                          isCancelled
+                            ? "text-gray-400 line-through"
+                            : "text-gray-900"
+                        }`}
+                      >
                         {formatCurrency(inv.totalAmount)}
                       </p>
                       <p
-                        className={`text-xs font-semibold mt-0.5 ${
-                          inv.balanceDue > 0
-                            ? "text-brand-600"
-                            : "text-emerald-600"
+                        className={`text-xs font-bold mt-0.5 ${
+                          isCancelled
+                            ? "text-rose-600"
+                            : inv.balanceDue > 0
+                              ? "text-brand-600"
+                              : "text-emerald-600"
                         }`}
                       >
-                        {inv.balanceDue > 0
-                          ? `Due: ${formatCurrency(inv.balanceDue)}`
-                          : "Paid in full"}
+                        {isCancelled
+                          ? "Voided"
+                          : inv.balanceDue > 0
+                            ? `Due: ${formatCurrency(inv.balanceDue)}`
+                            : "Paid in full"}
                       </p>
                     </div>
 
                     {/* Quick Link Buttons */}
                     <div className="flex items-center gap-1.5">
-                      <button
-                        type="button"
-                        onClick={(e) => handleCopyLink(e, inv.accessToken)}
-                        className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
-                        title="Copy Live Link"
-                      >
-                        {copiedToken === inv.accessToken ? (
-                          <Check className="w-4 h-4 text-emerald-600" />
-                        ) : (
-                          <Copy className="w-4 h-4" />
-                        )}
-                      </button>
+                      {isCancelled ? (
+                        <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-50 text-rose-500 border border-rose-200/80 select-none">
+                          <Ban className="w-3.5 h-3.5" />
+                          <span className="text-[11px]">Not Sendable</span>
+                        </span>
+                      ) : (
+                        <>
+                          <button
+                            type="button"
+                            onClick={(e) => handleCopyLink(e, inv)}
+                            className="p-2 rounded-lg text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition-colors cursor-pointer"
+                            title="Copy Live Link"
+                          >
+                            {copiedToken === inv.accessToken ? (
+                              <Check className="w-4 h-4 text-emerald-600" />
+                            ) : (
+                              <Copy className="w-4 h-4" />
+                            )}
+                          </button>
 
-                      <button
-                        type="button"
-                        onClick={(e) => handleWhatsAppShare(e, inv)}
-                        className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
-                        title="Share on WhatsApp"
-                      >
-                        <MessageCircle className="w-4 h-4" />
-                      </button>
+                          <button
+                            type="button"
+                            onClick={(e) => handleWhatsAppShare(e, inv)}
+                            className="p-2 rounded-lg text-emerald-600 hover:bg-emerald-50 transition-colors cursor-pointer"
+                            title="Share on WhatsApp"
+                          >
+                            <MessageCircle className="w-4 h-4" />
+                          </button>
+                        </>
+                      )}
 
                       <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-brand-600 transition-colors ml-1 hidden sm:block" />
                     </div>
