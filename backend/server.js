@@ -27,6 +27,7 @@ import customRequestRouter from "./src/routes/customRequest.routes.js";
 import contactRouter from "./src/routes/contact.routes.js";
 import newsletterRouter from "./src/routes/newsletter.routes.js";
 import teamRouter from "./src/routes/team.routes.js";
+import invoiceRouter from "./src/routes/invoice.routes.js";
 
 
 
@@ -118,6 +119,7 @@ app.use("/api/auth", apiLimiter, authRouter);
 app.use("/api/vendor", apiLimiter, vendorRouter);
 app.use("/api/products", apiLimiter, productRouter);
 app.use("/api/orders", apiLimiter, orderRouter);
+app.use("/api/invoices", invoiceRouter);
 app.use("/api/custom-requests", apiLimiter, customRequestRouter);
 app.use("/api/customers", apiLimiter, customerRouter);
 app.use("/api/suppliers", apiLimiter, supplierRouter);

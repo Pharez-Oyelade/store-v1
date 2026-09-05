@@ -1,5 +1,8 @@
 import Subscription, { PLAN_PRICES } from "../models/subscriptionModel.js";
 import Vendor from "../models/vendorModel.js";
+import Invoice from "../models/invoiceModel.js";
+import Order from "../models/orderModel.js";
+import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import {
@@ -140,11 +143,76 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
 
   const event = req.body;
 
-  // Handle specific events (e.g., charge.success for recurring subscriptions)
+  // Handle specific events (e.g., charge.success for recurring subscriptions or invoices)
   if (event.event === "charge.success") {
     const paymentData = event.data;
-    const { vendorId, plan } = paymentData.metadata || {};
+    const metadata = paymentData.metadata || {};
 
+    // ── Branch A: Live Dynamic Invoice Payment ──────────────────────
+    if (metadata.invoiceId) {
+      try {
+        const invoice = await Invoice.findById(metadata.invoiceId);
+        if (invoice) {
+          // Idempotency check: don't process duplicate webhook delivery
+          const alreadyProcessed = invoice.paymentHistory?.some(
+            (p) => p.reference === paymentData.reference
+          );
+
+          if (!alreadyProcessed) {
+            const paidNaira = Number(paymentData.amount) / 100;
+
+            invoice.paymentHistory.push({
+              reference: paymentData.reference,
+              amount: paidNaira,
+              channel: paymentData.channel || "card",
+              paidAt: paymentData.paid_at ? new Date(paymentData.paid_at) : new Date(),
+              verifiedBy: "paystack",
+              status: "success",
+              notes: `Online checkout via ${paymentData.channel || "card"}`,
+            });
+
+            invoice.totalPaid += paidNaira;
+            await invoice.save();
+
+            // Sync linked Order
+            if (invoice.order) {
+              const order = await Order.findById(invoice.order);
+              if (order) {
+                order.depositPaid += paidNaira;
+                if (order.balanceOwed <= 0 && order.status === "pending") {
+                  order.status = "confirmed";
+                }
+                await order.save();
+              }
+            }
+            // Sync linked CustomRequest
+            else if (invoice.customRequest) {
+              const demand = await CustomRequest.findById(invoice.customRequest);
+              if (demand) {
+                demand.depositPaid += paidNaira;
+                if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+                  demand.status = "confirmed";
+                }
+                await demand.save();
+              }
+            }
+
+            // Create notification for vendor
+            await createNotification(invoice.vendor, {
+              title: "Invoice Payment Received",
+              message: `Payment of ₦${paidNaira.toLocaleString()} received for Invoice #${invoice.invoiceNumber}.`,
+              type: "order",
+              actionUrl: `/dashboard/invoices/${invoice._id}`,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("[Invoice Webhook Error]", err);
+      }
+    }
+
+    // ── Branch B: SaaS Subscription Upgrade / Renewal ───────────────
+    const { vendorId, plan } = metadata;
     if (vendorId && plan) {
       await Vendor.findByIdAndUpdate(vendorId, {
         subscriptionPlan: plan,

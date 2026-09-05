@@ -138,6 +138,16 @@ const vendorSchema = new mongoose.Schema(
       },
     },
 
+    /* ── Payout & Settlement Account ────────────────────────── */
+    payoutAccount: {
+      bankName: { type: String, default: "" },
+      bankCode: { type: String, default: "" },
+      accountNumber: { type: String, default: "" },
+      accountName: { type: String, default: "" },
+      paystackSubaccountCode: { type: String, default: "" },
+      isVerified: { type: Boolean, default: false },
+    },
+
     /* ── Password Reset ───────────────────────────────────── */
     passwordResetToken: {
       type: String,
