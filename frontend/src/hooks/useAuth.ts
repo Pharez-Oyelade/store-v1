@@ -3,6 +3,7 @@ import { useRouter, useSearchParams } from "next/navigation";
 import toast from "react-hot-toast";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
+import { getRoleHomePath, isPathAllowedForRole } from "@/lib/rbac";
 import type { AuthUser, LoginCredentials, RegisterPayload } from "@/types";
 
 export const AUTH_QUERY_KEYS = {
@@ -47,13 +48,17 @@ export function useLogin() {
       setInitialized(true);
 
       queryClient.setQueryData(AUTH_QUERY_KEYS.me, vendor);
-      toast.success(`Welcome back, ${vendor.businessName}!`);
+      const displayName = vendor.user?.name || vendor.businessName;
+      toast.success(`Welcome back, ${displayName}!`);
       
+      const userRole = vendor.user?.role || vendor.role || "owner";
       const from = searchParams.get("from");
-      if (from) {
+      if (vendor.role === "admin") {
+        router.push("/admin");
+      } else if (from && isPathAllowedForRole(from, userRole)) {
         router.push(from);
       } else {
-        router.push(vendor.role === "admin" ? "/admin" : "/dashboard");
+        router.push(getRoleHomePath(userRole));
       }
     },
 

@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   AlertTriangle,
@@ -28,9 +30,22 @@ import {
 import { useOrders } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useProducts";
 import { useSupplierSummary } from "@/hooks/useSuppliers";
+import { useAuthStore } from "@/store/authStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
 export default function DashboardPage() {
+  const router = useRouter();
+  const vendor = useAuthStore((s) => s.vendor);
+  const userRole = (vendor?.user?.role || vendor?.role || "owner") as string;
+
+  useEffect(() => {
+    if (userRole === "tailor") {
+      router.replace("/dashboard/demands");
+    } else if (userRole === "sales") {
+      router.replace("/dashboard/orders");
+    }
+  }, [userRole, router]);
+
   const overview = useAnalyticsOverview();
   const revenue = useRevenueSeries("daily");
   const orders = useOrders({ page: 1, limit: 5 });
