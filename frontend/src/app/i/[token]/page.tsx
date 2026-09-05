@@ -42,7 +42,12 @@ export default function PublicInvoicePage() {
   const [transferNotes, setTransferNotes] = useState("");
 
   // Poll every 4 seconds if pending proof or awaiting balance
-  const { data: invoice, isLoading, error, refetch } = usePublicInvoice(token, 4000);
+  const {
+    data: invoice,
+    isLoading,
+    error,
+    refetch,
+  } = usePublicInvoice(token, 4000);
 
   const initPayment = useInitializeInvoicePayment();
   const submitProof = useSubmitManualProof();
@@ -77,9 +82,12 @@ export default function PublicInvoicePage() {
           <div className="w-16 h-16 bg-red-50 text-red-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
             <AlertCircle className="w-8 h-8" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Invoice Not Found</h2>
+          <h2 className="text-xl font-bold text-gray-900 mb-2">
+            Invoice Not Found
+          </h2>
           <p className="text-sm text-gray-600 mb-6">
-            This invoice link is either expired, cancelled, or incorrect. Please contact the vendor for an updated link.
+            This invoice link is either expired, cancelled, or incorrect. Please
+            contact the vendor for an updated link.
           </p>
         </div>
       </div>
@@ -88,8 +96,11 @@ export default function PublicInvoicePage() {
 
   const vendor = typeof invoice.vendor === "object" ? invoice.vendor : null;
   const isPaid = invoice.status === "paid" || invoice.balanceDue <= 0;
-  const isPartiallyPaid = invoice.status === "partially_paid" && invoice.balanceDue > 0;
-  const hasPendingProof = invoice.manualPaymentProofs?.some((p) => p.status === "pending");
+  const isPartiallyPaid =
+    invoice.status === "partially_paid" && invoice.balanceDue > 0;
+  const hasPendingProof = invoice.manualPaymentProofs?.some(
+    (p) => p.status === "pending",
+  );
 
   const handleCopyAccount = (accNumber: string) => {
     navigator.clipboard.writeText(accNumber);
@@ -195,14 +206,14 @@ export default function PublicInvoicePage() {
             {vendor?.phone && (
               <a
                 href={`https://wa.me/${vendor.phone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
-                  `Hi ${vendor.businessName}, I am viewing invoice #${invoice.invoiceNumber}.`
+                  `Hi ${vendor.businessName}, I am viewing invoice #${invoice.invoiceNumber}.`,
                 )}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold shadow-2xs transition-colors"
               >
-                <MessageCircle className="w-4 h-4" />
-                <span>WhatsApp</span>
+                <MessageCircle className="w-4 h-4 text-white" />
+                <span className="text-white">WhatsApp</span>
               </a>
             )}
           </div>
@@ -214,8 +225,8 @@ export default function PublicInvoicePage() {
             isPaid
               ? "bg-gradient-to-r from-emerald-600 to-teal-700"
               : isPartiallyPaid
-              ? "bg-gradient-to-r from-blue-600 to-indigo-700"
-              : "bg-gradient-to-r from-slate-900 to-slate-800"
+                ? "bg-gradient-to-r from-blue-600 to-indigo-700"
+                : "bg-gradient-to-r from-slate-900 to-slate-800"
           }`}
         >
           <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -223,15 +234,18 @@ export default function PublicInvoicePage() {
               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-semibold bg-white/20 backdrop-blur-xs uppercase tracking-wider mb-2">
                 {isPaid ? (
                   <>
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" /> Paid in Full
+                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-200" />{" "}
+                    Paid in Full
                   </>
                 ) : isPartiallyPaid ? (
                   <>
-                    <Clock className="w-3.5 h-3.5 text-blue-200" /> Partially Paid
+                    <Clock className="w-3.5 h-3.5 text-blue-200" /> Partially
+                    Paid
                   </>
                 ) : (
                   <>
-                    <FileText className="w-3.5 h-3.5 text-amber-300" /> Payment Due
+                    <FileText className="w-3.5 h-3.5 text-amber-300" /> Payment
+                    Due
                   </>
                 )}
               </span>
@@ -243,7 +257,8 @@ export default function PublicInvoicePage() {
 
               {invoice.totalPaid > 0 && (
                 <p className="text-xs text-white/80 mt-1">
-                  Paid so far: {formatCurrency(invoice.totalPaid)} of {formatCurrency(invoice.totalAmount)}
+                  Paid so far: {formatCurrency(invoice.totalPaid)} of{" "}
+                  {formatCurrency(invoice.totalAmount)}
                 </p>
               )}
             </div>
@@ -259,7 +274,9 @@ export default function PublicInvoicePage() {
             ) : hasPendingProof ? (
               <div className="px-3.5 py-2 rounded-xl bg-amber-500/30 border border-amber-300/40 text-xs text-amber-100 flex items-center gap-2">
                 <Clock className="w-4 h-4 text-amber-300 animate-pulse" />
-                <span>Transfer proof submitted & awaiting vendor verification</span>
+                <span>
+                  Transfer proof submitted & awaiting vendor verification
+                </span>
               </div>
             ) : null}
           </div>
@@ -300,12 +317,17 @@ export default function PublicInvoicePage() {
         {/* Itemized Order Details */}
         <div className="bg-white rounded-3xl shadow-sm border border-gray-200/70 overflow-hidden">
           <div className="p-6 border-b border-gray-100">
-            <h3 className="text-sm font-bold text-gray-900">Itemized Breakdown</h3>
+            <h3 className="text-sm font-bold text-gray-900">
+              Itemized Breakdown
+            </h3>
           </div>
 
           <div className="divide-y divide-gray-100">
             {invoice.items.map((item, idx) => (
-              <div key={idx} className="p-5 flex items-start justify-between gap-4">
+              <div
+                key={idx}
+                className="p-5 flex items-start justify-between gap-4"
+              >
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-semibold text-gray-900">
                     {item.description}
@@ -340,7 +362,11 @@ export default function PublicInvoicePage() {
             )}
             <div className="pt-2 border-t border-gray-200 flex justify-between text-base font-extrabold text-gray-900">
               <span>Balance Outstanding</span>
-              <span className={invoice.balanceDue > 0 ? "text-brand-600" : "text-emerald-600"}>
+              <span
+                className={
+                  invoice.balanceDue > 0 ? "text-brand-600" : "text-emerald-600"
+                }
+              >
                 {formatCurrency(invoice.balanceDue)}
               </span>
             </div>
@@ -365,7 +391,8 @@ export default function PublicInvoicePage() {
                       {formatCurrency(pmt.amount)}
                     </p>
                     <p className="text-gray-500 text-[11px] mt-0.5">
-                      {formatDate(pmt.paidAt)} • via {pmt.channel.replace("_", " ")}
+                      {formatDate(pmt.paidAt)} • via{" "}
+                      {pmt.channel.replace("_", " ")}
                     </p>
                   </div>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
@@ -380,7 +407,9 @@ export default function PublicInvoicePage() {
         {/* Payment Action Hub (Only if balance is due) */}
         {!isPaid && (
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200/70 space-y-6">
-            <h3 className="text-sm font-bold text-gray-900">Choose Payment Method</h3>
+            <h3 className="text-sm font-bold text-gray-900">
+              Choose Payment Method
+            </h3>
 
             {/* Payment Method Tabs */}
             <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-2xl">
@@ -394,7 +423,7 @@ export default function PublicInvoicePage() {
                 }`}
               >
                 <CreditCard className="w-4 h-4 text-brand-600" />
-                <span>Card / USSD / Online</span>
+                <span>Card / Online</span>
               </button>
               <button
                 type="button"
@@ -421,7 +450,7 @@ export default function PublicInvoicePage() {
                   value={customPayAmount}
                   onChange={(e) =>
                     setCustomPayAmount(
-                      e.target.value === "" ? "" : Number(e.target.value)
+                      e.target.value === "" ? "" : Number(e.target.value),
                     )
                   }
                   max={invoice.balanceDue}
@@ -433,7 +462,9 @@ export default function PublicInvoicePage() {
                   invoice.depositRequired < invoice.balanceDue && (
                     <button
                       type="button"
-                      onClick={() => setCustomPayAmount(invoice.depositRequired)}
+                      onClick={() =>
+                        setCustomPayAmount(invoice.depositRequired)
+                      }
                       className="px-3 py-2 text-xs font-semibold rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 transition-colors cursor-pointer"
                     >
                       Deposit ({formatCurrency(invoice.depositRequired)})
@@ -453,7 +484,8 @@ export default function PublicInvoicePage() {
             {activeTab === "card" && (
               <div className="space-y-4">
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  Fast and automated. Pay with your Debit Card, USSD code, or Paystack Bank Transfer. Your balance updates instantly.
+                  Fast and automated. Pay with your Debit Card, USSD code, or
+                  Paystack Bank Transfer. Your balance updates instantly.
                 </p>
                 <button
                   type="button"
@@ -470,7 +502,11 @@ export default function PublicInvoicePage() {
                     <>
                       <CreditCard className="w-4 h-4" />
                       <span>
-                        Pay {formatCurrency(Number(customPayAmount) || invoice.balanceDue)} Online
+                        Pay{" "}
+                        {formatCurrency(
+                          Number(customPayAmount) || invoice.balanceDue,
+                        )}{" "}
+                        Online
                       </span>
                     </>
                   )}
@@ -491,7 +527,9 @@ export default function PublicInvoicePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Account Number</span>
+                      <span className="text-xs text-gray-500">
+                        Account Number
+                      </span>
                       <div className="flex items-center gap-2">
                         <span className="text-sm font-mono font-bold text-brand-700 tracking-wider">
                           {vendor.payoutAccount.accountNumber}
@@ -499,7 +537,9 @@ export default function PublicInvoicePage() {
                         <button
                           type="button"
                           onClick={() =>
-                            handleCopyAccount(vendor.payoutAccount!.accountNumber)
+                            handleCopyAccount(
+                              vendor.payoutAccount!.accountNumber,
+                            )
                           }
                           className="p-1.5 rounded-lg bg-white border border-gray-200 hover:bg-gray-50 text-gray-700 transition-colors cursor-pointer"
                           title="Copy Account Number"
@@ -514,7 +554,9 @@ export default function PublicInvoicePage() {
                     </div>
 
                     <div className="flex items-center justify-between">
-                      <span className="text-xs text-gray-500">Account Name</span>
+                      <span className="text-xs text-gray-500">
+                        Account Name
+                      </span>
                       <span className="text-xs font-bold text-gray-900">
                         {vendor.payoutAccount.accountName}
                       </span>
@@ -522,12 +564,15 @@ export default function PublicInvoicePage() {
                   </div>
                 ) : (
                   <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200 text-xs text-amber-800">
-                    The vendor has not connected a bank account yet. Please contact them directly via WhatsApp or phone.
+                    The vendor has not connected a bank account yet. Please
+                    contact them directly via WhatsApp or phone.
                   </div>
                 )}
 
                 <p className="text-xs text-gray-500 leading-relaxed">
-                  After transferring from your banking app, tap the button below to notify the vendor so they can confirm and credit your invoice.
+                  After transferring from your banking app, tap the button below
+                  to notify the vendor so they can confirm and credit your
+                  invoice.
                 </p>
 
                 <button
@@ -548,13 +593,17 @@ export default function PublicInvoicePage() {
           <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200/70 space-y-3 text-xs text-gray-500">
             {invoice.notes && (
               <div>
-                <span className="font-bold text-gray-700 block mb-1">Notes:</span>
+                <span className="font-bold text-gray-700 block mb-1">
+                  Notes:
+                </span>
                 <p className="leading-relaxed">{invoice.notes}</p>
               </div>
             )}
             {invoice.terms && (
               <div className="pt-2 border-t border-gray-100">
-                <span className="font-bold text-gray-700 block mb-1">Terms:</span>
+                <span className="font-bold text-gray-700 block mb-1">
+                  Terms:
+                </span>
                 <p className="leading-relaxed">{invoice.terms}</p>
               </div>
             )}
@@ -563,7 +612,8 @@ export default function PublicInvoicePage() {
 
         {/* Powered by Vendra Footer */}
         <div className="text-center py-4 text-xs text-gray-400">
-          Powered by <span className="font-bold text-brand-600">Vendra</span> — Live Commerce & Order Management
+          Powered by <span className="font-bold text-brand-600">Vendra</span> —
+          Live Commerce & Order Management
         </div>
       </div>
 
@@ -575,7 +625,8 @@ export default function PublicInvoicePage() {
               Submit Bank Transfer Proof
             </h3>
             <p className="text-xs text-gray-500 mb-4">
-              Let {vendor?.businessName} know you have sent funds so they can verify your payment.
+              Let {vendor?.businessName} know you have sent funds so they can
+              verify your payment.
             </p>
 
             <form onSubmit={handleProofSubmit} className="space-y-4">
@@ -588,7 +639,7 @@ export default function PublicInvoicePage() {
                   value={customPayAmount}
                   onChange={(e) =>
                     setCustomPayAmount(
-                      e.target.value === "" ? "" : Number(e.target.value)
+                      e.target.value === "" ? "" : Number(e.target.value),
                     )
                   }
                   required

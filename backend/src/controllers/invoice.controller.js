@@ -33,6 +33,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
     items,
     totalAmount,
     depositRequired,
+    initialPaid,
     dueDate,
     notes,
     terms,
@@ -41,9 +42,11 @@ export const createInvoice = asyncHandler(async (req, res) => {
   let invoiceItems = [];
   let invoiceTotal = 0;
   let invoiceDeposit = 0;
+  let priorPaidAmount = 0;
   let invoiceCustomer = { name: "", phone: "", email: "", address: "" };
   let linkedOrder = null;
   let linkedCustomRequest = null;
+  const initialPayments = [];
 
   // 1. If generated from an existing Order
   if (orderId) {
@@ -67,8 +70,22 @@ export const createInvoice = asyncHandler(async (req, res) => {
       subtotal: (item.price || 0) * (item.quantity || 1),
     }));
 
-    invoiceTotal = linkedOrder.totalAmount;
-    invoiceDeposit = linkedOrder.depositPaid || 0;
+    invoiceTotal = linkedOrder.totalAmount || 0;
+    // Prior payment already paid outside the invoice
+    priorPaidAmount = initialPaid !== undefined ? Math.max(0, Number(initialPaid)) : (linkedOrder.depositPaid || 0);
+    invoiceDeposit = priorPaidAmount;
+
+    if (priorPaidAmount > 0) {
+      initialPayments.push({
+        reference: `PREV-ORD-${linkedOrder._id.toString().slice(-6).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+        amount: priorPaidAmount,
+        channel: "manual_transfer",
+        verifiedBy: "vendor_manual",
+        status: "success",
+        notes: "Prior deposit / payment recorded on linked order prior to invoice generation",
+        paidAt: linkedOrder.createdAt || new Date(),
+      });
+    }
   }
   // 2. If generated from an existing Custom Bespoke Request / Demand
   else if (customRequestId) {
@@ -87,18 +104,33 @@ export const createInvoice = asyncHandler(async (req, res) => {
       address: "",
     };
 
+    const bespokePrice = linkedCustomRequest.agreedPrice || linkedCustomRequest.estimatedPrice || 0;
+
     invoiceItems = [
       {
         description: `Bespoke Tailoring: ${linkedCustomRequest.title || "Custom Garment"}`,
-        variantLabel: linkedCustomRequest.fabricSource === "vendor" ? "Fabric Supplied by Tailor" : "Fabric Supplied by Customer",
+        variantLabel: linkedCustomRequest.category ? `Category: ${linkedCustomRequest.category}` : "Bespoke Garment",
         quantity: 1,
-        unitPrice: linkedCustomRequest.agreedValue || 0,
-        subtotal: linkedCustomRequest.agreedValue || 0,
+        unitPrice: bespokePrice,
+        subtotal: bespokePrice,
       },
     ];
 
-    invoiceTotal = linkedCustomRequest.agreedValue || 0;
-    invoiceDeposit = linkedCustomRequest.depositPaid || 0;
+    invoiceTotal = bespokePrice;
+    priorPaidAmount = initialPaid !== undefined ? Math.max(0, Number(initialPaid)) : (linkedCustomRequest.depositPaid || 0);
+    invoiceDeposit = priorPaidAmount;
+
+    if (priorPaidAmount > 0) {
+      initialPayments.push({
+        reference: `PREV-DEM-${linkedCustomRequest._id.toString().slice(-6).toUpperCase()}-${Date.now().toString().slice(-4)}`,
+        amount: priorPaidAmount,
+        channel: "manual_transfer",
+        verifiedBy: "vendor_manual",
+        status: "success",
+        notes: "Prior deposit recorded on bespoke tailoring demand prior to invoice generation",
+        paidAt: linkedCustomRequest.createdAt || new Date(),
+      });
+    }
   }
   // 3. Custom Line Items from merchant scratch
   else {
@@ -133,11 +165,32 @@ export const createInvoice = asyncHandler(async (req, res) => {
         ? Number(totalAmount)
         : invoiceItems.reduce((acc, i) => acc + i.subtotal, 0);
 
-    invoiceDeposit = Number(depositRequired) || 0;
+    priorPaidAmount = Math.max(0, Number(initialPaid || 0));
+    invoiceDeposit = Number(depositRequired || priorPaidAmount || 0);
+
+    if (priorPaidAmount > 0) {
+      initialPayments.push({
+        reference: `INIT-CUST-${Date.now().toString().slice(-6)}`,
+        amount: priorPaidAmount,
+        channel: "manual_transfer",
+        verifiedBy: "vendor_manual",
+        status: "success",
+        notes: "Initial payment / deposit credited upon invoice creation",
+        paidAt: new Date(),
+      });
+    }
   }
 
   const invoiceNumber = await generateInvoiceNumber(req.vendor._id);
   const accessToken = generateAccessToken();
+
+  const balanceDue = Math.max(0, invoiceTotal - priorPaidAmount);
+  const invoiceStatus =
+    balanceDue <= 0 && invoiceTotal > 0
+      ? "paid"
+      : priorPaidAmount > 0
+      ? "partially_paid"
+      : "issued";
 
   const invoice = await Invoice.create({
     vendor: req.vendor._id,
@@ -149,8 +202,10 @@ export const createInvoice = asyncHandler(async (req, res) => {
     items: invoiceItems,
     totalAmount: invoiceTotal,
     depositRequired: invoiceDeposit,
-    totalPaid: 0,
-    balanceDue: invoiceTotal,
+    totalPaid: priorPaidAmount,
+    balanceDue,
+    status: invoiceStatus,
+    paymentHistory: initialPayments,
     dueDate: dueDate ? new Date(dueDate) : null,
     notes: notes?.trim() || "",
     terms: terms?.trim() || undefined,

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -19,6 +19,7 @@ import {
   Landmark,
   ArrowRight,
   AlertCircle,
+  CheckCircle2,
 } from "lucide-react";
 import { useCreateInvoice, usePayoutAccount } from "@/hooks/useInvoices";
 import { useOrders } from "@/hooks/useOrders";
@@ -61,7 +62,9 @@ export default function NewInvoicePage() {
   ]);
 
   // Financial Settings
+  const [alreadyPaid, setAlreadyPaid] = useState<number | "">("");
   const [depositRequired, setDepositRequired] = useState<number | "">("");
+  const [onlyUnpaid, setOnlyUnpaid] = useState(true);
   const [dueDate, setDueDate] = useState("");
   const [notes, setNotes] = useState("");
   const [terms, setTerms] = useState(
@@ -69,12 +72,40 @@ export default function NewInvoicePage() {
   );
 
   // Queries for linked selections
-  const ordersQuery = useOrders({ limit: 30 });
-  const demandsQuery = useCustomRequests({ limit: 30 });
+  const ordersQuery = useOrders({ limit: 50 });
+  const demandsQuery = useCustomRequests({ limit: 50 });
   const payoutQuery = usePayoutAccount();
   const isBankLinked = Boolean(
     payoutQuery.data?.isVerified && payoutQuery.data?.paystackSubaccountCode
   );
+
+  // Filter only unpaid/incomplete orders & demands
+  const eligibleOrders = useMemo(() => {
+    const all = ordersQuery.data?.orders || [];
+    if (!onlyUnpaid) return all;
+    return all.filter((o) => {
+      const paid = o.depositPaid || 0;
+      const balance =
+        o.balanceOwed !== undefined
+          ? o.balanceOwed
+          : Math.max(0, o.totalAmount - paid);
+      return balance > 0;
+    });
+  }, [ordersQuery.data?.orders, onlyUnpaid]);
+
+  const eligibleDemands = useMemo(() => {
+    const all = demandsQuery.data?.requests || [];
+    if (!onlyUnpaid) return all;
+    return all.filter((d) => {
+      const total = d.agreedPrice || d.estimatedPrice || 0;
+      const paid = d.depositPaid || 0;
+      const balance =
+        d.balanceOwed !== undefined
+          ? d.balanceOwed
+          : Math.max(0, total - paid);
+      return balance > 0;
+    });
+  }, [demandsQuery.data?.requests, onlyUnpaid]);
 
   // Handle auto-population from an Order
   useEffect(() => {
@@ -95,7 +126,8 @@ export default function NewInvoicePage() {
           }))
         );
 
-        setDepositRequired(ord.depositPaid || "");
+        setAlreadyPaid(ord.depositPaid || 0);
+        setDepositRequired(0);
       }
     }
   }, [mode, selectedOrderId, ordersQuery.data]);
@@ -122,7 +154,8 @@ export default function NewInvoicePage() {
           },
         ]);
 
-        setDepositRequired(d.depositPaid || "");
+        setAlreadyPaid(d.depositPaid || 0);
+        setDepositRequired(0);
         if (d.deadline) {
           setDueDate(new Date(d.deadline).toISOString().split("T")[0]);
         }
@@ -130,12 +163,15 @@ export default function NewInvoicePage() {
     }
   }, [mode, selectedDemandId, demandsQuery.data]);
 
-  // Calculate dynamic total
+  // Calculate dynamic totals
   const calculatedTotal = items.reduce(
     (sum, item) =>
       sum + (Number(item.quantity) || 0) * (Number(item.unitPrice) || 0),
     0
   );
+
+  const currentPaid = Number(alreadyPaid) || 0;
+  const netBalanceDue = Math.max(0, calculatedTotal - currentPaid);
 
   const addItem = () => {
     setItems((prev) => [
@@ -187,6 +223,7 @@ export default function NewInvoicePage() {
           unitPrice: Number(i.unitPrice) || 0,
         })),
         totalAmount: calculatedTotal,
+        initialPaid: currentPaid,
         depositRequired: Number(depositRequired) || 0,
         dueDate: dueDate || undefined,
         notes: notes.trim(),
@@ -300,42 +337,107 @@ export default function NewInvoicePage() {
 
           {/* Source Dropdowns */}
           {mode === "from_order" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Select Existing Order
-              </label>
-              <select
-                value={selectedOrderId}
-                onChange={(e) => setSelectedOrderId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
-              >
-                <option value="">-- Choose an order --</option>
-                {ordersQuery.data?.orders?.map((o) => (
-                  <option key={o._id} value={o._id}>
-                    {o.customerSnapshot?.name} — {formatCurrency(o.totalAmount)} ({o.items?.length || 1} items)
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-gray-700">
+                  Select Existing Order
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-gray-500 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={onlyUnpaid}
+                    onChange={(e) => setOnlyUnpaid(e.target.checked)}
+                    className="rounded text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>Show only unpaid / incomplete orders</span>
+                </label>
+              </div>
+
+              {ordersQuery.isLoading ? (
+                <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-400 flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin text-brand-600" />
+                  <span>Loading orders...</span>
+                </div>
+              ) : (
+                <select
+                  value={selectedOrderId}
+                  onChange={(e) => setSelectedOrderId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                >
+                  <option value="">-- Choose an order --</option>
+                  {eligibleOrders.length === 0 ? (
+                    <option value="" disabled>
+                      No unpaid or incomplete orders found
+                    </option>
+                  ) : (
+                    eligibleOrders.map((o) => {
+                      const paid = o.depositPaid || 0;
+                      const balance =
+                        o.balanceOwed !== undefined
+                          ? o.balanceOwed
+                          : Math.max(0, o.totalAmount - paid);
+                      return (
+                        <option key={o._id} value={o._id}>
+                          {o.customerSnapshot?.name} — Total: {formatCurrency(o.totalAmount)} | Paid: {formatCurrency(paid)} | Balance Due: {formatCurrency(balance)}
+                        </option>
+                      );
+                    })
+                  )}
+                </select>
+              )}
             </div>
           )}
 
           {mode === "from_demand" && (
-            <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Select Bespoke Demand
-              </label>
-              <select
-                value={selectedDemandId}
-                onChange={(e) => setSelectedDemandId(e.target.value)}
-                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
-              >
-                <option value="">-- Choose a bespoke demand --</option>
-                {demandsQuery.data?.requests?.map((d) => (
-                  <option key={d._id} value={d._id}>
-                    {d.customerSnapshot?.name} — {d.title} ({formatCurrency(d.agreedPrice || d.estimatedPrice)})
-                  </option>
-                ))}
-              </select>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-gray-700">
+                  Select Bespoke Demand
+                </label>
+                <label className="flex items-center gap-1.5 text-[11px] text-gray-500 cursor-pointer select-none">
+                  <input
+                    type="checkbox"
+                    checked={onlyUnpaid}
+                    onChange={(e) => setOnlyUnpaid(e.target.checked)}
+                    className="rounded text-brand-600 focus:ring-brand-500"
+                  />
+                  <span>Show only unpaid / incomplete demands</span>
+                </label>
+              </div>
+
+              {demandsQuery.isLoading ? (
+                <div className="p-3 bg-gray-50 rounded-xl text-xs text-gray-400 flex items-center gap-2">
+                  <Loader2 className="size-4 animate-spin text-brand-600" />
+                  <span>Loading bespoke demands...</span>
+                </div>
+              ) : (
+                <select
+                  value={selectedDemandId}
+                  onChange={(e) => setSelectedDemandId(e.target.value)}
+                  className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                >
+                  <option value="">-- Choose a bespoke demand --</option>
+                  {eligibleDemands.length === 0 ? (
+                    <option value="" disabled>
+                      No unpaid or incomplete bespoke demands found
+                    </option>
+                  ) : (
+                    eligibleDemands.map((d) => {
+                      const total = d.agreedPrice || d.estimatedPrice || 0;
+                      const paid = d.depositPaid || 0;
+                      const balance =
+                        d.balanceOwed !== undefined
+                          ? d.balanceOwed
+                          : Math.max(0, total - paid);
+                      return (
+                        <option key={d._id} value={d._id}>
+                          {d.customerSnapshot?.name} — {d.title} | Total: {formatCurrency(total)} | Paid: {formatCurrency(paid)} | Balance Due: {formatCurrency(balance)}
+                        </option>
+                      );
+                    })
+                  )}
+                </select>
+              )}
             </div>
           )}
         </div>
@@ -503,12 +605,42 @@ export default function NewInvoicePage() {
             ))}
           </div>
 
-          {/* Subtotal Banner */}
-          <div className="flex justify-between items-center pt-3 border-t border-gray-100">
-            <span className="text-sm font-bold text-gray-700">Total Amount:</span>
-            <span className="text-xl font-extrabold text-gray-900">
-              {formatCurrency(calculatedTotal)}
-            </span>
+          {/* Subtotal & Balance Breakdown */}
+          <div className="pt-3 border-t border-gray-100 space-y-2">
+            <div className="flex justify-between items-center text-xs text-gray-500">
+              <span>Total Items Amount:</span>
+              <span className="font-semibold text-gray-900">{formatCurrency(calculatedTotal)}</span>
+            </div>
+
+            {Number(alreadyPaid) > 0 && (
+              <div className="flex justify-between items-center text-xs text-emerald-600 font-semibold">
+                <span>Less: Already Paid (Prior Deposit Credited):</span>
+                <span>- {formatCurrency(Number(alreadyPaid))}</span>
+              </div>
+            )}
+
+            <div className="flex justify-between items-center pt-2 border-t border-dashed border-gray-200">
+              <div>
+                <span className="text-sm font-bold text-gray-900">Balance Due on Invoice:</span>
+                <p className="text-[11px] text-gray-400">Net outstanding balance customer will be billed</p>
+              </div>
+              <span
+                className={`text-xl font-extrabold ${
+                  netBalanceDue > 0 ? "text-brand-600" : "text-emerald-600"
+                }`}
+              >
+                {formatCurrency(netBalanceDue)}
+              </span>
+            </div>
+
+            {netBalanceDue === 0 && calculatedTotal > 0 && (
+              <div className="p-3 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-medium flex items-center gap-2 border border-emerald-200 mt-1">
+                <CheckCircle2 className="size-4 shrink-0 text-emerald-600" />
+                <span>
+                  This order is already <strong>Fully Paid</strong>. If you issue this invoice, it will be marked as <strong>Paid in Full</strong> with ₦0 remaining balance.
+                </span>
+              </div>
+            )}
           </div>
         </div>
 
@@ -518,26 +650,48 @@ export default function NewInvoicePage() {
             Payment Terms & Due Date
           </h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <label className="block text-xs font-semibold text-gray-700 mb-1">
-                Minimum Deposit Required (₦)
+                Already Paid / Prior Deposit (₦)
               </label>
               <input
                 type="number"
                 min="0"
                 max={calculatedTotal}
+                value={alreadyPaid}
+                onChange={(e) =>
+                  setAlreadyPaid(
+                    e.target.value === "" ? "" : Number(e.target.value)
+                  )
+                }
+                placeholder="0"
+                className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
+              />
+              <p className="text-[11px] text-gray-400 mt-1">
+                Paid outside this invoice (cash, POS, or transfer). Credited against total.
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-gray-700 mb-1">
+                Min. Upfront Deposit Required (₦)
+              </label>
+              <input
+                type="number"
+                min="0"
+                max={netBalanceDue}
                 value={depositRequired}
                 onChange={(e) =>
                   setDepositRequired(
                     e.target.value === "" ? "" : Number(e.target.value)
                   )
                 }
-                placeholder="e.g. 25000 (leave empty for full payment)"
+                placeholder="0 (leave empty for full balance)"
                 className="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none"
               />
               <p className="text-[11px] text-gray-400 mt-1">
-                Customers can pay this deposit upfront, and pay the remaining balance later using the same link.
+                Minimum upfront payment customer can make before paying remainder.
               </p>
             </div>
 

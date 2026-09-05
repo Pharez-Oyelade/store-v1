@@ -867,6 +867,7 @@ export interface CreateInvoicePayload {
   }[];
   totalAmount?: number | string;
   depositRequired?: number | string;
+  initialPaid?: number | string;
   dueDate?: string;
   notes?: string;
   terms?: string;
