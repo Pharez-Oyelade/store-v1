@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 
 export interface BeforeInstallPromptEvent extends Event {
   readonly platforms: string[];
@@ -14,17 +14,56 @@ export interface BeforeInstallPromptEvent extends Event {
 const STORAGE_KEY = "vendra_pwa_dismissed_until";
 const COOLDOWN_DAYS = 7;
 
+// Module-level cache so deferredPrompt survives route changes and component remounts
+let cachedPromptEvent: BeforeInstallPromptEvent | null = null;
+
+function isCurrentlyDismissed(): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const item = localStorage.getItem(STORAGE_KEY);
+    if (!item) return false;
+    const expiresAt = Number(item);
+    return !isNaN(expiresAt) && expiresAt > Date.now();
+  } catch {
+    return false;
+  }
+}
+
 export function usePWAInstall() {
   const [deferredPrompt, setDeferredPrompt] =
-    useState<BeforeInstallPromptEvent | null>(null);
+    useState<BeforeInstallPromptEvent | null>(cachedPromptEvent);
   const [isInstalled, setIsInstalled] = useState(false);
   const [isIOS, setIsIOS] = useState(false);
-  const [isInstallable, setIsInstallable] = useState(false);
+  const [isInstallable, setIsInstallable] = useState(!!cachedPromptEvent);
   const [showBanner, setShowBanner] = useState(false);
   const [showIOSInstructions, setShowIOSInstructions] = useState(false);
 
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Helper to safely clear any scheduled banner timer
+  const clearBannerTimer = useCallback(() => {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
+    }
+  }, []);
+
+  // Dismiss with cooldown
+  const dismissBanner = useCallback(
+    (days = COOLDOWN_DAYS) => {
+      clearBannerTimer();
+      const until = Date.now() + days * 24 * 60 * 60 * 1000;
+      try {
+        localStorage.setItem(STORAGE_KEY, until.toString());
+      } catch {
+        // Ignore storage errors
+      }
+      setShowBanner(false);
+    },
+    [clearBannerTimer]
+  );
+
   useEffect(() => {
-    // Only run in browser
     if (typeof window === "undefined") return;
 
     // 1. Check if already installed / running in standalone mode
@@ -35,6 +74,8 @@ export function usePWAInstall() {
 
     if (isStandalone) {
       setIsInstalled(true);
+      setShowBanner(false);
+      clearBannerTimer();
       return;
     }
 
@@ -50,58 +91,75 @@ export function usePWAInstall() {
       setIsIOS(true);
       if (isSafari && !isStandalone) {
         setIsInstallable(true);
+
+        // Schedule banner for iOS Safari only if not dismissed
+        if (!isCurrentlyDismissed()) {
+          clearBannerTimer();
+          timerRef.current = setTimeout(() => {
+            if (!isCurrentlyDismissed()) {
+              setShowBanner(true);
+            }
+          }, 3000);
+        }
       }
     }
 
-    // 3. Check if user recently dismissed the banner
-    const dismissedUntil = localStorage.getItem(STORAGE_KEY);
-    const isDismissed =
-      dismissedUntil !== null && Number(dismissedUntil) > Date.now();
-
-    // 4. Capture Chromium / Android `beforeinstallprompt`
+    // 3. Capture Chromium / Android `beforeinstallprompt`
     const handleBeforeInstallPrompt = (e: Event) => {
       e.preventDefault();
       const promptEvent = e as BeforeInstallPromptEvent;
+      cachedPromptEvent = promptEvent;
       setDeferredPrompt(promptEvent);
       setIsInstallable(true);
 
-      // UX Guideline: Delay prompt appearance by 3s to not interrupt initial page load
-      if (!isDismissed) {
-        const timer = setTimeout(() => {
-          setShowBanner(true);
+      // Schedule banner display only if not already dismissed in localStorage
+      if (!isCurrentlyDismissed()) {
+        clearBannerTimer();
+        timerRef.current = setTimeout(() => {
+          if (!isCurrentlyDismissed()) {
+            setShowBanner(true);
+          }
         }, 3000);
-        return () => clearTimeout(timer);
       }
     };
 
-    // 5. If iOS Safari and not dismissed, also show after delay
-    if (isIosDevice && isSafari && !isDismissed && !isStandalone) {
-      const timer = setTimeout(() => {
-        setShowBanner(true);
-      }, 3500);
-      return () => clearTimeout(timer);
+    // If cached prompt already existed from earlier event
+    if (cachedPromptEvent && !isCurrentlyDismissed()) {
+      clearBannerTimer();
+      timerRef.current = setTimeout(() => {
+        if (!isCurrentlyDismissed()) {
+          setShowBanner(true);
+        }
+      }, 3000);
     }
 
-    // 6. Listen for successful installation event
+    // 4. Listen for successful installation
     const handleAppInstalled = () => {
       setIsInstalled(true);
       setIsInstallable(false);
       setShowBanner(false);
       setDeferredPrompt(null);
-      localStorage.removeItem(STORAGE_KEY);
+      cachedPromptEvent = null;
+      clearBannerTimer();
+      try {
+        localStorage.removeItem(STORAGE_KEY);
+      } catch {
+        // Ignore storage errors
+      }
     };
 
     window.addEventListener("beforeinstallprompt", handleBeforeInstallPrompt);
     window.addEventListener("appinstalled", handleAppInstalled);
 
     return () => {
+      clearBannerTimer();
       window.removeEventListener(
         "beforeinstallprompt",
         handleBeforeInstallPrompt
       );
       window.removeEventListener("appinstalled", handleAppInstalled);
     };
-  }, []);
+  }, [clearBannerTimer]);
 
   // Trigger the installation flow
   const promptInstall = useCallback(async (): Promise<boolean> => {
@@ -110,21 +168,23 @@ export function usePWAInstall() {
       return false;
     }
 
-    if (!deferredPrompt) {
+    const prompt = deferredPrompt || cachedPromptEvent;
+    if (!prompt) {
       return false;
     }
 
     try {
-      await deferredPrompt.prompt();
-      const choiceResult = await deferredPrompt.userChoice;
+      await prompt.prompt();
+      const choiceResult = await prompt.userChoice;
 
       if (choiceResult.outcome === "accepted") {
         setIsInstalled(true);
         setShowBanner(false);
         setDeferredPrompt(null);
+        cachedPromptEvent = null;
         return true;
       } else {
-        // User clicked cancel on native dialog, dismiss for cooldown
+        // User cancelled native dialog, dismiss for 3 days cooldown
         dismissBanner(3);
         return false;
       }
@@ -132,18 +192,7 @@ export function usePWAInstall() {
       console.error("[PWA] Error triggering install prompt:", err);
       return false;
     }
-  }, [deferredPrompt, isIOS]);
-
-  // Dismiss with cooldown
-  const dismissBanner = useCallback((days = COOLDOWN_DAYS) => {
-    const until = Date.now() + days * 24 * 60 * 60 * 1000;
-    try {
-      localStorage.setItem(STORAGE_KEY, until.toString());
-    } catch {
-      // Ignore storage errors
-    }
-    setShowBanner(false);
-  }, []);
+  }, [deferredPrompt, isIOS, dismissBanner]);
 
   return {
     isInstallable,
