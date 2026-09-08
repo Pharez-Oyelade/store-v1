@@ -193,6 +193,14 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
+                    <span>Up to <b>3</b> suppliers & fabric debt tracking</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>7-Day basic sales snapshot analytics</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
                     <span>WhatsApp 1-click customer dispatch</span>
                   </div>
                   <div className="flex gap-2 items-center">
@@ -218,7 +226,7 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Supplier debt & fabric material tracking</span>
+                    <span>Unlimited supplier debt & fabric material tracking</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
@@ -226,11 +234,15 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Revenue analytics & reports</span>
+                    <span>12-Month revenue analytics & slow movers</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>3 Team seats</span>
+                    <span>Orders CSV data export</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>3 Team seats (Role-based access)</span>
                   </div>
                 </div>
               )}
@@ -241,35 +253,39 @@ const page = () => {
                 <div className="space-y-5 text-sm">
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Unlimited products</span>
+                    <span>Unlimited products & styles</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Unlimited orders</span>
+                    <span>Unlimited orders & bespoke demands</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Unlimited customers</span>
+                    <span>Unlimited customers & measurement history</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span>Full revenue dashboard</span>
+                    <span>Full Atelier BI & workshop command center</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Bespoke vs RTW revenue split analysis</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Tailor turnaround & workshop productivity</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Gross operating margins & unit economics</span>
+                  </div>
+                  <div className="flex gap-2 items-center">
+                    <Check color="#16a34a" size={18} />{" "}
+                    <span>Full CSV export suite (Orders, Financials, Clients, Stock)</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
                     <span>Priority WhatsApp + call support</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>Full purchase history & notes</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>Low stock alert + auto-reorder drafts</span>
-                  </div>
-                  <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>Branded storefront + custom domain</span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}

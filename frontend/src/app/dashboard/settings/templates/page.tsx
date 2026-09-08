@@ -48,6 +48,7 @@ export default function SocialTemplatesPage() {
   });
 
   const isPremium =
+    profile?.subscriptionPlan === "drape" ||
     profile?.subscriptionPlan === "atelier" ||
     profile?.subscriptionPlan === "maison";
 
@@ -98,10 +99,10 @@ export default function SocialTemplatesPage() {
             </div>
             <h3 className="text-xl font-bold mb-2">Premium Feature</h3>
             <p className="text-gray-600 dark:text-gray-400 mb-6">
-              Custom social messaging templates are available on The Atelier and
+              Custom social messaging templates are available on The Drape, The Atelier, and
               The Maison plans. Upgrade to unlock this feature.
             </p>
-            <Link href="/dashboard/settings">
+            <Link href="/dashboard/settings?tab=billing">
               <Button className="w-full">Upgrade Plan</Button>
             </Link>
           </div>

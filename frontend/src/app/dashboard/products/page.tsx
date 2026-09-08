@@ -2,7 +2,15 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { Edit, PackagePlus, Search, Trash2, AlertCircle, Package, Image as ImageIcon } from "lucide-react";
+import {
+  Edit,
+  PackagePlus,
+  Search,
+  Trash2,
+  AlertCircle,
+  Package,
+  Image as ImageIcon,
+} from "lucide-react";
 
 import Input from "@/components/ui/Input";
 import {
@@ -18,7 +26,12 @@ import {
   useUpdateProduct,
 } from "@/hooks/useProducts";
 import { formatCurrency, formatDate } from "@/lib/utils";
-import { ProductStatus, SubscriptionPlan, PLAN_LIMITS, type Product } from "@/types";
+import {
+  ProductStatus,
+  SubscriptionPlan,
+  PLAN_LIMITS,
+  type Product,
+} from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 
@@ -63,10 +76,13 @@ export default function ProductsPage() {
             <AlertCircle className="size-5 text-amber-600 shrink-0 mt-0.5" />
             <div>
               <p className="text-sm font-bold">
-                Catalog limit exceeded ({totalProducts}/{maxProducts} products on {currentPlan.toUpperCase()} Plan)
+                Catalog limit exceeded ({totalProducts}/{maxProducts} products
+                on {currentPlan.toUpperCase()} Plan)
               </p>
               <p className="text-xs text-amber-800 mt-0.5">
-                All your existing {totalProducts} products are safe and accessible. To add more products, upgrade to The Stitch Plan or archive items down to {maxProducts}.
+                All your existing {totalProducts} products are safe and
+                accessible. To add more products, upgrade to The Stitch Plan or
+                archive items down to {maxProducts}.
               </p>
             </div>
           </div>
@@ -74,11 +90,10 @@ export default function ProductsPage() {
             href="/dashboard/settings"
             className="inline-flex items-center gap-1 text-xs font-bold text-white bg-brand-700 hover:bg-brand-800 px-3.5 py-2 rounded-xl shrink-0 transition-colors shadow-xs"
           >
-            Upgrade Plan &rarr;
+            <span className="text-white">Upgrade Plan &rarr;</span>
           </Link>
         </div>
       )}
-
 
       <div className="mb-4 grid gap-3 md:grid-cols-[1fr_220px]">
         <Input
@@ -177,8 +192,13 @@ function ProductCard({
   onDelete: () => void;
 }) {
   const updateProduct = useUpdateProduct(product._id);
-  const stock = product.variants.reduce((sum, variant) => sum + variant.quantity, 0);
-  const isLow = product.variants.some((variant) => variant.quantity <= product.lowStockThreshold);
+  const stock = product.variants.reduce(
+    (sum, variant) => sum + variant.quantity,
+    0,
+  );
+  const isLow = product.variants.some(
+    (variant) => variant.quantity <= product.lowStockThreshold,
+  );
   const firstImage = product.images?.[0]?.url;
 
   function updateStatus(nextStatus: ProductStatus) {
@@ -196,12 +216,22 @@ function ProductCard({
             <img
               src={firstImage}
               alt={product.name}
-              style={{ width: "48px", height: "48px", minWidth: "48px", minHeight: "48px" }}
+              style={{
+                width: "48px",
+                height: "48px",
+                minWidth: "48px",
+                minHeight: "48px",
+              }}
               className="w-12 h-12 min-w-12 max-w-12 min-h-12 max-h-12 rounded-lg object-cover border border-gray-200 shrink-0 bg-gray-50 shadow-xs"
             />
           ) : (
             <div
-              style={{ width: "48px", height: "48px", minWidth: "48px", minHeight: "48px" }}
+              style={{
+                width: "48px",
+                height: "48px",
+                minWidth: "48px",
+                minHeight: "48px",
+              }}
               className="w-12 h-12 min-w-12 max-w-12 min-h-12 max-h-12 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 shrink-0"
             >
               <Package className="size-5 opacity-50" />
@@ -215,7 +245,8 @@ function ProductCard({
               {product.name}
             </Link>
             <p className="text-xs text-gray-500 mt-0.5 truncate">
-              {product.category || "Uncategorized"} • {product.variants.length} variants
+              {product.category || "Uncategorized"} • {product.variants.length}{" "}
+              variants
             </p>
           </div>
         </div>
@@ -225,19 +256,33 @@ function ProductCard({
       <div className="flex justify-between items-center py-3 border-y border-gray-50 mb-3">
         <div>
           <p className="text-xs text-gray-500 mb-0.5">Price</p>
-          <p className="font-medium text-gray-900">{formatCurrency(product.basePrice)}</p>
+          <p className="font-medium text-gray-900">
+            {formatCurrency(product.basePrice)}
+          </p>
         </div>
         <div>
           <p className="text-xs text-gray-500 mb-0.5 text-right">Stock</p>
-          <p className={`font-medium text-right ${isLow ? 'text-accent-700' : 'text-gray-900'}`}>{stock} units</p>
+          <p
+            className={`font-medium text-right ${isLow ? "text-accent-700" : "text-gray-900"}`}
+          >
+            {stock} units
+          </p>
         </div>
       </div>
 
       <div className="flex gap-2 items-center">
-        <NativeSelect className="flex-1 h-10" value={product.status} onChange={(e) => updateStatus(e.target.value as ProductStatus)}>
-          {Object.values(ProductStatus).map((value) => <option key={value} value={value}>{value.replace("_", " ")}</option>)}
+        <NativeSelect
+          className="flex-1 h-10"
+          value={product.status}
+          onChange={(e) => updateStatus(e.target.value as ProductStatus)}
+        >
+          {Object.values(ProductStatus).map((value) => (
+            <option key={value} value={value}>
+              {value.replace("_", " ")}
+            </option>
+          ))}
         </NativeSelect>
-        
+
         <button
           onClick={onDelete}
           className="flex-shrink-0 flex size-10 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50"
@@ -281,19 +326,32 @@ function ProductRow({
             <img
               src={firstImage}
               alt={product.name}
-              style={{ width: "40px", height: "40px", minWidth: "40px", minHeight: "40px" }}
+              style={{
+                width: "40px",
+                height: "40px",
+                minWidth: "40px",
+                minHeight: "40px",
+              }}
               className="w-10 h-10 min-w-10 max-w-10 min-h-10 max-h-10 rounded-lg object-cover border border-gray-200 shrink-0 bg-gray-50 shadow-xs"
             />
           ) : (
             <div
-              style={{ width: "40px", height: "40px", minWidth: "40px", minHeight: "40px" }}
+              style={{
+                width: "40px",
+                height: "40px",
+                minWidth: "40px",
+                minHeight: "40px",
+              }}
               className="w-10 h-10 min-w-10 max-w-10 min-h-10 max-h-10 rounded-lg border border-dashed border-gray-200 bg-gray-50 flex items-center justify-center text-gray-400 shrink-0"
             >
               <Package className="size-4 opacity-50" />
             </div>
           )}
           <div className="min-w-0">
-            <Link href={`/dashboard/products/${product._id}`} className="font-medium text-gray-950 hover:underline block truncate">
+            <Link
+              href={`/dashboard/products/${product._id}`}
+              className="font-medium text-gray-950 hover:underline block truncate"
+            >
               {product.name}
             </Link>
             <p className="text-xs text-gray-500 truncate">
@@ -303,7 +361,6 @@ function ProductRow({
           </div>
         </div>
       </td>
-
 
       <td className="px-4 py-3">
         <span
