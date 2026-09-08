@@ -1,10 +1,11 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import { ProductDetailsClient } from "@/components/storefront/ProductDetailsClient";
+import { getServerApiUrl } from "@/lib/api";
 
 async function getProduct(handle: string, productId: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
+    const apiUrl = getServerApiUrl();
     const res = await fetch(`${apiUrl}/storefront/${handle}/products/${productId}`, {
       next: { revalidate: 30 },
     });

@@ -43,9 +43,26 @@ const app = express();
 /* ── Security ───────────────────────────────────────────────────── */
 app.use(helmet());
 
+// Allowed origins configuration (supports comma-separated origins in FRONTEND_URL)
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
+  .split(",")
+  .map((url) => url.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, Next.js server rewrites)
+      if (!origin) return callback(null, true);
+
+      // Allow if matches any origin in allowedOrigins list or wildcard
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+
+      console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+      return callback(null, false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: [

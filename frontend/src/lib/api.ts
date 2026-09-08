@@ -122,4 +122,20 @@ export async function apiDelete<T>(url: string, config?: object): Promise<T> {
   return api.delete(url, config) as unknown as Promise<T>;
 }
 
+/**
+ * Resolves the backend API URL for Server Components (RSC) and Server-Side requests.
+ * Uses BACKEND_INTERNAL_URL if set, or absolute NEXT_PUBLIC_API_URL, or localhost fallback.
+ */
+export function getServerApiUrl(): string {
+  const rawUrl =
+    process.env.BACKEND_INTERNAL_URL ||
+    (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.startsWith("/")
+      ? process.env.NEXT_PUBLIC_API_URL
+      : "") ||
+    "http://127.0.0.1:5000/api";
+
+  const baseUrl = rawUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  return `${baseUrl}/api`;
+}
+
 export default api;

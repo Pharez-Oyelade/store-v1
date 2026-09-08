@@ -1,9 +1,10 @@
 import React from "react";
 import { Store, MessageCircle, Sparkles } from "lucide-react";
+import { getServerApiUrl } from "@/lib/api";
 
 async function getVendorInfo(handle: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
+    const apiUrl = getServerApiUrl();
     const res = await fetch(`${apiUrl}/storefront/${handle}`, {
       next: { revalidate: 30 },
     });
