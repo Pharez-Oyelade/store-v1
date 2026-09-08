@@ -12,6 +12,7 @@ import {
 } from "../controllers/invoice.controller.js";
 import { protect } from "../middleware/protect.js";
 import { requireRole } from "../middleware/rbac.middleware.js";
+import { checkIdempotency } from "../middleware/idempotency.middleware.js";
 
 const invoiceRouter = Router();
 
@@ -21,7 +22,7 @@ invoiceRouter.post("/public/:token/pay", initializeInvoicePayment);
 invoiceRouter.post("/public/:token/manual-proof", submitManualPaymentProof);
 
 /* ── Protected Vendor Routes ────────────────────────────────────── */
-invoiceRouter.use(protect, requireRole("owner", "manager", "sales"));
+invoiceRouter.use(protect, requireRole("owner", "manager", "sales"), checkIdempotency);
 
 invoiceRouter.get("/", getInvoices);
 invoiceRouter.post("/", createInvoice);
