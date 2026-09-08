@@ -51,14 +51,9 @@ export async function middleware(request: NextRequest) {
   const isAdminRoute = ADMIN_PATHS.some((path) => pathname.startsWith(path));
 
   if (isProtectedRoute && !isAuthenticated) {
-    /*
-     * NextResponse.redirect() sends an HTTP 307 redirect.
-     * new URL("/login", request.url) builds the full redirect URL
-     * using the request's base URL (so it works in both dev and prod).
-     *
-     * We add `from` query param so after login we can redirect
-     * the user back to where they were trying to go.
-     */
+    console.warn(
+      `[Middleware] Unauthenticated redirect from ${pathname} to /login (missing '${AUTH_COOKIE}' cookie)`,
+    );
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
@@ -75,16 +70,18 @@ export async function middleware(request: NextRequest) {
         if (payload.role === "admin") {
           return NextResponse.redirect(new URL("/admin", request.url));
         }
-        const userRole = (payload.role as string) || (payload.isTeamMember ? "tailor" : "owner");
-        return NextResponse.redirect(new URL(getRoleHomePath(userRole), request.url));
+        const userRole =
+          (payload.role as string) ||
+          (payload.isTeamMember ? "tailor" : "owner");
+        return NextResponse.redirect(
+          new URL(getRoleHomePath(userRole), request.url),
+        );
       } catch {
         // Fall back to dashboard
       }
     }
     return NextResponse.redirect(new URL("/dashboard", request.url));
   }
-
-
 
   /*
    * Role-based check for admin routes.
@@ -115,7 +112,6 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(dashboardUrl);
       }
     } catch {
-
       /*
        * Token is invalid or expired — treat as unauthenticated.
        * The protect middleware on the backend will also reject it.
@@ -140,7 +136,9 @@ export async function middleware(request: NextRequest) {
       try {
         const secret = new TextEncoder().encode(jwtSecret);
         const { payload } = await jwtVerify(token.value, secret);
-        const userRole = (payload.role as string) || (payload.isTeamMember ? "tailor" : "owner");
+        const userRole =
+          (payload.role as string) ||
+          (payload.isTeamMember ? "tailor" : "owner");
 
         if (!isPathAllowedForRole(pathname, userRole)) {
           const homePath = getRoleHomePath(userRole);
@@ -153,7 +151,11 @@ export async function middleware(request: NextRequest) {
           }
           return NextResponse.redirect(redirectUrl);
         }
-      } catch {
+      } catch (err: any) {
+        console.error(
+          `[Middleware] Dashboard JWT verification failed for ${pathname}:`,
+          err?.message || err,
+        );
         const loginUrl = new URL("/login", request.url);
         loginUrl.searchParams.set("from", pathname);
         return NextResponse.redirect(loginUrl);
