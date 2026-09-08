@@ -20,10 +20,13 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  WifiOff,
 } from "lucide-react";
 import { useCreateInvoice, usePayoutAccount } from "@/hooks/useInvoices";
 import { useOrders, useOrder } from "@/hooks/useOrders";
 import { useCustomRequests, useCustomRequest } from "@/hooks/useCustomRequests";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -204,6 +207,35 @@ export default function NewInvoicePage() {
   const currentPaid = Number(alreadyPaid) || 0;
   const netBalanceDue = Math.max(0, calculatedTotal - currentPaid);
 
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "invoice",
+    endpoint: "/invoices",
+    description: `Invoice for ${customerName || "Customer"} (₦${calculatedTotal.toLocaleString()})`,
+    queryKeyToUpdate: ["invoices"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: tempId,
+      id: tempId,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      customerSnapshot: payload.customerSnapshot,
+      items: payload.items,
+      totalAmount: payload.totalAmount,
+      depositPaid: payload.initialPaid || 0,
+      balanceDue: Math.max(0, payload.totalAmount - (payload.initialPaid || 0)),
+      status:
+        (payload.initialPaid || 0) >= payload.totalAmount
+          ? "paid"
+          : (payload.initialPaid || 0) > 0
+            ? "partially_paid"
+            : "sent",
+      dueDate: payload.dueDate,
+      notes: payload.notes,
+      terms: payload.terms,
+      isPendingSync: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
   const addItem = () => {
     setItems((prev) => [
       ...prev,
@@ -239,38 +271,47 @@ export default function NewInvoicePage() {
       return;
     }
 
+    const payload: any = {
+      customerSnapshot: {
+        name: customerName.trim(),
+        phone: customerPhone.trim(),
+        email: customerEmail.trim(),
+        address: customerAddress.trim(),
+      },
+      items: items.map((i) => ({
+        description: i.description.trim(),
+        variantLabel: i.variantLabel.trim(),
+        quantity: Number(i.quantity) || 1,
+        unitPrice: Number(i.unitPrice) || 0,
+      })),
+      totalAmount: calculatedTotal,
+      initialPaid: currentPaid,
+      depositRequired: Number(depositRequired) || 0,
+      dueDate: dueDate || undefined,
+      notes: notes.trim(),
+      terms: terms.trim(),
+    };
+
+    if (mode === "from_order" && selectedOrderId) {
+      payload.orderId = selectedOrderId;
+    } else if (mode === "from_demand" && selectedDemandId) {
+      payload.customRequestId = selectedDemandId;
+    }
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(generateLocalId("temp_invoice"), payload);
+      router.push("/dashboard/invoices");
+      return;
+    }
+
     try {
-      const payload: any = {
-        customerSnapshot: {
-          name: customerName.trim(),
-          phone: customerPhone.trim(),
-          email: customerEmail.trim(),
-          address: customerAddress.trim(),
-        },
-        items: items.map((i) => ({
-          description: i.description.trim(),
-          variantLabel: i.variantLabel.trim(),
-          quantity: Number(i.quantity) || 1,
-          unitPrice: Number(i.unitPrice) || 0,
-        })),
-        totalAmount: calculatedTotal,
-        initialPaid: currentPaid,
-        depositRequired: Number(depositRequired) || 0,
-        dueDate: dueDate || undefined,
-        notes: notes.trim(),
-        terms: terms.trim(),
-      };
-
-      if (mode === "from_order" && selectedOrderId) {
-        payload.orderId = selectedOrderId;
-      } else if (mode === "from_demand" && selectedDemandId) {
-        payload.customRequestId = selectedDemandId;
-      }
-
       const invoice = await createInvoice.mutateAsync(payload);
       router.push(`/dashboard/invoices/${invoice._id}`);
     } catch {
-      // toast error handled in hook
+      if (!navigator.onLine) {
+        await handleOfflineSave(generateLocalId("temp_invoice"), payload);
+        router.push("/dashboard/invoices");
+      }
     }
   };
 
@@ -913,6 +954,11 @@ export default function NewInvoicePage() {
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Generating Invoice...</span>
+                </>
+              ) : !isOnline ? (
+                <>
+                  <WifiOff className="w-4 h-4" />
+                  <span>Save Offline (Syncs Later)</span>
                 </>
               ) : (
                 <span>Create & Issue Live Invoice</span>

@@ -18,6 +18,7 @@ import {
   Calendar,
   Layers,
   Ruler,
+  WifiOff,
 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/custom/Button";
@@ -25,6 +26,8 @@ import MeasurementsEditor from "./MeasurementsEditor";
 import MaterialsBuilder from "./MaterialsBuilder";
 import { useCreateCustomRequest, useUpdateCustomRequest } from "@/hooks/useCustomRequests";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import type { CustomRequest, CustomRequestMaterial } from "@/types";
 import toast from "react-hot-toast";
 import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
@@ -60,6 +63,44 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const customerList = customersQuery.data?.customers || [];
 
   const [createdDemand, setCreatedDemand] = useState<any | null>(null);
+
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "demand",
+    endpoint: "/custom-requests",
+    description: `Bespoke Demand for ${initialData?.title || "Customer"}`,
+    queryKeyToUpdate: ["custom-requests"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: tempId,
+      id: tempId,
+      title: payload.title || "Bespoke Garment",
+      category: payload.category || "custom",
+      description: payload.description || "",
+      customerSnapshot: {
+        name: payload.customerName || "Customer",
+        phone: payload.customerPhone || "",
+        email: payload.customerEmail || "",
+      },
+      status: "inquiry",
+      estimatedPrice: Number(payload.estimatedPrice) || 0,
+      agreedPrice: Number(payload.agreedPrice) || 0,
+      depositPaid: Number(payload.depositPaid) || 0,
+      balanceOwed: Math.max(
+        0,
+        (Number(payload.agreedPrice) || Number(payload.estimatedPrice) || 0) -
+          (Number(payload.depositPaid) || 0),
+      ),
+      measurements: payload.measurements || {},
+      materials: payload.materials || [],
+      referenceImages: [],
+      source: payload.source || "manual",
+      notes: payload.notes || "",
+      targetDate: payload.targetDate,
+      isPendingSync: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     (typeof initialData?.customer === "object"
       ? (initialData?.customer as any)?._id
@@ -231,12 +272,57 @@ export default function DemandForm({ initialData }: DemandFormProps) {
         },
       });
     } else {
+      const demandPayload = {
+        title: data.title,
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail || "",
+        category: data.category,
+        description: data.description || "",
+        estimatedPrice: data.estimatedPrice,
+        agreedPrice: data.agreedPrice,
+        depositPaid: data.depositPaid,
+        deadline: data.deadline,
+        source: data.source,
+        notes: data.notes,
+        measurements,
+        materials,
+      };
+
+      const filePayloads = selectedFiles.map((file) => ({
+        file,
+        name: file.name,
+      }));
+
+      if (!navigator.onLine || !isOnline) {
+        await handleOfflineSave(
+          generateLocalId("temp_demand"),
+          demandPayload,
+          filePayloads.length > 0 ? filePayloads : undefined
+        );
+
+        router.push("/dashboard/demands");
+        return;
+      }
+
       createMutation.mutate(formData, {
         onSuccess: (created: any) => {
           if (created && created._id) {
             setCreatedDemand(created);
           } else {
             router.push(`/dashboard/demands`);
+          }
+        },
+        onError: async (err: any) => {
+          if (!navigator.onLine) {
+            await handleOfflineSave(
+              generateLocalId("temp_demand"),
+              demandPayload,
+              filePayloads.length > 0 ? filePayloads : undefined
+            );
+            router.push("/dashboard/demands");
+          } else {
+            toast.error(err?.message || "Failed to create demand. Please try again.");
           }
         },
       });
@@ -704,8 +790,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               variant="primary"
               size="large"
               isLoading={isPending}
+              leftIcon={!isOnline ? <WifiOff className="size-4" /> : undefined}
             >
-              {initialData ? "Save Changes" : "Create Bespoke Request"}
+              {!isOnline ? "Save Offline (Syncs Later)" : (initialData ? "Save Changes" : "Create Bespoke Request")}
             </Button>
           </div>
         </div>

@@ -4,7 +4,7 @@ import Eyebrow from "./Eyebrow";
 interface TitleProps {
   eyebrowTitle: string;
   headingStart: string;
-  headingSpan: string;
+  headingSpan?: string;
   headingEnd?: string;
   text?: string;
 }

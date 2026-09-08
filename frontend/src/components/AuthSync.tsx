@@ -5,7 +5,7 @@ import { useMe } from "@/hooks/useAuth";
 import { useAuthStore } from "@/store/authStore";
 
 export function AuthSync() {
-  const { data, isError } = useMe();
+  const { data, isError, error } = useMe();
   const { setVendor, clearVendor, setInitialized } = useAuthStore();
 
   useEffect(() => {
@@ -17,10 +17,16 @@ export function AuthSync() {
       setVendor(vendorData);
       setInitialized(true);
     } else if (isError) {
-      clearVendor();
+      // Only clear vendor if the server explicitly responded with 401 Unauthorized.
+      // Never clear on network drops, server outages, or offline mode.
+      const isExplicit401 = (error as any)?.status === 401;
+      const isOffline = typeof navigator !== "undefined" && !navigator.onLine;
+      if (isExplicit401 && !isOffline) {
+        clearVendor();
+      }
       setInitialized(true);
     }
-  }, [data, isError, setVendor, clearVendor, setInitialized]);
+  }, [data, isError, error, setVendor, clearVendor, setInitialized]);
 
   return null;
 }

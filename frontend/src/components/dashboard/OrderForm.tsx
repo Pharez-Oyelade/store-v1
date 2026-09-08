@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Trash2, UserPlus, Users } from "lucide-react";
+import { Plus, Save, Trash2, UserPlus, Users, WifiOff } from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -14,6 +14,8 @@ import {
 import { useCreateOrder } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useProducts";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import { formatCurrency } from "@/lib/utils";
 import { OrderSource, ProductStatus, type Product, type Order } from "@/types";
 import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
@@ -121,29 +123,64 @@ export default function OrderForm() {
     updateItem(index, { variantLabel, price: variant?.price ?? 0 });
   }
 
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "order",
+    endpoint: "/orders",
+    description: `Order for ${customerName || "Customer"} (${items.length} items)`,
+    queryKeyToUpdate: ["orders"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: tempId,
+      id: tempId,
+      ...payload,
+      customerSnapshot: {
+        name: customerName,
+        phone: customerPhone,
+        email: customerEmail,
+      },
+      totalAmount: total,
+      balanceOwed: balance,
+      status: "pending",
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      isPendingSync: true,
+    }),
+  });
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const orderPayload = {
+      customerName,
+      customerPhone,
+      customerEmail,
+      depositPaid: Number(depositPaid) || 0,
+      source,
+      notes,
+      items: items.map((item) => ({
+        ...item,
+        price: Number(item.price) || 0,
+        quantity: Number(item.quantity) || 1,
+      })),
+    };
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(generateLocalId("temp_order"), orderPayload);
+      router.push("/dashboard/orders");
+      return;
+    }
+
     try {
-      const res = await createOrder.mutateAsync({
-        customerName,
-        customerPhone,
-        customerEmail,
-        depositPaid: Number(depositPaid) || 0,
-        source,
-        notes,
-        items: items.map((item) => ({
-          ...item,
-          price: Number(item.price) || 0,
-          quantity: Number(item.quantity) || 1,
-        })),
-      });
+      const res = await createOrder.mutateAsync(orderPayload);
       if (res && (res as any)._id) {
         setCreatedOrder(res as any);
       } else {
         router.push("/dashboard/orders");
       }
     } catch {
-      // Error toast is handled in mutation hook
+      // If network failed during the request, fallback seamlessly to offline queue
+      if (!navigator.onLine) {
+        await handleOfflineSave(generateLocalId("temp_order"), orderPayload);
+        router.push("/dashboard/orders");
+      }
     }
   }
 
@@ -421,10 +458,10 @@ export default function OrderForm() {
         <Button
           type="submit"
           isLoading={createOrder.isPending}
-          leftIcon={<Save className="size-4" />}
+          leftIcon={!isOnline ? <WifiOff className="size-4" /> : <Save className="size-4" />}
           className="w-full"
         >
-          Create order
+          {!isOnline ? "Save Offline (Syncs Later)" : "Create order"}
         </Button>
       </aside>
 

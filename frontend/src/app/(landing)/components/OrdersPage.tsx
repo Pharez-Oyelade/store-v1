@@ -60,6 +60,7 @@ export default function OrdersPage() {
           <div className="flex items-center gap-2">
             <Link
               href="/dashboard/demands/new"
+              prefetch={true}
               className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
             >
               <Scissors className="size-3.5" />
@@ -67,6 +68,7 @@ export default function OrdersPage() {
             </Link>
             <Link
               href="/dashboard/orders/new"
+              prefetch={true}
               className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
             >
               <Plus className="size-3.5 text-white" />
@@ -294,7 +296,13 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
           </div>
           <p className="text-xs text-gray-500 mt-0.5">{order.customerSnapshot.phone} • {formatDate(order.createdAt)}</p>
         </div>
-        <StatusBadge value={order.status} />
+        {order.isPendingSync || (order._id && order._id.startsWith("temp_")) ? (
+          <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+            <span>⏳</span> Pending Sync
+          </span>
+        ) : (
+          <StatusBadge value={order.status} />
+        )}
       </div>
 
       <div className="flex justify-between items-center py-3 border-y border-gray-50 mb-3">
@@ -433,7 +441,13 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          <StatusBadge value={order.status} />
+          {order.isPendingSync || (order._id && order._id.startsWith("temp_")) ? (
+            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
+              <span>⏳</span> Pending Sync
+            </span>
+          ) : (
+            <StatusBadge value={order.status} />
+          )}
           <NativeSelect
             className="h-8 w-32 text-xs"
             value={order.status}

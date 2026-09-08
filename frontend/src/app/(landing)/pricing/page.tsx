@@ -25,6 +25,7 @@ const Plans = [
     monthlyPrice: 14900,
     yearlyPrice: 11920,
     sku: 200,
+    isPopular: true,
   },
   {
     tier: "03",
@@ -34,7 +35,6 @@ const Plans = [
     monthlyPrice: 34900,
     yearlyPrice: 27920,
     sku: "unlimited",
-    isPopular: true,
   },
   {
     tier: "04",
@@ -55,7 +55,7 @@ const page = () => {
           headingStart="Pick your"
           headingSpan="level."
           headingEnd="Grow your brand."
-          text="From your first stocked rack to a multi-channel empire — Vendra has a plan built for every stage of the Nigerian fashion business"
+          text="From your first stock to a multi brand empire, Vendra has a plan built for every stage of the Nigerian fashion business"
         />
 
         <div className="flex items-center gap-4 mt-5">
@@ -153,8 +153,8 @@ const page = () => {
               {plan.tier === "01"
                 ? "START 14-DAY FREE TRIAL"
                 : plan.monthlyPrice
-                ? "START FREE TRIAL"
-                : "BOOK A CALL"}
+                  ? "START FREE TRIAL"
+                  : "BOOK A CALL"}
             </a>
 
             {/* PRICING OPTION DETAILS */}
@@ -175,7 +175,9 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span><b>25</b> orders & bespoke demands / mo</span>
+                    <span>
+                      <b>25</b> orders & bespoke demands / mo
+                    </span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
@@ -194,8 +196,7 @@ const page = () => {
                     <span>WhatsApp 1-click customer dispatch</span>
                   </div>
                   <div className="flex gap-2 items-center">
-                    <Check color="#16a34a" size={18} />{" "}
-                    <span>1 Team seat</span>
+                    <Check color="#16a34a" size={18} /> <span>1 Team seat</span>
                   </div>
                 </div>
               )}
@@ -211,7 +212,9 @@ const page = () => {
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}
-                    <span><b>500</b> orders & bespoke demands / mo</span>
+                    <span>
+                      <b>500</b> orders & bespoke demands / mo
+                    </span>
                   </div>
                   <div className="flex gap-2 items-center">
                     <Check color="#16a34a" size={18} />{" "}

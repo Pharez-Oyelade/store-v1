@@ -118,11 +118,17 @@ export default function DemandCard({ request }: DemandCardProps) {
           <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-gray-100 text-gray-700 uppercase tracking-wider">
             {request.category}
           </span>
-          <span
-            className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
-          >
-            {statusCfg.label}
-          </span>
+          {Boolean(request.isPendingSync || (typeof request._id === "string" && request._id.startsWith("temp_"))) ? (
+            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+              <span>⏳</span> Pending Sync
+            </span>
+          ) : (
+            <span
+              className={`text-xs font-medium px-2.5 py-0.5 rounded-full border ${statusCfg.bg} ${statusCfg.text} ${statusCfg.border}`}
+            >
+              {statusCfg.label}
+            </span>
+          )}
         </div>
 
         {/* Title */}

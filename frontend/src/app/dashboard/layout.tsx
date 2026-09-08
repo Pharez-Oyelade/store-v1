@@ -3,6 +3,7 @@ import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
 import NotificationCenter from "@/components/dashboard/NotificationCenter";
 import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 import DashboardRoleGuard from "@/components/auth/DashboardRoleGuard";
+import OfflineStatusBar from "@/components/offline/OfflineStatusBar";
 
 export default function DashboardLayout({
   children,
@@ -19,6 +20,7 @@ export default function DashboardLayout({
       </div>
 
       <section className="min-w-0 flex-1 px-4 pb-10 pt-20 lg:px-8 lg:pt-20">
+        <OfflineStatusBar />
         <AnnouncementBanner />
         <Suspense fallback={null}>
           <DashboardRoleGuard>{children}</DashboardRoleGuard>

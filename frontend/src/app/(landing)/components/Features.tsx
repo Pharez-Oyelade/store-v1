@@ -37,7 +37,8 @@ const bentoFeatures = [
     title: "Bespoke & Tailoring Board",
     description:
       "No ready-made stock yet? Record customer demands, save body measurements, track fabric requirements, and schedule fittings.",
-    className: "md:col-span-1 md:row-span-1 bg-purple-50/70 border-purple-200/60",
+    className:
+      "md:col-span-1 md:row-span-1 bg-purple-50/70 border-purple-200/60",
   },
   {
     id: "customers",
@@ -60,11 +61,10 @@ const bentoFeatures = [
     icon: <Store className="w-6 h-6 text-brand-400" />,
     title: "Public storefront & Custom Requests",
     description:
-      "Get a clean, shareable link (vendra.ng/store/yourname) where buyers can shop your ready-made items or submit custom bespoke inquiries.",
+      "Get a clean, shareable link (tryvendra.ng/store/yourname) where buyers can shop your ready-made items or submit custom bespoke inquiries.",
     className: "md:col-span-3 md:row-span-1 bg-brand-100",
   },
 ];
-
 
 const Features = () => {
   return (
@@ -73,9 +73,9 @@ const Features = () => {
         <Title
           eyebrowTitle="Features"
           headingStart="Everything your store needs."
-          headingSpan="Nothing"
-          headingEnd="it doesn't"
-          text="A powerful toolkit disguised as a simple dashboard. Built specifically for the workflow of a modern Nigerian fashion vendor."
+          // headingSpan="Nothing"
+          // headingEnd="it doesn't"
+          text="A powerful tool disguised as a simple dashboard. Built specifically for the workflow of a modern Nigerian fashion vendor."
         />
       </div>
 

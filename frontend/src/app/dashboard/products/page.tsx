@@ -48,6 +48,7 @@ export default function ProductsPage() {
         action={
           <Link
             href="/dashboard/products/new"
+            prefetch={true}
             className="inline-flex h-9 items-center gap-2 rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
           >
             <PackagePlus className="size-4 text-white" />

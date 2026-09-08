@@ -23,9 +23,11 @@ import {
   useSuppliers,
   useUpdateSupplier,
 } from "@/hooks/useSuppliers";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { SupplierCategory, SupplierStatus, type Supplier } from "@/types";
-import { Banknote, Handshake, Star, WalletCards, Package } from "lucide-react";
+import { Banknote, Handshake, Star, WalletCards, Package, WifiOff } from "lucide-react";
 
 import { PaginationControls } from "@/components/ui/PaginationControls";
 
@@ -217,6 +219,7 @@ function SupplierForm({
 }) {
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier(supplier?._id ?? "");
+
   const [form, setForm] = useState<{
     name: string;
     category: SupplierCategory;
@@ -247,6 +250,41 @@ function SupplierForm({
     lastPurchaseAmount: "",
     outstandingBalance: "",
     lastPurchaseDate: "",
+  });
+
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "supplier",
+    endpoint: supplier ? `/suppliers/${supplier._id}` : "/suppliers",
+    method: supplier ? "PUT" : "POST",
+    description: `${supplier ? "Update" : "Create"} Supplier: ${form.name || "New Supplier"}`,
+    queryKeyToUpdate: ["suppliers"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: supplier?._id || tempId,
+      id: supplier?._id || tempId,
+      name: payload.name,
+      category: payload.category,
+      contactName: payload.contactName,
+      phone: payload.phone,
+      email: payload.email,
+      whatsapp: payload.whatsapp,
+      location: payload.location,
+      materials:
+        typeof payload.materials === "string"
+          ? payload.materials
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : payload.materials || [],
+      status: payload.status,
+      lastPurchaseAmount: Number(payload.lastPurchaseAmount) || 0,
+      outstandingBalance: Number(payload.outstandingBalance) || 0,
+      lastPurchaseDate: payload.lastPurchaseDate,
+      notes: payload.notes,
+      purchases: supplier?.purchases || [],
+      isPendingSync: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
   });
 
   useEffect(() => {
@@ -302,9 +340,29 @@ function SupplierForm({
       lastPurchaseAmount: Number(form.lastPurchaseAmount) || 0,
       outstandingBalance: Number(form.outstandingBalance) || 0,
     };
-    if (supplier) await updateSupplier.mutateAsync(payload);
-    else await createSupplier.mutateAsync(payload);
-    onSaved();
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(
+        supplier?._id || generateLocalId("temp_supplier"),
+        payload,
+      );
+      onSaved();
+      return;
+    }
+
+    try {
+      if (supplier) await updateSupplier.mutateAsync(payload);
+      else await createSupplier.mutateAsync(payload);
+      onSaved();
+    } catch {
+      if (!navigator.onLine) {
+        await handleOfflineSave(
+          supplier?._id || generateLocalId("temp_supplier"),
+          payload,
+        );
+        onSaved();
+      }
+    }
   }
 
 
@@ -445,9 +503,14 @@ function SupplierForm({
       <Button
         type="submit"
         isLoading={createSupplier.isPending || updateSupplier.isPending}
+        leftIcon={!isOnline ? <WifiOff className="size-4" /> : undefined}
         className="w-full"
       >
-        {supplier ? "Save supplier" : "Create supplier"}
+        {!isOnline
+          ? "Save Offline (Syncs Later)"
+          : supplier
+            ? "Save supplier"
+            : "Create supplier"}
       </Button>
     </form>
   );

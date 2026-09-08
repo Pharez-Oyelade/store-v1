@@ -8,15 +8,29 @@ import { queryClient } from "@/lib/react-query";
 import { useEffect } from "react";
 import { AuthSync } from "@/components/AuthSync";
 import PWAInstallBanner from "@/components/pwa/PWAInstallBanner";
+import SyncCenterDrawer from "@/components/offline/SyncCenterDrawer";
+import { initOfflineSyncListeners } from "@/lib/offline/syncEngine";
+import { initQueryCachePersistence } from "@/lib/offline/queryPersister";
 
 export default function Providers({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if ("serviceWorker" in navigator) {
       navigator.serviceWorker
         .register("/sw.js")
-        .then((reg) => console.log("[ServiceWorker] Registration successful", reg))
+        .then((reg) => {
+          console.log("[ServiceWorker] Registration successful", reg);
+          reg.update().catch(() => {});
+        })
         .catch((err) => console.error("[ServiceWorker] Registration failed", err));
     }
+
+    const cleanupSync = initOfflineSyncListeners();
+    const cleanupQueryPersist = initQueryCachePersistence(queryClient);
+
+    return () => {
+      cleanupSync();
+      cleanupQueryPersist();
+    };
   }, []);
 
   return (
@@ -24,6 +38,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
       <AuthSync />
       {children}
       <PWAInstallBanner />
+      <SyncCenterDrawer />
 
       <Toaster
         position="top-right"

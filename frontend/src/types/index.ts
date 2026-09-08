@@ -299,6 +299,7 @@ export interface Order {
   source: OrderSource;
   notes?: string;
   whatsappSent: boolean; // track if order details have been sent to customer via WhatsApp
+  isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -726,6 +727,7 @@ export interface CustomRequest {
     fitting: string;
     completed: string;
   };
+  isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
 }

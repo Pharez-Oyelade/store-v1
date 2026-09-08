@@ -18,7 +18,13 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
-      delete config.headers["Content-Type"];
+      if (typeof config.headers?.delete === "function") {
+        config.headers.delete("Content-Type");
+        config.headers.delete("content-type");
+      } else if (config.headers) {
+        delete (config.headers as any)["Content-Type"];
+        delete (config.headers as any)["content-type"];
+      }
     }
     return config;
   },
@@ -42,6 +48,14 @@ api.interceptors.response.use(
   (error: AxiosError<ApiError>) => {
     const status = error.response?.status;
     const serverMessage = error.response?.data?.message;
+
+    // Track offline state when browser is genuinely offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        const { useNetworkStore } = require("@/store/networkStore");
+        useNetworkStore.getState().setOnline(false);
+      } catch {}
+    }
 
     // Handle 401 unauthorized - auth cookie expired or missing.
     // Only redirect to /login when the user is on a protected route and status is 401.
@@ -74,7 +88,9 @@ api.interceptors.response.use(
               : error.message ||
                 "Something went wrong. Please check your connection.");
 
-    return Promise.reject(new Error(message));
+    const customError = new Error(message);
+    (customError as any).status = status;
+    return Promise.reject(customError);
   },
 );
 

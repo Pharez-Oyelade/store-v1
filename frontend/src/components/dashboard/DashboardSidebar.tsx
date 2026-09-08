@@ -1,8 +1,8 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard,
   Package,
@@ -21,9 +21,13 @@ import {
   ArrowRight,
   Download,
   FileText,
+  Cloud,
+  WifiOff,
+  RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/authStore";
+import { useNetworkStore } from "@/store/networkStore";
 import { getInitials } from "@/lib/utils";
 import { useLogout } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
@@ -51,11 +55,125 @@ import { isPathAllowedForRole, getRoleHomePath } from "@/lib/rbac";
 
 export default function DashboardSidebar() {
   const pathname = usePathname();
+  const router = useRouter();
   const vendor = useAuthStore((s) => s.vendor);
   const { mutate: logout } = useLogout();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  // Pre-warm dashboard workstations, creation forms, and RSC streams when online
+  useEffect(() => {
+    if (!mounted) return;
+    if (typeof window !== "undefined" && navigator.onLine) {
+      const coreRoutes = [
+        "/dashboard",
+        "/dashboard/products",
+        "/dashboard/products/new",
+        "/dashboard/orders",
+        "/dashboard/orders/new",
+        "/dashboard/demands",
+        "/dashboard/demands/new",
+        "/dashboard/customers",
+        "/dashboard/invoices",
+        "/dashboard/invoices/new",
+        "/dashboard/suppliers",
+      ];
+
+      // 1. Next.js App Router prefetch (downloads client JS chunks and RSC payloads)
+      coreRoutes.forEach((route) => {
+        try {
+          router.prefetch(route);
+        } catch {}
+      });
+
+      // 2. Pre-cache HTML documents and canonical RSC streams in Service Worker cache (v5)
+      if ("caches" in window) {
+        caches
+          .open("vendra-cache-v5")
+          .then((cache) => {
+            coreRoutes.forEach(async (route) => {
+              try {
+                // Pre-cache full HTML document for reload (F5)
+                const res = await fetch(route, {
+                  credentials: "same-origin",
+                  cache: "no-cache",
+                });
+                if (res.ok) {
+                  const htmlText = await res.text();
+                  const htmlHeaders = {
+                    "Content-Type": res.headers.get("Content-Type") || "text/html; charset=utf-8",
+                  };
+                  await cache.put(route, new Response(htmlText, { headers: htmlHeaders }));
+                  await cache.put(window.location.origin + route, new Response(htmlText, { headers: htmlHeaders }));
+
+                  // Discover and pre-cache static script chunks referenced in the page HTML
+                  const chunkMatches = htmlText.match(/\/_next\/static\/chunks\/[a-zA-Z0-9_\-\.\/]+\.js/g);
+                  if (chunkMatches) {
+                    chunkMatches.forEach(async (chunkPath) => {
+                      try {
+                        const chunkRes = await fetch(chunkPath, { cache: "no-cache" });
+                        if (chunkRes.ok) {
+                          await cache.put(chunkPath, chunkRes.clone());
+                          await cache.put(window.location.origin + chunkPath, chunkRes);
+                        }
+                      } catch {}
+                    });
+                  }
+                }
+
+                // Pre-cache RSC payload for seamless offline client-side link transitions
+                const rscRes = await fetch(`${route}?_rsc=prewarm`, {
+                  headers: { RSC: "1" },
+                  credentials: "same-origin",
+                });
+                if (rscRes.ok) {
+                  const rscText = await rscRes.text();
+                  const rscHeaders = {
+                    "Content-Type": rscRes.headers.get("Content-Type") || "text/x-component",
+                  };
+                  await cache.put(
+                    window.location.origin + route + "__rsc__",
+                    new Response(rscText, { headers: rscHeaders }),
+                  );
+
+                  // Also discover any chunk URLs listed inside the RSC text stream
+                  const rscChunks = rscText.match(/static\/chunks\/[a-zA-Z0-9_\-\.\/]+\.js/g);
+                  if (rscChunks) {
+                    rscChunks.forEach(async (relPath) => {
+                      try {
+                        const chunkUrl = `/_next/${relPath}`;
+                        const cRes = await fetch(chunkUrl, { cache: "no-cache" });
+                        if (cRes.ok) {
+                          await cache.put(chunkUrl, cRes.clone());
+                          await cache.put(window.location.origin + chunkUrl, cRes);
+                        }
+                      } catch {}
+                    });
+                  }
+                }
+              } catch {}
+            });
+          })
+          .catch(() => {});
+      }
+    }
+  }, [mounted, router]);
+
+  const isOnline = useNetworkStore((s) => s.isOnline);
+  const isSyncing = useNetworkStore((s) => s.isSyncing);
+  const pendingCount = useNetworkStore((s) => s.pendingCount);
+  const setDrawerOpen = useNetworkStore((s) => s.setDrawerOpen);
+
+  const isOnlineEffective = mounted ? isOnline : true;
+  const isSyncingEffective = mounted ? isSyncing : false;
+  const pendingCountEffective = mounted ? pendingCount : 0;
 
   const userRole = (vendor?.user?.role || vendor?.role || "owner") as string;
   const roleHomePath = getRoleHomePath(userRole);
@@ -95,6 +213,7 @@ export default function DashboardSidebar() {
             <Link
               key={item.href}
               href={item.href}
+              prefetch={true}
               onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
@@ -177,6 +296,39 @@ export default function DashboardSidebar() {
             </Link>
           </div>
         )}
+
+        {/* Offline Sync Trigger / Status */}
+        <button
+          onClick={() => setDrawerOpen(true)}
+          className={cn(
+            "flex items-center gap-3 w-full px-3 py-2 mt-1 rounded-lg text-sm font-medium transition-colors cursor-pointer",
+            !isOnlineEffective
+              ? "text-amber-400 hover:text-amber-300 hover:bg-amber-500/10"
+              : pendingCountEffective > 0
+                ? "text-orange-400 hover:text-orange-300 hover:bg-orange-500/10"
+                : "text-gray-400 hover:text-gray-300 hover:bg-white/5",
+            collapsed && "justify-center px-0",
+          )}
+          title="Offline Sync Center"
+        >
+          {!isOnlineEffective ? (
+            <WifiOff className="w-5 h-5 shrink-0 text-amber-400" />
+          ) : isSyncingEffective ? (
+            <RefreshCw className="w-5 h-5 shrink-0 animate-spin text-blue-400" />
+          ) : (
+            <Cloud className="w-5 h-5 shrink-0" />
+          )}
+          {!collapsed && (
+            <span className="flex items-center justify-between flex-1">
+              <span>Sync Center</span>
+              {pendingCountEffective > 0 && (
+                <span className="px-1.5 py-0.5 rounded-md text-[10px] font-bold bg-amber-500/20 text-amber-300">
+                  {pendingCountEffective}
+                </span>
+              )}
+            </span>
+          )}
+        </button>
 
         {isInstallable && !isInstalled && (
           <button
