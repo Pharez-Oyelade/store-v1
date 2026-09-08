@@ -63,7 +63,6 @@ export default function DashboardSidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
-  const accountMenuRef = React.useRef<HTMLDivElement>(null);
 
   const [mounted, setMounted] = useState(false);
 
@@ -71,39 +70,22 @@ export default function DashboardSidebar() {
     setMounted(true);
   }, []);
 
-  // Close account popover on outside click or Escape key
+  // Close account menu on Escape key
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent | TouchEvent) => {
-      if (
-        accountMenuRef.current &&
-        !accountMenuRef.current.contains(event.target as Node)
-      ) {
-        setAccountMenuOpen(false);
-      }
-    };
-
+    if (!accountMenuOpen) return;
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         setAccountMenuOpen(false);
       }
     };
-
-    if (accountMenuOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-      document.addEventListener("touchstart", handleClickOutside);
-      document.addEventListener("keydown", handleKeyDown);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-      document.removeEventListener("touchstart", handleClickOutside);
-      document.removeEventListener("keydown", handleKeyDown);
-    };
+    document.addEventListener("keydown", handleKeyDown);
+    return () => document.removeEventListener("keydown", handleKeyDown);
   }, [accountMenuOpen]);
 
-  // Close account menu on route changes
+  // Close account menu and mobile sidebar on route changes
   useEffect(() => {
     setAccountMenuOpen(false);
+    setMobileOpen(false);
   }, [pathname]);
 
   // Pre-warm dashboard workstations, creation forms, and RSC streams when online
@@ -320,12 +302,24 @@ export default function DashboardSidebar() {
           )}
 
         {/* Interactive Account Trigger */}
-        <div ref={accountMenuRef} className="relative">
+        <div className="relative">
+          {/* Transparent Backdrop to cleanly dismiss popover on outside taps without touch listener race conditions */}
+          {accountMenuOpen && (
+            <div
+              className="fixed inset-0 z-40 bg-transparent cursor-default"
+              onClick={() => setAccountMenuOpen(false)}
+              aria-hidden="true"
+            />
+          )}
+
           <button
             type="button"
-            onClick={() => setAccountMenuOpen((prev) => !prev)}
+            onClick={(e) => {
+              e.stopPropagation();
+              setAccountMenuOpen((prev) => !prev);
+            }}
             className={cn(
-              "flex items-center w-full gap-3 p-2 rounded-xl text-left transition-all duration-150 cursor-pointer group",
+              "flex items-center w-full gap-3 p-2 rounded-xl text-left transition-all duration-150 cursor-pointer group relative z-50",
               accountMenuOpen
                 ? "bg-white/10 ring-1 ring-white/15"
                 : "hover:bg-white/5",
@@ -435,7 +429,10 @@ export default function DashboardSidebar() {
                   </span>
                   <Link
                     href="/dashboard/settings?tab=billing"
-                    onClick={() => setAccountMenuOpen(false)}
+                    onClick={() => {
+                      setAccountMenuOpen(false);
+                      setMobileOpen(false);
+                    }}
                     className="text-[11px] text-brand-400 hover:text-brand-300 font-medium transition-colors"
                   >
                     <span className="text-white hover:text-brand-300 transition-colors">
@@ -450,6 +447,7 @@ export default function DashboardSidebar() {
                 type="button"
                 onClick={() => {
                   setAccountMenuOpen(false);
+                  setMobileOpen(false);
                   setDrawerOpen(true);
                 }}
                 className={cn(
@@ -502,6 +500,7 @@ export default function DashboardSidebar() {
                   type="button"
                   onClick={() => {
                     setAccountMenuOpen(false);
+                    setMobileOpen(false);
                     promptInstall();
                   }}
                   className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/15 transition-colors cursor-pointer text-left"
@@ -520,7 +519,10 @@ export default function DashboardSidebar() {
               {/* Settings Option */}
               <Link
                 href="/dashboard/settings"
-                onClick={() => setAccountMenuOpen(false)}
+                onClick={() => {
+                  setAccountMenuOpen(false);
+                  setMobileOpen(false);
+                }}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors text-left group"
                 role="menuitem"
               >
@@ -534,7 +536,10 @@ export default function DashboardSidebar() {
               {vendor?.role === "admin" && (
                 <Link
                   href="/admin"
-                  onClick={() => setAccountMenuOpen(false)}
+                  onClick={() => {
+                    setAccountMenuOpen(false);
+                    setMobileOpen(false);
+                  }}
                   className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/15 transition-colors text-left"
                   role="menuitem"
                 >
@@ -553,6 +558,7 @@ export default function DashboardSidebar() {
                 type="button"
                 onClick={() => {
                   setAccountMenuOpen(false);
+                  setMobileOpen(false);
                   logout();
                 }}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/15 transition-colors cursor-pointer text-left"
