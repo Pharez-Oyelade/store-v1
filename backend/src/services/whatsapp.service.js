@@ -45,7 +45,7 @@ export const buildDynamicWhatsAppLink = async (vendor, order, messageType) => {
 
   // Determine if vendor is allowed custom templates
   const plan = vendor.subscriptionPlan;
-  const isPremium = plan === "atelier" || plan === "maison";
+  const isPremium = plan === "drape" || plan === "atelier" || plan === "maison";
 
   let template = "";
   

@@ -254,6 +254,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
     balanceDue,
     status: invoiceStatus,
     paymentHistory: initialPayments,
+    isWatermarked: (req.vendor.subscriptionPlan || "free") === "free",
     dueDate: dueDate ? new Date(dueDate) : null,
     notes: notes?.trim() || "",
     terms: terms?.trim() || undefined,

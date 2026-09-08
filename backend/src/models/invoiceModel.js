@@ -235,6 +235,11 @@ const invoiceSchema = new mongoose.Schema(
     paymentHistory: [paymentRecordSchema],
 
     manualPaymentProofs: [manualPaymentProofSchema],
+
+    isWatermarked: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,

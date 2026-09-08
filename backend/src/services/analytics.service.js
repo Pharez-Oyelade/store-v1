@@ -3,6 +3,8 @@ import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
 import Customer from "../models/customerModel.js";
 import CustomRequest from "../models/customRequestModel.js";
+import Supplier from "../models/supplierModel.js";
+import TeamMember from "../models/teamMemberModel.js";
 
 const { Types } = mongoose;
 
@@ -211,15 +213,26 @@ export async function getRevenueOverview(vendorId) {
 
 /**
  * Revenue time series for the chart.
- * @param {string} period - "daily" (last 14 days) | "weekly" (last 8 weeks) | "monthly" (last 6 months)
+ * @param {string} period - "daily" (last 14 days) | "weekly" (last 8 weeks) | "monthly" (last 6 months) | "yearly" (last 12 months)
+ * @param {string} plan - Vendor's subscription plan (Stitch is locked to 7-day daily)
  */
-export async function getRevenueSeries(vendorId, period = "daily") {
+export async function getRevenueSeries(vendorId, period = "daily", plan = "stitch") {
   const vid = new Types.ObjectId(vendorId);
   const now = new Date();
   let startDate;
   let groupByFormat;
 
-  if (period === "weekly") {
+  if (plan === "stitch") {
+    // Stitch is strictly capped to the last 7 days daily snapshot
+    startDate = new Date(now);
+    startDate.setDate(now.getDate() - 7);
+    groupByFormat = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+  } else if (period === "yearly") {
+    // 12 months retention for Drape / Atelier
+    startDate = new Date(now);
+    startDate.setFullYear(now.getFullYear() - 1);
+    groupByFormat = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
+  } else if (period === "weekly") {
     startDate = new Date(now);
     startDate.setDate(now.getDate() - 56); // 8 weeks
     groupByFormat = { $dateToString: { format: "%Y-W%V", date: "$createdAt" } };
@@ -375,3 +388,435 @@ export async function getTopCustomers(vendorId, limit = 5) {
     .select("name phone ltv orderCount lastOrderDate")
     .lean();
 }
+
+/**
+ * Atelier: Bespoke Demand vs Ready-to-Wear (RTW) Revenue and Order breakdown.
+ */
+export async function getBespokeVsRtwBreakdown(vendorId) {
+  const vid = new Types.ObjectId(vendorId);
+
+  const [rtwData, bespokeData] = await Promise.all([
+    Order.aggregate([
+      { $match: { vendor: vid, status: "completed" } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: { $sum: "$totalAmount" },
+          orderCount: { $sum: 1 },
+        },
+      },
+    ]),
+    CustomRequest.aggregate([
+      { $match: { vendor: vid, status: "completed" } },
+      {
+        $group: {
+          _id: null,
+          totalRevenue: {
+            $sum: {
+              $cond: [
+                { $gt: ["$agreedPrice", 0] },
+                "$agreedPrice",
+                { $ifNull: ["$estimatedPrice", 0] },
+              ],
+            },
+          },
+          demandCount: { $sum: 1 },
+        },
+      },
+    ]),
+  ]);
+
+  const rtwRev = rtwData[0]?.totalRevenue || 0;
+  const rtwCount = rtwData[0]?.orderCount || 0;
+  const bespokeRev = bespokeData[0]?.totalRevenue || 0;
+  const bespokeCount = bespokeData[0]?.demandCount || 0;
+  const combinedTotal = rtwRev + bespokeRev;
+
+  const rtwPercent = combinedTotal > 0 ? Math.round((rtwRev / combinedTotal) * 100) : 0;
+  const bespokePercent = combinedTotal > 0 ? Math.round((bespokeRev / combinedTotal) * 100) : 0;
+
+  const rtwAov = rtwCount > 0 ? Math.round(rtwRev / rtwCount) : 0;
+  const bespokeAov = bespokeCount > 0 ? Math.round(bespokeRev / bespokeCount) : 0;
+
+  return {
+    rtw: {
+      revenue: rtwRev,
+      count: rtwCount,
+      percent: rtwPercent,
+      aov: rtwAov,
+    },
+    bespoke: {
+      revenue: bespokeRev,
+      count: bespokeCount,
+      percent: bespokePercent,
+      aov: bespokeAov,
+    },
+    combinedTotal,
+    totalVolume: rtwCount + bespokeCount,
+  };
+}
+
+/**
+ * Atelier: Workshop & Tailor Productivity Analytics.
+ */
+export async function getWorkshopProductivity(vendorId) {
+  const vid = new Types.ObjectId(vendorId);
+
+  const [tailors, demands] = await Promise.all([
+    TeamMember.find({ vendor: vid, role: "tailor", isActive: true })
+      .select("name email phone")
+      .lean(),
+    CustomRequest.find({
+      vendor: vid,
+      status: { $in: ["in_progress", "fitting", "completed"] },
+    })
+      .select("title assignedTailor status createdAt completedAt updatedAt agreedPrice estimatedPrice")
+      .lean(),
+  ]);
+
+  // Aggregate stats per tailor
+  const tailorMap = new Map();
+  tailors.forEach((t) => {
+    tailorMap.set(t._id.toString(), {
+      tailorId: t._id,
+      name: t.name,
+      activeCount: 0,
+      completedCount: 0,
+      totalTurnaroundDays: 0,
+      avgTurnaroundDays: 0,
+    });
+  });
+
+  const unassigned = {
+    tailorId: "unassigned",
+    name: "Unassigned Workshop Pool",
+    activeCount: 0,
+    completedCount: 0,
+    totalTurnaroundDays: 0,
+    avgTurnaroundDays: 0,
+  };
+
+  demands.forEach((d) => {
+    const key = d.assignedTailor ? d.assignedTailor.toString() : "unassigned";
+    const target = key === "unassigned" ? unassigned : tailorMap.get(key);
+
+    if (target) {
+      if (d.status === "completed") {
+        target.completedCount += 1;
+        const start = new Date(d.createdAt).getTime();
+        const end = d.completedAt ? new Date(d.completedAt).getTime() : new Date(d.updatedAt).getTime();
+        const days = Math.max(1, Math.round((end - start) / (1000 * 60 * 60 * 24)));
+        target.totalTurnaroundDays += days;
+      } else {
+        target.activeCount += 1;
+      }
+    }
+  });
+
+  const tailorStats = Array.from(tailorMap.values()).map((t) => ({
+    ...t,
+    avgTurnaroundDays: t.completedCount > 0 ? Math.round(t.totalTurnaroundDays / t.completedCount) : 0,
+  }));
+
+  if (unassigned.activeCount > 0 || unassigned.completedCount > 0) {
+    unassigned.avgTurnaroundDays =
+      unassigned.completedCount > 0 ? Math.round(unassigned.totalTurnaroundDays / unassigned.completedCount) : 0;
+    tailorStats.push(unassigned);
+  }
+
+  const totalCompleted = tailorStats.reduce((acc, t) => acc + t.completedCount, 0);
+  const totalActive = tailorStats.reduce((acc, t) => acc + t.activeCount, 0);
+  const avgOverallTurnaround =
+    totalCompleted > 0
+      ? Math.round(tailorStats.reduce((acc, t) => acc + t.totalTurnaroundDays, 0) / totalCompleted)
+      : 0;
+
+  return {
+    tailorStats,
+    summary: {
+      totalTailors: tailors.length,
+      totalActiveDemands: totalActive,
+      totalCompletedDemands: totalCompleted,
+      avgOverallTurnaroundDays: avgOverallTurnaround,
+    },
+  };
+}
+
+/**
+ * Atelier: Gross Margin Estimator & Unit Economics.
+ */
+export async function getMarginEstimator(vendorId) {
+  const vid = new Types.ObjectId(vendorId);
+
+  const [orderRev, bespokeRev, suppliersData, customerStats] = await Promise.all([
+    Order.aggregate([
+      { $match: { vendor: vid, status: "completed" } },
+      { $group: { _id: null, total: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
+    ]),
+    CustomRequest.aggregate([
+      { $match: { vendor: vid, status: "completed" } },
+      {
+        $group: {
+          _id: null,
+          total: {
+            $sum: {
+              $cond: [
+                { $gt: ["$agreedPrice", 0] },
+                "$agreedPrice",
+                { $ifNull: ["$estimatedPrice", 0] },
+              ],
+            },
+          },
+          count: { $sum: 1 },
+        },
+      },
+    ]),
+    Supplier.aggregate([
+      { $match: { vendor: vid } },
+      {
+        $group: {
+          _id: null,
+          totalPurchases: { $sum: "$totalPurchaseAmount" },
+          outstandingDebt: { $sum: "$outstandingBalance" },
+          supplierCount: { $sum: 1 },
+        },
+      },
+    ]),
+    Customer.aggregate([
+      { $match: { vendor: vid } },
+      {
+        $group: {
+          _id: null,
+          totalCustomers: { $sum: 1 },
+          repeatCustomers: {
+            $sum: { $cond: [{ $gt: ["$orderCount", 1] }, 1, 0] },
+          },
+        },
+      },
+    ]),
+  ]);
+
+  const grossRevenue = (orderRev[0]?.total || 0) + (bespokeRev[0]?.total || 0);
+  const totalOrders = (orderRev[0]?.count || 0) + (bespokeRev[0]?.count || 0);
+  const supplierExpenses = suppliersData[0]?.totalPurchases || 0;
+  const supplierDebt = suppliersData[0]?.outstandingDebt || 0;
+
+  const estimatedGrossProfit = Math.max(0, grossRevenue - supplierExpenses);
+  const profitMarginPercent =
+    grossRevenue > 0 ? Math.round((estimatedGrossProfit / grossRevenue) * 100) : 0;
+  const aov = totalOrders > 0 ? Math.round(grossRevenue / totalOrders) : 0;
+
+  const totalCust = customerStats[0]?.totalCustomers || 0;
+  const repeatCust = customerStats[0]?.repeatCustomers || 0;
+  const repeatRate = totalCust > 0 ? Math.round((repeatCust / totalCust) * 100) : 0;
+
+  return {
+    grossRevenue,
+    supplierExpenses,
+    supplierDebt,
+    estimatedGrossProfit,
+    profitMarginPercent,
+    aov,
+    totalCompletedOrders: totalOrders,
+    totalCustomers: totalCust,
+    repeatCustomers: repeatCust,
+    repeatRatePercent: repeatRate,
+  };
+}
+
+/**
+ * Drape (orders only) and Atelier/Maison (all types): CSV Export.
+ */
+export async function generateVendorCsvExport(vendorId, type, plan) {
+  const vid = new Types.ObjectId(vendorId);
+
+  // Authorization check: Drape can only export "orders"
+  if (plan === "drape" && type !== "orders") {
+    const err = new Error(
+      "Your Drape plan includes Orders CSV export. Upgrade to The Atelier for Full Financial, Customer, and Inventory CSV exports."
+    );
+    err.statusCode = 403;
+    throw err;
+  }
+
+  if (type === "orders") {
+    const orders = await Order.find({ vendor: vid })
+      .sort({ createdAt: -1 })
+      .select("orderNumber customerSnapshot totalAmount depositPaid balanceOwed status createdAt items channel")
+      .lean();
+
+    const headers = [
+      "Order Date",
+      "Customer Name",
+      "Customer Phone",
+      "Customer Email",
+      "Channel",
+      "Items Count",
+      "Total Amount (NGN)",
+      "Deposit Paid (NGN)",
+      "Balance Owed (NGN)",
+      "Status",
+    ];
+
+    const rows = orders.map((o) => [
+      new Date(o.createdAt).toISOString().split("T")[0],
+      o.customerSnapshot?.name || "",
+      o.customerSnapshot?.phone || "",
+      o.customerSnapshot?.email || "",
+      o.channel || "direct",
+      o.items?.length || 0,
+      o.totalAmount || 0,
+      o.depositPaid || 0,
+      o.balanceOwed || 0,
+      o.status,
+    ]);
+
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+  }
+
+  if (type === "customers") {
+    const customers = await Customer.find({ vendor: vid })
+      .sort({ ltv: -1 })
+      .select("name phone email ltv orderCount lastOrderDate tags notes createdAt")
+      .lean();
+
+    const headers = [
+      "Customer Name",
+      "Phone",
+      "Email",
+      "Lifetime Value (NGN)",
+      "Completed Orders",
+      "Last Order Date",
+      "Tags",
+      "Notes",
+      "Customer Since",
+    ];
+
+    const rows = customers.map((c) => [
+      c.name || "",
+      c.phone || "",
+      c.email || "",
+      c.ltv || 0,
+      c.orderCount || 0,
+      c.lastOrderDate ? new Date(c.lastOrderDate).toISOString().split("T")[0] : "",
+      (c.tags || []).join("; "),
+      c.notes || "",
+      new Date(c.createdAt).toISOString().split("T")[0],
+    ]);
+
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+  }
+
+  if (type === "inventory") {
+    const products = await Product.find({ vendor: vid })
+      .sort({ createdAt: -1 })
+      .select("name category basePrice status variants lowStockThreshold createdAt")
+      .lean();
+
+    const headers = [
+      "Product Name",
+      "Category",
+      "Base Price (NGN)",
+      "Status",
+      "Low Stock Threshold",
+      "Variants / Sizes",
+      "Total Quantity In Stock",
+      "Created Date",
+    ];
+
+    const rows = products.map((p) => {
+      const totalQty = (p.variants || []).reduce((acc, v) => acc + (v.quantity || 0), 0);
+      const variantsSummary = (p.variants || [])
+        .map((v) => `${v.size || v.color || "Variant"}: ${v.quantity}`)
+        .join("; ");
+
+      return [
+        p.name,
+        p.category || "RTW",
+        p.basePrice || 0,
+        p.status,
+        p.lowStockThreshold || 0,
+        variantsSummary,
+        totalQty,
+        new Date(p.createdAt).toISOString().split("T")[0],
+      ];
+    });
+
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+  }
+
+  if (type === "financials") {
+    const [orders, customReqs, suppliers] = await Promise.all([
+      Order.find({ vendor: vid, status: "completed" })
+        .select("createdAt totalAmount channel items")
+        .lean(),
+      CustomRequest.find({ vendor: vid, status: "completed" })
+        .select("updatedAt agreedPrice estimatedPrice title")
+        .lean(),
+      Supplier.find({ vendor: vid })
+        .select("name totalPurchaseAmount outstandingBalance purchases")
+        .lean(),
+    ]);
+
+    const headers = [
+      "Record Type",
+      "Date",
+      "Description / Reference",
+      "Credit Revenue (NGN)",
+      "Debit Expense (NGN)",
+      "Balance Owed (NGN)",
+    ];
+    const rows = [];
+
+    orders.forEach((o) => {
+      rows.push([
+        "RTW Order",
+        new Date(o.createdAt).toISOString().split("T")[0],
+        `Order (${o.items?.length || 1} items)`,
+        o.totalAmount || 0,
+        0,
+        0,
+      ]);
+    });
+
+    customReqs.forEach((c) => {
+      const amount = c.agreedPrice || c.estimatedPrice || 0;
+      rows.push([
+        "Bespoke Demand",
+        new Date(c.updatedAt).toISOString().split("T")[0],
+        `Bespoke: ${c.title || "Custom garment"}`,
+        amount,
+        0,
+        0,
+      ]);
+    });
+
+    suppliers.forEach((s) => {
+      (s.purchases || []).forEach((p) => {
+        rows.push([
+          "Supplier Material",
+          new Date(p.date).toISOString().split("T")[0],
+          `${s.name}: ${p.description || "Fabric/Trims"}`,
+          0,
+          p.amount || 0,
+          (p.amount || 0) - (p.paidAmount || 0),
+        ]);
+      });
+    });
+
+    rows.sort((a, b) => (a[1] < b[1] ? 1 : -1));
+
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
+  }
+
+  throw new Error(`Unknown export type: ${type}`);
+}
+

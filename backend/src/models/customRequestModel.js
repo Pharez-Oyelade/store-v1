@@ -145,6 +145,17 @@ const customRequestSchema = new mongoose.Schema(
       default: "dm",
     },
 
+    assignedTailor: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "TeamMember",
+      default: null,
+    },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
+
     notes: {
       type: String,
       maxlength: [2000, "Notes cannot exceed 2000 characters"],
@@ -164,11 +175,16 @@ customRequestSchema.index({ vendor: 1, status: 1 });
 customRequestSchema.index({ vendor: 1, createdAt: -1 });
 customRequestSchema.index({ vendor: 1, deadline: 1 });
 customRequestSchema.index({ vendor: 1, "customerSnapshot.phone": 1 });
+customRequestSchema.index({ vendor: 1, assignedTailor: 1 });
 
-/* ── Pre-save: compute balanceOwed ──────────────────────────────── */
+/* ── Pre-save: compute balanceOwed and completedAt ──────────────── */
 customRequestSchema.pre("save", function () {
   const targetPrice = this.agreedPrice > 0 ? this.agreedPrice : this.estimatedPrice;
   this.balanceOwed = Math.max(0, targetPrice - (this.depositPaid || 0));
+
+  if (this.status === "completed" && !this.completedAt) {
+    this.completedAt = new Date();
+  }
 });
 
 const CustomRequest = mongoose.model("CustomRequest", customRequestSchema);
