@@ -117,15 +117,7 @@ export async function downloadVendorCsv(
     responseType: "blob",
   });
 
-  /*
-   * Axios response interceptor unwraps response.data, so response is already
-   * the Blob itself (or BlobPart). Do NOT access response.data or it will be undefined!
-   */
-  const blob =
-    response instanceof Blob
-      ? response
-      : new Blob([response as unknown as BlobPart], { type: "text/csv;charset=utf-8;" });
-
+  const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

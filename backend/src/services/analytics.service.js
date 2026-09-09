@@ -659,7 +659,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
     ];
 
     const rows = orders.map((o) => [
-      o.createdAt ? new Date(o.createdAt).toISOString().split("T")[0] : "",
+      new Date(o.createdAt).toISOString().split("T")[0],
       o.customerSnapshot?.name || "",
       o.customerSnapshot?.phone || "",
       o.customerSnapshot?.email || "",
@@ -668,15 +668,12 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       o.totalAmount || 0,
       o.depositPaid || 0,
       o.balanceOwed || 0,
-      o.status || "",
+      o.status,
     ]);
 
-    return (
-      "\uFEFF" +
-      [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
-        .join("\n")
-    );
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
   }
 
   if (type === "customers") {
@@ -706,15 +703,12 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       c.lastOrderDate ? new Date(c.lastOrderDate).toISOString().split("T")[0] : "",
       (c.tags || []).join("; "),
       c.notes || "",
-      c.createdAt ? new Date(c.createdAt).toISOString().split("T")[0] : "",
+      new Date(c.createdAt).toISOString().split("T")[0],
     ]);
 
-    return (
-      "\uFEFF" +
-      [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
-        .join("\n")
-    );
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
   }
 
   if (type === "inventory") {
@@ -741,23 +735,20 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
         .join("; ");
 
       return [
-        p.name || "",
+        p.name,
         p.category || "RTW",
         p.basePrice || 0,
-        p.status || "",
+        p.status,
         p.lowStockThreshold || 0,
         variantsSummary,
         totalQty,
-        p.createdAt ? new Date(p.createdAt).toISOString().split("T")[0] : "",
+        new Date(p.createdAt).toISOString().split("T")[0],
       ];
     });
 
-    return (
-      "\uFEFF" +
-      [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
-        .join("\n")
-    );
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
   }
 
   if (type === "financials") {
@@ -786,7 +777,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
     orders.forEach((o) => {
       rows.push([
         "RTW Order",
-        o.createdAt ? new Date(o.createdAt).toISOString().split("T")[0] : "",
+        new Date(o.createdAt).toISOString().split("T")[0],
         `Order (${o.items?.length || 1} items)`,
         o.totalAmount || 0,
         0,
@@ -798,7 +789,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       const amount = c.agreedPrice || c.estimatedPrice || 0;
       rows.push([
         "Bespoke Demand",
-        c.updatedAt ? new Date(c.updatedAt).toISOString().split("T")[0] : "",
+        new Date(c.updatedAt).toISOString().split("T")[0],
         `Bespoke: ${c.title || "Custom garment"}`,
         amount,
         0,
@@ -810,8 +801,8 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       (s.purchases || []).forEach((p) => {
         rows.push([
           "Supplier Material",
-          p.date ? new Date(p.date).toISOString().split("T")[0] : "",
-          `${s.name || "Supplier"}: ${p.description || "Fabric/Trims"}`,
+          new Date(p.date).toISOString().split("T")[0],
+          `${s.name}: ${p.description || "Fabric/Trims"}`,
           0,
           p.amount || 0,
           (p.amount || 0) - (p.paidAmount || 0),
@@ -821,12 +812,9 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
 
     rows.sort((a, b) => (a[1] < b[1] ? 1 : -1));
 
-    return (
-      "\uFEFF" +
-      [headers, ...rows]
-        .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
-        .join("\n")
-    );
+    return [headers, ...rows]
+      .map((row) => row.map((cell) => `"${String(cell ?? "").replace(/"/g, '""')}"`).join(","))
+      .join("\n");
   }
 
   throw new Error(`Unknown export type: ${type}`);
