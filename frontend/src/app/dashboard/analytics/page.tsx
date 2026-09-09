@@ -176,7 +176,7 @@ export default function AnalyticsPage() {
             )}
 
             {isAtelierOrHigher && (
-              <div className="flex items-center gap-1">
+              <div className="flex items-center gap-1 flex-wrap">
                 <button
                   type="button"
                   onClick={() => handleExport("orders")}
