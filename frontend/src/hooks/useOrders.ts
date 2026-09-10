@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
+import { ANALYTICS_KEYS } from "@/hooks/useAnalytics";
 import type { Order, OrderQueryParams, OrderFormValues } from "@/types";
 
 export const ORDER_KEYS = {
@@ -69,6 +70,7 @@ export function useCreateOrder() {
     mutationFn: (data: OrderFormValues) => apiPost<Order>("/orders", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Order created successfully");
     },
     onError: (error: Error) => {
@@ -85,6 +87,7 @@ export function useUpdateOrder(id: string) {
     mutationFn: (data: Partial<Order>) => apiPut<Order>(`/orders/${id}`, data),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       queryClient.setQueryData(ORDER_KEYS.detail(id), updated);
       toast.success("Order updated");
     },
@@ -102,6 +105,7 @@ export function useDeleteOrder() {
     mutationFn: (id: string) => apiDelete(`/orders/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Order deleted");
     },
     onError: (error: Error) => {

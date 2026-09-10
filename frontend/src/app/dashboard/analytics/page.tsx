@@ -19,7 +19,9 @@ import {
   FileSpreadsheet,
   Layers,
   ChevronDown,
+  RefreshCw,
 } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
 import {
   Bar,
   BarChart,
@@ -39,6 +41,7 @@ import {
 import RevenueChart from "@/components/dashboard/RevenueChart";
 import PlanGate from "@/components/dashboard/PlanGate";
 import {
+  ANALYTICS_KEYS,
   useAnalyticsOverview,
   useRevenueSeries,
   useSlowMovers,
@@ -72,6 +75,21 @@ export default function AnalyticsPage() {
   // Stitch is forced to daily 7-day snapshot; Drape and Atelier have full period selection
   const [period, setPeriod] = useState<Period>("daily");
   const [exportingType, setExportingType] = useState<string | null>(null);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  const queryClient = useQueryClient();
+
+  const handleRefresh = async () => {
+    setIsRefreshing(true);
+    try {
+      await queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      toast.success("Analytics refreshed");
+    } catch {
+      toast.error("Failed to refresh metrics");
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   // Queries (enabled based on plan tier)
   const overview = useAnalyticsOverview({ enabled: !isFree });
@@ -139,6 +157,21 @@ export default function AnalyticsPage() {
         }
         action={
           <div className="flex flex-wrap items-center gap-2.5">
+            {/* Sync / Refresh Button */}
+            <button
+              type="button"
+              onClick={handleRefresh}
+              disabled={isRefreshing}
+              title="Refresh all metrics"
+              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-xs font-semibold text-gray-700 shadow-xs transition-colors disabled:opacity-50"
+            >
+              <RefreshCw
+                size={13}
+                className={isRefreshing ? "animate-spin text-brand-700" : "text-gray-500"}
+              />
+              <span>{isRefreshing ? "Refreshing..." : "Refresh"}</span>
+            </button>
+
             {/* Period Switcher */}
             {isStitch ? (
               <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-blue-200 bg-blue-50 text-blue-900 text-xs font-semibold">

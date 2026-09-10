@@ -341,6 +341,15 @@ export interface Order {
   source: OrderSource;
   notes?: string;
   whatsappSent: boolean; // track if order details have been sent to customer via WhatsApp
+  invoice?: {
+    _id: string;
+    invoiceNumber: string;
+    accessToken: string;
+    balanceDue: number;
+    totalAmount: number;
+    totalPaid: number;
+    status: string;
+  };
   isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -819,6 +828,15 @@ export interface CustomRequest {
     confirmed: string;
     fitting: string;
     completed: string;
+  };
+  invoice?: {
+    _id: string;
+    invoiceNumber: string;
+    accessToken: string;
+    balanceDue: number;
+    totalAmount: number;
+    totalPaid: number;
+    status: string;
   };
   isPendingSync?: boolean;
   createdAt: string;

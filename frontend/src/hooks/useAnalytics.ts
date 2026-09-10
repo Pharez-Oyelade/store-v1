@@ -14,6 +14,7 @@ import type {
 import api, { apiGet } from "@/lib/api";
 
 export const ANALYTICS_KEYS = {
+  all: ["analytics"] as const,
   overview: ["analytics", "overview"] as const,
   revenue: (period: string) => ["analytics", "revenue", period] as const,
   topProducts: ["analytics", "top-products"] as const,
@@ -29,7 +30,8 @@ export function useAnalyticsOverview(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.overview,
     queryFn: () => apiGet<AnalyticsOverview>("/analytics/overview"),
-    staleTime: 30 * 1000,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -43,7 +45,8 @@ export function useRevenueSeries(
     queryKey: ANALYTICS_KEYS.revenue(period),
     queryFn: () =>
       apiGet<RevenueDataPoint[]>(`/analytics/revenue?period=${period}`),
-    staleTime: 60 * 1000,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -53,7 +56,8 @@ export function useTopProducts(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.topProducts,
     queryFn: () => apiGet<TopProduct[]>("/analytics/products/top"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -63,7 +67,8 @@ export function useSlowMovers(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.slowMovers,
     queryFn: () => apiGet<Product[]>("/analytics/products/slow"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -73,7 +78,8 @@ export function useTopCustomers(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.topCustomers,
     queryFn: () => apiGet<Customer[]>("/analytics/customers/top"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 30 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -83,7 +89,8 @@ export function useBespokeVsRtwBreakdown(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.bespokeVsRtw,
     queryFn: () => apiGet<BespokeVsRtwBreakdown>("/analytics/bespoke-vs-rtw"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -93,7 +100,8 @@ export function useWorkshopProductivity(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.workshop,
     queryFn: () => apiGet<WorkshopProductivity>("/analytics/workshop"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }
@@ -103,7 +111,8 @@ export function useMarginEstimator(options?: { enabled?: boolean }) {
   return useQuery({
     queryKey: ANALYTICS_KEYS.margins,
     queryFn: () => apiGet<MarginEstimator>("/analytics/margins"),
-    staleTime: 5 * 60 * 1000,
+    staleTime: 15 * 1000,
+    refetchOnMount: true,
     enabled: options?.enabled !== false,
   });
 }

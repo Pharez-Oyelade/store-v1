@@ -145,11 +145,37 @@ export default function DemandDetailPage({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-          <Link href={`/dashboard/invoices/new?demandId=${id}`}>
-            <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
-              Generate Invoice
-            </Button>
-          </Link>
+          {request.invoice ? (
+            <>
+              <Link href={`/dashboard/invoices/${request.invoice._id}`}>
+                <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+                  Invoice #{request.invoice.invoiceNumber}
+                  {request.invoice.balanceDue > 0
+                    ? ` (${formatCurrency(request.invoice.balanceDue)} left)`
+                    : " (Paid)"}
+                </Button>
+              </Link>
+              {request.invoice.balanceDue > 0 && (
+                <a
+                  href={`https://wa.me/${request.customerSnapshot?.phone?.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                    `Hi ${request.customerSnapshot?.name || "Customer"}, here is your invoice #${request.invoice.invoiceNumber} for "${request.title}".\n\nTotal: ${formatCurrency(request.invoice.totalAmount)}\nBalance Due: ${formatCurrency(request.invoice.balanceDue)}\n\nView invoice, pay online, or see transfer details here:\n${typeof window !== "undefined" ? window.location.origin : ""}/i/${request.invoice.accessToken}`,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-2xs"
+                >
+                  <MessageCircle size={14} className="text-white" />
+                  <span>Resend Invoice</span>
+                </a>
+              )}
+            </>
+          ) : (
+            <Link href={`/dashboard/invoices/new?demandId=${id}`}>
+              <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+                Generate Invoice
+              </Button>
+            </Link>
+          )}
           <Link href={`/dashboard/demands/${id}/edit`}>
             <Button variant="secondary" size="small" leftIcon={<Edit size={14} />}>
               Edit Demand

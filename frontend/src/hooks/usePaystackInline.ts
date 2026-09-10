@@ -26,13 +26,13 @@ export const usePaystackInline = () => {
     };
   }, []);
 
-  const initializePayment = ({ key, email, amount, metadata, onSuccess, onClose }: { key: string, email: string, amount: number, metadata?: any, onSuccess?: (res: any) => void, onClose?: () => void }) => {
+  const initializePayment = ({ key, email, amount, ref, metadata, onSuccess, onClose }: { key: string, email: string, amount: number, ref?: string, metadata?: any, onSuccess?: (res: any) => void, onClose?: () => void }) => {
     if (!isLoaded || !window.PaystackPop) {
       console.error("Paystack inline script not loaded yet");
       return;
     }
 
-    const handler = window.PaystackPop.setup({
+    const config: any = {
       key,
       email,
       amount,
@@ -43,8 +43,13 @@ export const usePaystackInline = () => {
       onClose: () => {
         if (onClose) onClose();
       },
-    });
+    };
 
+    if (ref) {
+      config.ref = ref;
+    }
+
+    const handler = window.PaystackPop.setup(config);
     handler.openIframe();
   };
 
