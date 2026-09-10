@@ -135,9 +135,11 @@ export const verifyUpgrade = asyncHandler(async (req, res) => {
  */
 export const paystackWebhook = asyncHandler(async (req, res) => {
   const signature = req.headers["x-paystack-signature"];
-  const isValid = verifyWebhookSignature(signature, JSON.stringify(req.body));
+  const rawPayload = req.rawBody || JSON.stringify(req.body);
+  const isValid = verifyWebhookSignature(signature, rawPayload);
 
   if (!isValid) {
+    console.warn("[Paystack Webhook] Signature verification failed");
     return res.status(401).send("Invalid signature");
   }
 

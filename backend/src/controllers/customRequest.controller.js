@@ -1,6 +1,7 @@
 import CustomRequest from "../models/customRequestModel.js";
 import Customer from "../models/customerModel.js";
 import Supplier from "../models/supplierModel.js";
+import Invoice from "../models/invoiceModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImages } from "../services/cloudinary.service.js";
@@ -238,6 +239,16 @@ export const getCustomRequest = asyncHandler(async (req, res) => {
     fitting: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "fitting"),
     completed: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "completed"),
   };
+
+  const existingInvoice = await Invoice.findOne({
+    customRequest: requestDoc._id,
+    vendor: req.vendor._id,
+    status: { $ne: "cancelled" },
+  }).select("_id invoiceNumber accessToken balanceDue totalAmount totalPaid status");
+
+  if (existingInvoice) {
+    reqObj.invoice = existingInvoice;
+  }
 
   return sendSuccess(res, reqObj);
 });

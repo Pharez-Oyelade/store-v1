@@ -2,6 +2,7 @@ import Order from "../models/orderModel.js";
 import Customer from "../models/customerModel.js";
 import Product from "../models/productModel.js";
 import CustomRequest from "../models/customRequestModel.js";
+import Invoice from "../models/invoiceModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { buildDynamicWhatsAppLink, buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
@@ -262,6 +263,16 @@ export const getOrder = asyncHandler(async (req, res) => {
     dispatched: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderDispatchedTemplate"),
     completed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderCompletedTemplate"),
   };
+
+  const existingInvoice = await Invoice.findOne({
+    order: order._id,
+    vendor: req.vendor._id,
+    status: { $ne: "cancelled" },
+  }).select("_id invoiceNumber accessToken balanceDue totalAmount totalPaid status");
+
+  if (existingInvoice) {
+    orderObj.invoice = existingInvoice;
+  }
 
   return sendSuccess(res, orderObj);
 });

@@ -5,11 +5,13 @@ import {
   getInvoiceById,
   getPublicInvoiceByToken,
   initializeInvoicePayment,
+  verifyInvoicePayment,
   recordManualPayment,
   submitManualPaymentProof,
   verifyManualPaymentProof,
   cancelInvoice,
 } from "../controllers/invoice.controller.js";
+import { paystackWebhook } from "../controllers/subscription.controller.js";
 import { protect } from "../middleware/protect.js";
 import { requireRole } from "../middleware/rbac.middleware.js";
 import { checkIdempotency } from "../middleware/idempotency.middleware.js";
@@ -17,10 +19,12 @@ import { checkInvoiceLimit } from "../middleware/subscriptionGating.middleware.j
 
 const invoiceRouter = Router();
 
-/* ── Public Routes (Unauthenticated, accessed via secret token) ─── */
+/* ── Public Routes (Unauthenticated, accessed via secret token or webhook) ─── */
 invoiceRouter.get("/public/:token", getPublicInvoiceByToken);
 invoiceRouter.post("/public/:token/pay", initializeInvoicePayment);
+invoiceRouter.post("/public/:token/verify", verifyInvoicePayment);
 invoiceRouter.post("/public/:token/manual-proof", submitManualPaymentProof);
+invoiceRouter.post("/webhook", paystackWebhook);
 
 /* ── Protected Vendor Routes ────────────────────────────────────── */
 invoiceRouter.use(protect, requireRole("owner", "manager", "sales"), checkIdempotency);

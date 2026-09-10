@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const invoiceItemSchema = new mongoose.Schema(
   {
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      default: null,
+    },
     description: {
       type: String,
       required: [true, "Item description is required"],

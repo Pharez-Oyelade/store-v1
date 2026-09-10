@@ -63,7 +63,13 @@ export async function getRevenueOverview(vendorId) {
       {
         $facet: {
           today: [
-            { $match: { updatedAt: { $gte: startOfDay } } },
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startOfDay],
+                },
+              },
+            },
             {
               $group: {
                 _id: null,
@@ -81,7 +87,13 @@ export async function getRevenueOverview(vendorId) {
             },
           ],
           week: [
-            { $match: { updatedAt: { $gte: startOfWeek } } },
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startOfWeek],
+                },
+              },
+            },
             {
               $group: {
                 _id: null,
@@ -99,7 +111,13 @@ export async function getRevenueOverview(vendorId) {
             },
           ],
           month: [
-            { $match: { updatedAt: { $gte: startOfMonth } } },
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startOfMonth],
+                },
+              },
+            },
             {
               $group: {
                 _id: null,
@@ -220,32 +238,40 @@ export async function getRevenueSeries(vendorId, period = "daily", plan = "stitc
   const vid = new Types.ObjectId(vendorId);
   const now = new Date();
   let startDate;
-  let groupByFormat;
+  let dateFormat = "%Y-%m-%d";
 
   if (plan === "stitch") {
     // Stitch is strictly capped to the last 7 days daily snapshot
     startDate = new Date(now);
     startDate.setDate(now.getDate() - 7);
-    groupByFormat = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+    dateFormat = "%Y-%m-%d";
   } else if (period === "yearly") {
     // 12 months retention for Drape / Atelier
     startDate = new Date(now);
     startDate.setFullYear(now.getFullYear() - 1);
-    groupByFormat = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
+    dateFormat = "%Y-%m";
   } else if (period === "weekly") {
     startDate = new Date(now);
     startDate.setDate(now.getDate() - 56); // 8 weeks
-    groupByFormat = { $dateToString: { format: "%Y-W%V", date: "$createdAt" } };
+    dateFormat = "%Y-W%V";
   } else if (period === "monthly") {
     startDate = new Date(now);
     startDate.setMonth(now.getMonth() - 6);
-    groupByFormat = { $dateToString: { format: "%Y-%m", date: "$createdAt" } };
+    dateFormat = "%Y-%m";
   } else {
     // daily — last 14 days
     startDate = new Date(now);
     startDate.setDate(now.getDate() - 14);
-    groupByFormat = { $dateToString: { format: "%Y-%m-%d", date: "$createdAt" } };
+    dateFormat = "%Y-%m-%d";
   }
+
+  const groupByFormat = { $dateToString: { format: dateFormat, date: "$createdAt" } };
+  const bespokeGroupByFormat = {
+    $dateToString: {
+      format: dateFormat,
+      date: { $ifNull: ["$completedAt", "$updatedAt"] },
+    },
+  };
 
   const [ordersData, bespokeData] = await Promise.all([
     Order.aggregate([
@@ -270,12 +296,14 @@ export async function getRevenueSeries(vendorId, period = "daily", plan = "stitc
         $match: {
           vendor: vid,
           status: "completed",
-          updatedAt: { $gte: startDate },
+          $expr: {
+            $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startDate],
+          },
         },
       },
       {
         $group: {
-          _id: groupByFormat,
+          _id: bespokeGroupByFormat,
           revenue: {
             $sum: {
               $cond: [

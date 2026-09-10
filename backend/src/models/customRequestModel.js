@@ -182,8 +182,12 @@ customRequestSchema.pre("save", function () {
   const targetPrice = this.agreedPrice > 0 ? this.agreedPrice : this.estimatedPrice;
   this.balanceOwed = Math.max(0, targetPrice - (this.depositPaid || 0));
 
-  if (this.status === "completed" && !this.completedAt) {
-    this.completedAt = new Date();
+  if (this.status === "completed") {
+    if (!this.completedAt) {
+      this.completedAt = new Date();
+    }
+  } else if (this.completedAt) {
+    this.completedAt = null;
   }
 });
 

@@ -28,6 +28,7 @@ import contactRouter from "./src/routes/contact.routes.js";
 import newsletterRouter from "./src/routes/newsletter.routes.js";
 import teamRouter from "./src/routes/team.routes.js";
 import invoiceRouter from "./src/routes/invoice.routes.js";
+import { paystackWebhook } from "./src/controllers/subscription.controller.js";
 
 
 
@@ -114,8 +115,15 @@ const storefrontLimiter = rateLimit({
 });
 
 /* ── Body Parsing ───────────────────────────────────────────────── */
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 app.use(sanitizeRequest);
 
@@ -150,6 +158,7 @@ app.use("/api/customers", apiLimiter, customerRouter);
 app.use("/api/suppliers", apiLimiter, supplierRouter);
 app.use("/api/analytics", apiLimiter, analyticsRouter);
 app.use("/api/subscriptions", subscriptionRouter); // Note: webhook handles its own rate limit, endpoints use their own logic or apiLimiter
+app.post("/api/webhook", paystackWebhook);
 app.use("/api/notifications", apiLimiter, notificationRouter);
 app.use("/api/contact", apiLimiter, contactRouter);
 app.use("/api/newsletter", apiLimiter, newsletterRouter);

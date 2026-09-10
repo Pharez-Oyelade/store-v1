@@ -64,7 +64,7 @@ export const verifyTransaction = async (reference) => {
  */
 export const verifyWebhookSignature = (signature, rawBody) => {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
-  if (!secretKey) return false;
+  if (!secretKey || !signature || !rawBody) return false;
   
   const hash = crypto
     .createHmac("sha512", secretKey)
