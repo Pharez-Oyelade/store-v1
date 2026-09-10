@@ -169,23 +169,37 @@ export default function DemandCard({ request }: DemandCardProps) {
           </div>
         )}
 
-        {/* Deadline pill */}
-        {deadlineInfo && (
-          <div
-            className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg mb-4 ${
-              deadlineInfo.isOverdue
-                ? "bg-red-50 text-red-700 font-bold"
-                : "bg-gray-50 text-gray-600"
-            }`}
-          >
-            {deadlineInfo.isOverdue ? (
-              <AlertCircle size={14} />
-            ) : (
-              <Calendar size={14} />
-            )}
-            <span>{deadlineInfo.text}</span>
-          </div>
-        )}
+        {/* Workshop & Deadline Badges */}
+        <div className="flex flex-wrap items-center gap-2 mb-4">
+          {request.assignedTailor && typeof request.assignedTailor === "object" ? (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg bg-purple-50 text-purple-700 border border-purple-100">
+              <Scissors size={12} className="text-purple-600" />
+              <span className="truncate max-w-[120px]">{request.assignedTailor.name}</span>
+            </span>
+          ) : (
+            <span className="inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg bg-gray-50 text-gray-500 border border-gray-100">
+              <Scissors size={12} className="text-gray-400" />
+              <span>Unassigned</span>
+            </span>
+          )}
+
+          {deadlineInfo && (
+            <span
+              className={`inline-flex items-center gap-1.5 text-xs font-medium px-2.5 py-1 rounded-lg ${
+                deadlineInfo.isOverdue
+                  ? "bg-red-50 text-red-700 font-bold border border-red-100"
+                  : "bg-gray-50 text-gray-600 border border-gray-100"
+              }`}
+            >
+              {deadlineInfo.isOverdue ? (
+                <AlertCircle size={12} />
+              ) : (
+                <Calendar size={12} />
+              )}
+              <span>{deadlineInfo.text}</span>
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Footer: Pricing & Action buttons */}

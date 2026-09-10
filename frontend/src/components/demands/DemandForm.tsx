@@ -26,6 +26,8 @@ import MeasurementsEditor from "./MeasurementsEditor";
 import MaterialsBuilder from "./MaterialsBuilder";
 import { useCreateCustomRequest, useUpdateCustomRequest } from "@/hooks/useCustomRequests";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useTeamSummary } from "@/hooks/useTeam";
+import { useAuthStore } from "@/store/authStore";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { generateLocalId } from "@/lib/offline/outbox";
 import type { CustomRequest, CustomRequestMaterial } from "@/types";
@@ -45,6 +47,7 @@ const demandSchema = z.object({
   deadline: z.string().optional(),
   source: z.enum(["dm", "call", "walk_in", "storefront", "referral"]),
   notes: z.string().optional(),
+  assignedTailor: z.string().optional(),
 });
 
 type DemandFormSchema = z.infer<typeof demandSchema>;
@@ -57,6 +60,16 @@ interface DemandFormProps {
 
 export default function DemandForm({ initialData }: DemandFormProps) {
   const router = useRouter();
+  const vendor = useAuthStore((s) => s.vendor);
+  const isTailor = Boolean(vendor?.user?.isTeamMember && vendor?.user?.role === "tailor");
+  const teamQuery = useTeamSummary();
+  const tailors = (teamQuery.data?.members || []).filter((m) => m.role === "tailor" && m.isActive);
+
+  const defaultTailorId =
+    typeof initialData?.assignedTailor === "object" && initialData?.assignedTailor
+      ? initialData.assignedTailor._id
+      : (initialData?.assignedTailor as string) || (isTailor ? vendor?.user?._id : "") || "";
+
   const createMutation = useCreateCustomRequest();
   const updateMutation = useUpdateCustomRequest(initialData?._id || "");
   const customersQuery = useCustomers({ page: 1, limit: 200 });
@@ -152,6 +165,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
         : "",
       source: (initialData?.source as any) || "dm",
       notes: initialData?.notes || "",
+      assignedTailor: defaultTailorId,
     },
   });
 
@@ -251,6 +265,11 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     if (data.deadline) formData.append("deadline", data.deadline);
     formData.append("source", data.source);
     if (data.notes) formData.append("notes", data.notes);
+    if (data.assignedTailor) {
+      formData.append("assignedTailor", data.assignedTailor);
+    } else if (initialData) {
+      formData.append("assignedTailor", "unassigned");
+    }
 
     // JSON encoded objects
     formData.append("measurements", JSON.stringify(measurements));
@@ -285,6 +304,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
         deadline: data.deadline,
         source: data.source,
         notes: data.notes,
+        assignedTailor: data.assignedTailor || null,
         measurements,
         materials,
       };
@@ -749,7 +769,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               </span>
             </div>
 
-            {/* Target Delivery Date */}
+            {/* Target Delivery Date & Tailor Assignment */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -763,16 +783,34 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Internal Workshop Notes
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
+                  <span>Assigned Tailor</span>
+                  <span className="text-xs text-brand-700 font-normal">Turnaround Tracking</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Needs expedited delivery for wedding on Saturday"
-                  {...register("notes")}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-brand-700 focus:outline-none"
-                />
+                <select
+                  {...register("assignedTailor")}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-brand-700 focus:outline-none bg-white"
+                >
+                  <option value="">Unassigned Workshop Pool</option>
+                  {tailors.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name} (Tailor)
+                    </option>
+                  ))}
+                </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Internal Workshop Notes
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Needs expedited delivery for wedding on Saturday"
+                {...register("notes")}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-brand-700 focus:outline-none"
+              />
             </div>
           </div>
 

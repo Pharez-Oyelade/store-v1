@@ -838,6 +838,14 @@ export interface CustomRequest {
     totalPaid: number;
     status: string;
   };
+  assignedTailor?: {
+    _id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+  } | string | null;
+  completedAt?: string | null;
   isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
@@ -873,6 +881,7 @@ export interface CustomRequestFormValues {
   deadline?: string;
   source?: string;
   notes?: string;
+  assignedTailor?: string;
   measurements?: Record<string, string>;
   materials?: CustomRequestMaterial[];
 }
