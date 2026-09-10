@@ -13,7 +13,7 @@ const router = express.Router();
 // All team routes require authentication
 router.use(protect);
 
-router.get("/", requireRole("owner", "manager"), getTeamSummary);
+router.get("/", requireRole("owner", "manager", "tailor"), getTeamSummary);
 router.post("/invite", requireRole("owner", "manager"), checkTeamSeatLimit, inviteTeamMember);
 router.put("/:id", requireRole("owner", "manager"), updateTeamMember);
 router.delete("/:id", requireRole("owner"), deleteTeamMember);

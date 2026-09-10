@@ -119,6 +119,7 @@ export const getCustomRequests = asyncHandler(async (req, res) => {
   const [requestsRaw, total] = await Promise.all([
     CustomRequest.find(filter)
       .populate("materials.supplier", "name phone category")
+      .populate("assignedTailor", "name email phone role")
       .sort({ [sort]: sortDir })
       .skip(skip)
       .limit(Number(limit))
@@ -226,7 +227,8 @@ export const getCustomRequest = asyncHandler(async (req, res) => {
     vendor: req.vendor._id,
   })
     .populate("customer", "name phone email instagram measurements notes tags")
-    .populate("materials.supplier", "name phone category contactName");
+    .populate("materials.supplier", "name phone category contactName")
+    .populate("assignedTailor", "name email phone role");
 
   if (!requestDoc) {
     return sendError(res, "Custom request not found", 404);
@@ -271,6 +273,7 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     deadline,
     source = "dm",
     notes = "",
+    assignedTailor,
   } = req.body;
 
   const parsedMeasurements = normalizeMeasurements(measurements);
@@ -331,6 +334,12 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     finalMeasurements = normalizeMeasurements(customer.measurements);
   }
 
+  // Auto-assign tailor if creator is a tailor, or use explicit assignedTailor
+  let resolvedTailor = assignedTailor || null;
+  if (!resolvedTailor && req.teamMember && req.teamMember.role === "tailor") {
+    resolvedTailor = req.teamMember._id;
+  }
+
   const customRequest = await CustomRequest.create({
     vendor: vendorId,
     customer: customer._id,
@@ -352,7 +361,12 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     source,
     notes,
     status: Number(depositPaid) > 0 ? "confirmed" : "inquiry",
+    assignedTailor: resolvedTailor,
   });
+
+  if (resolvedTailor) {
+    await customRequest.populate("assignedTailor", "name email phone role");
+  }
 
 
   const reqObj = customRequest.toObject({ flattenMaps: true });
@@ -402,6 +416,7 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     notes,
     whatsappSent,
     removeImageIds,
+    assignedTailor,
   } = req.body;
 
   // Process newly uploaded reference images
@@ -435,6 +450,10 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
   if (status !== undefined) customRequest.status = status;
   if (notes !== undefined) customRequest.notes = notes;
   if (whatsappSent !== undefined) customRequest.whatsappSent = whatsappSent;
+  if (assignedTailor !== undefined) {
+    customRequest.assignedTailor =
+      assignedTailor === "unassigned" || !assignedTailor ? null : assignedTailor;
+  }
 
   if (materials !== undefined) {
     customRequest.materials = typeof materials === "string" ? JSON.parse(materials) : materials;
@@ -444,8 +463,8 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     customRequest.measurements = normalizeMeasurements(measurements);
   }
 
-
   await customRequest.save();
+  await customRequest.populate("assignedTailor", "name email phone role");
 
   // Sync supplier purchases
   await syncSupplierMaterials(customRequest);

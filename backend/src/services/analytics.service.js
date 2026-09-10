@@ -496,7 +496,7 @@ export async function getWorkshopProductivity(vendorId) {
       .lean(),
     CustomRequest.find({
       vendor: vid,
-      status: { $in: ["in_progress", "fitting", "completed"] },
+      status: { $in: ["confirmed", "sourcing", "in_progress", "fitting", "completed"] },
     })
       .select("title assignedTailor status createdAt completedAt updatedAt agreedPrice estimatedPrice")
       .lean(),
