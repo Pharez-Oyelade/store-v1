@@ -268,6 +268,7 @@ export default function OrderForm() {
               <option value={OrderSource.Call}>Call</option>
               <option value={OrderSource.WalkIn}>Walk-in</option>
               <option value={OrderSource.Storefront}>Storefront</option>
+              <option value={OrderSource.WhatsApp}>WhatsApp</option>
             </NativeSelect>
           </div>
         </div>

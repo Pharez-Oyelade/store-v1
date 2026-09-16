@@ -129,7 +129,7 @@ const orderSchema = new mongoose.Schema(
 
     source: {
       type: String,
-      enum: ["dm", "call", "walk_in", "storefront"],
+      enum: ["dm", "call", "walk_in", "storefront", "whatsapp"],
       default: "dm",
     },
 

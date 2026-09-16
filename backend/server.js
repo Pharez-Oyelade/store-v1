@@ -28,6 +28,7 @@ import contactRouter from "./src/routes/contact.routes.js";
 import newsletterRouter from "./src/routes/newsletter.routes.js";
 import teamRouter from "./src/routes/team.routes.js";
 import invoiceRouter from "./src/routes/invoice.routes.js";
+import whatsappWebhookRouter from "./src/routes/whatsappWebhook.routes.js";
 import { paystackWebhook } from "./src/controllers/subscription.controller.js";
 
 
@@ -165,6 +166,7 @@ app.use("/api/newsletter", apiLimiter, newsletterRouter);
 app.use("/api/storefront", storefrontLimiter, storefrontRouter);
 app.use("/api/team", apiLimiter, teamRouter);
 app.use("/api/admin", adminLimiter, adminRouter);
+app.use("/api/whatsapp", whatsappWebhookRouter); // No auth limiter — Meta authenticates via HMAC signature
 
 
 
