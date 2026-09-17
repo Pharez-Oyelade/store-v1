@@ -149,6 +149,7 @@ export enum OrderSource {
   Call = "call",
   WalkIn = "walk_in",
   Storefront = "storefront",
+  WhatsApp = "whatsapp",
 }
 
 export enum SupplierCategory {
