@@ -1,8 +1,7 @@
 import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { deleteImages } from "../services/cloudinary.service.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { deleteImages, uploadMultipleImages } from "../services/cloudinary.service.js";
 
 /* ── GET /api/products ──────────────────────────────────────────── */
 export const getProducts = asyncHandler(async (req, res) => {
@@ -82,15 +81,7 @@ export const createProduct = asyncHandler(async (req, res) => {
     lowStockThreshold,
   } = req.body;
 
-  // Upload each file buffer to Cloudinary manually
-  const images = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    }),
-  );
-
-  // Parse variants — may come as JSON string in FormData
+  // Parse and validate variants before any file uploads
   let parsedVariants = variants;
   if (typeof variants === "string") {
     try {
@@ -99,6 +90,9 @@ export const createProduct = asyncHandler(async (req, res) => {
       return sendError(res, "Invalid variants format", 400);
     }
   }
+
+  // Upload files to Cloudinary with automatic cleanup on partial failure
+  const images = await uploadMultipleImages(req.files || []);
 
   const product = await Product.create({
     vendor: req.vendor._id,
@@ -138,13 +132,25 @@ export const updateProduct = asyncHandler(async (req, res) => {
     removeImageIds, // Array of Cloudinary publicIds to remove
   } = req.body;
 
-  // Process new uploaded images
-  const newImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    }),
-  );
+  // Parse and validate variants before processing any images
+  let parsedVariants = undefined;
+  if (variants !== undefined) {
+    if (typeof variants === "string") {
+      try {
+        parsedVariants = JSON.parse(variants);
+      } catch {
+        return sendError(res, "Invalid variants format", 400);
+      }
+    } else {
+      parsedVariants = variants;
+    }
+    if (!Array.isArray(parsedVariants) || parsedVariants.length === 0) {
+      return sendError(res, "Variants must be a non-empty array", 400);
+    }
+  }
+
+  // Process new uploaded images with automatic cleanup on partial failure
+  const newImages = await uploadMultipleImages(req.files || []);
 
   // Remove specific images if requested
   if (removeImageIds) {
@@ -170,9 +176,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
     product.tags =
       typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags;
   }
-  if (variants !== undefined) {
-    product.variants =
-      typeof variants === "string" ? JSON.parse(variants) : variants;
+  if (parsedVariants !== undefined) {
+    product.variants = parsedVariants;
   }
   if (status !== undefined) product.status = status;
   if (lowStockThreshold !== undefined)

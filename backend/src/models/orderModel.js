@@ -145,7 +145,7 @@ const orderSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true },
+  { timestamps: true, optimisticConcurrency: true },
 );
 
 /* ── Indexes ────────────────────────────────────────────────────── */
@@ -155,6 +155,8 @@ orderSchema.index({ vendor: 1, status: 1 });
 orderSchema.index({ vendor: 1, createdAt: -1 });
 // Debt summary query: vendor + status filter + balanceOwed aggregation
 orderSchema.index({ vendor: 1, balanceOwed: 1, status: 1 });
+// Platform-wide GMV aggregation and status breakdown index
+orderSchema.index({ status: 1, totalAmount: 1 });
 
 /* ── Pre-save: compute balanceOwed ──────────────────────────────── */
 orderSchema.pre("save", function () {

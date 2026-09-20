@@ -34,15 +34,17 @@ import {
 } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 400);
   const [status, setStatus] = useState<ProductStatus | "">("");
   const vendor = useAuthStore((s) => s.vendor);
   const params = useMemo(
-    () => ({ page, limit: 10, search, status: status || undefined }),
-    [page, search, status],
+    () => ({ page, limit: 10, search: debouncedSearch, status: status || undefined }),
+    [page, debouncedSearch, status],
   );
   const products = useProducts(params);
   const deleteProduct = useDeleteProduct();

@@ -144,7 +144,6 @@ const invoiceSchema = new mongoose.Schema(
     invoiceNumber: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       index: true,
     },
@@ -252,6 +251,7 @@ const invoiceSchema = new mongoose.Schema(
 );
 
 /* ── Compound Indexes ───────────────────────────────────────── */
+invoiceSchema.index({ vendor: 1, invoiceNumber: 1 }, { unique: true });
 invoiceSchema.index({ vendor: 1, status: 1 });
 invoiceSchema.index({ vendor: 1, createdAt: -1 });
 invoiceSchema.index({ vendor: 1, balanceDue: 1 });

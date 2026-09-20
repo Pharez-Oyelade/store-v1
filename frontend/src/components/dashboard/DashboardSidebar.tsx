@@ -106,25 +106,32 @@ export default function DashboardSidebar() {
         "/dashboard/suppliers",
       ];
 
-      // 1. Next.js App Router prefetch (downloads client JS chunks and RSC payloads)
-      coreRoutes.forEach((route) => {
-        try {
-          router.prefetch(route);
-        } catch {}
-      });
+      // Defer caching until browser is idle to avoid blocking the main thread
+      const idleCallback = window.requestIdleCallback || ((cb) => setTimeout(cb, 1000));
 
-      // 2. Pre-cache HTML documents and canonical RSC streams in Service Worker cache (v5)
-      if ("caches" in window) {
-        caches
-          .open("vendra-cache-v5")
-          .then((cache) => {
-            coreRoutes.forEach(async (route) => {
+      idleCallback(async () => {
+        try {
+          const cache = "caches" in window ? await caches.open("vendra-cache-v5") : null;
+
+          // Process sequentially to prevent network connection starvation
+          for (const route of coreRoutes) {
+            // Stop background caching if user goes offline
+            if (!navigator.onLine) break;
+
+            // 1. Next.js App Router prefetch (downloads client JS chunks and RSC payloads)
+            try {
+              router.prefetch(route);
+            } catch {}
+
+            // 2. Pre-cache HTML documents and canonical RSC streams in Service Worker cache (v5)
+            if (cache) {
               try {
                 // Pre-cache full HTML document for reload (F5)
                 const res = await fetch(route, {
                   credentials: "same-origin",
                   cache: "no-cache",
                 });
+                
                 if (res.ok) {
                   const htmlText = await res.text();
                   const htmlHeaders = {
@@ -145,21 +152,24 @@ export default function DashboardSidebar() {
                   const chunkMatches = htmlText.match(
                     /\/_next\/static\/chunks\/[a-zA-Z0-9_\-\.\/]+\.js/g,
                   );
+                  
                   if (chunkMatches) {
-                    chunkMatches.forEach(async (chunkPath) => {
-                      try {
-                        const chunkRes = await fetch(chunkPath, {
-                          cache: "no-cache",
-                        });
-                        if (chunkRes.ok) {
-                          await cache.put(chunkPath, chunkRes.clone());
-                          await cache.put(
-                            window.location.origin + chunkPath,
-                            chunkRes,
-                          );
-                        }
-                      } catch {}
-                    });
+                    await Promise.allSettled(
+                      chunkMatches.map(async (chunkPath) => {
+                        try {
+                          const chunkRes = await fetch(chunkPath, {
+                            cache: "no-cache",
+                          });
+                          if (chunkRes.ok) {
+                            await cache.put(chunkPath, chunkRes.clone());
+                            await cache.put(
+                              window.location.origin + chunkPath,
+                              chunkRes,
+                            );
+                          }
+                        } catch {}
+                      })
+                    );
                   }
                 }
 
@@ -168,6 +178,7 @@ export default function DashboardSidebar() {
                   headers: { RSC: "1" },
                   credentials: "same-origin",
                 });
+                
                 if (rscRes.ok) {
                   const rscText = await rscRes.text();
                   const rscHeaders = {
@@ -183,29 +194,37 @@ export default function DashboardSidebar() {
                   const rscChunks = rscText.match(
                     /static\/chunks\/[a-zA-Z0-9_\-\.\/]+\.js/g,
                   );
+                  
                   if (rscChunks) {
-                    rscChunks.forEach(async (relPath) => {
-                      try {
-                        const chunkUrl = `/_next/${relPath}`;
-                        const cRes = await fetch(chunkUrl, {
-                          cache: "no-cache",
-                        });
-                        if (cRes.ok) {
-                          await cache.put(chunkUrl, cRes.clone());
-                          await cache.put(
-                            window.location.origin + chunkUrl,
-                            cRes,
-                          );
-                        }
-                      } catch {}
-                    });
+                    await Promise.allSettled(
+                      rscChunks.map(async (relPath) => {
+                        try {
+                          const chunkUrl = `/_next/${relPath}`;
+                          const cRes = await fetch(chunkUrl, {
+                            cache: "no-cache",
+                          });
+                          if (cRes.ok) {
+                            await cache.put(chunkUrl, cRes.clone());
+                            await cache.put(
+                              window.location.origin + chunkUrl,
+                              cRes,
+                            );
+                          }
+                        } catch {}
+                      })
+                    );
                   }
                 }
               } catch {}
-            });
-          })
-          .catch(() => {});
-      }
+            }
+
+            // Yield to main thread and network for 500ms before processing the next route
+            await new Promise((resolve) => setTimeout(resolve, 500));
+          }
+        } catch (err) {
+          console.warn("[DashboardSidebar] Cache pre-warming failed:", err);
+        }
+      });
     }
   }, [mounted, router]);
 

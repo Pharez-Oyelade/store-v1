@@ -66,9 +66,36 @@ export const errorHandler = (err, req, res, next) => {
    */
   if (err.code === 11000) {
     statusCode = 409; // Conflict
-    const field = Object.keys(err.keyValue)[0];
-    const value = err.keyValue[field];
-    message = `${field.charAt(0).toUpperCase() + field.slice(1)} "${value}" is already taken`;
+    const keyValue =
+      err.keyValue ||
+      (err.keyPattern
+        ? Object.fromEntries(Object.keys(err.keyPattern).map((k) => [k, ""]))
+        : {});
+    const field = Object.keys(keyValue)[0] || "field";
+    const value = keyValue[field];
+
+    if (field === "handle") {
+      message = value
+        ? `The handle "@${value}" is already taken. Try another.`
+        : "That store handle is already taken. Try another.";
+    } else if (field === "phone") {
+      message = "A store is already registered with this phone number.";
+    } else if (field === "email") {
+      message = "An account is already registered with this email.";
+    } else if (value) {
+      message = `${field.charAt(0).toUpperCase() + field.slice(1)} "${value}" is already taken`;
+    } else {
+      message = `${field.charAt(0).toUpperCase() + field.slice(1)} is already taken`;
+    }
+  }
+
+  /*
+   * Mongoose VersionError (Optimistic Concurrency Control):
+   * Thrown when two concurrent requests attempt to save the same document.
+   */
+  if (err.name === "VersionError") {
+    statusCode = 409;
+    message = "This record was updated by another request. Please refresh and try again.";
   }
 
   /*

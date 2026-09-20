@@ -7,11 +7,13 @@ interface AuthState {
   vendor: AuthUser | null; //union type - either AuthUser object or null - nobody logged in
   isAuthenticated: boolean;
   isInitialized: boolean; //check if /me endpoint is checked on app load - show loading spinner if false
+  hasHydrated: boolean;
 
   // Actions - updating state
   setVendor: (vendor: AuthUser) => void;
   clearVendor: () => void;
   setInitialized: (value: boolean) => void;
+  setHasHydrated: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -21,6 +23,7 @@ export const useAuthStore = create<AuthState>()(
       vendor: null,
       isAuthenticated: false,
       isInitialized: false,
+      hasHydrated: false,
 
       // Actions
       setVendor: (vendor: AuthUser) =>
@@ -36,6 +39,7 @@ export const useAuthStore = create<AuthState>()(
         }),
 
       setInitialized: (value: boolean) => set({ isInitialized: value }),
+      setHasHydrated: (value: boolean) => set({ hasHydrated: value }),
     }),
     {
       name: "sabi-auth", //key used in sessionStorage
@@ -44,6 +48,9 @@ export const useAuthStore = create<AuthState>()(
         vendor: state.vendor,
         isAuthenticated: state.isAuthenticated,
       }),
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true);
+      },
     },
   ),
 );
@@ -56,6 +63,9 @@ export const useCurrentVendor = () => useAuthStore((state) => state.vendor);
 // Return true if user is logged in
 export const useIsAuthenticated = () =>
   useAuthStore((state) => state.isAuthenticated);
+
+export const useHasHydrated = () =>
+  useAuthStore((state) => state.hasHydrated);
 
 // Return true after /me check completed
 export const useIsIitialized = () =>

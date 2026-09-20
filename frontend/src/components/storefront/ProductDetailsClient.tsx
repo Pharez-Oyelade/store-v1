@@ -7,18 +7,21 @@ import { formatCurrency } from "@/lib/utils";
 import { ShoppingCart } from "lucide-react";
 
 export function ProductDetailsClient({ product, handle }: { product: any; handle: string }) {
+  const getVariantStock = (v: any) => v?.quantity ?? v?.stockQuantity ?? 0;
+
   const [selectedVariantId, setSelectedVariantId] = useState<string>(
     product.variants?.[0]?._id || ""
   );
   
   const selectedVariant = product.variants?.find((v: any) => v._id === selectedVariantId);
+  const selectedStock = getVariantStock(selectedVariant);
   
   const addItem = useCartStore((state) => state.addItem);
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;
     
-    if (selectedVariant.stockQuantity <= 0) {
+    if (selectedStock <= 0) {
       toast.error("This variant is currently out of stock.");
       return;
     }
@@ -79,25 +82,28 @@ export function ProductDetailsClient({ product, handle }: { product: any; handle
             <div className="mb-6">
               <h3 className="text-sm font-medium text-gray-900 mb-3">Options</h3>
               <div className="grid grid-cols-3 gap-3 sm:grid-cols-4">
-                {product.variants.map((variant: any) => (
-                  <button
-                    key={variant._id}
-                    onClick={() => setSelectedVariantId(variant._id)}
-                    className={`flex items-center justify-center rounded-md py-3 px-3 text-sm font-semibold uppercase sm:flex-1 ${
-                      selectedVariantId === variant._id
-                        ? "bg-brand-600 text-white border-transparent"
-                        : "bg-white text-gray-900 border border-gray-200 hover:bg-gray-50"
-                    } ${variant.stockQuantity <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
-                    disabled={variant.stockQuantity <= 0}
-                  >
-                    {variant.label}
-                  </button>
-                ))}
+                {product.variants.map((variant: any) => {
+                  const stock = getVariantStock(variant);
+                  return (
+                    <button
+                      key={variant._id}
+                      onClick={() => setSelectedVariantId(variant._id)}
+                      className={`flex items-center justify-center rounded-md py-3 px-3 text-sm font-semibold uppercase sm:flex-1 ${
+                        selectedVariantId === variant._id
+                          ? "bg-brand-600 text-white border-transparent"
+                          : "bg-white text-gray-900 border border-gray-200 hover:bg-gray-50"
+                      } ${stock <= 0 ? "opacity-50 cursor-not-allowed" : ""}`}
+                      disabled={stock <= 0}
+                    >
+                      {variant.label}
+                    </button>
+                  );
+                })}
               </div>
               {selectedVariant && (
                 <p className="mt-2 text-sm text-gray-500">
-                  {selectedVariant.stockQuantity > 0 ? (
-                    <span className="text-green-600">{selectedVariant.stockQuantity} in stock</span>
+                  {selectedStock > 0 ? (
+                    <span className="text-green-600">{selectedStock} in stock</span>
                   ) : (
                     <span className="text-red-500">Out of stock</span>
                   )}
@@ -110,7 +116,7 @@ export function ProductDetailsClient({ product, handle }: { product: any; handle
             <button
               type="button"
               onClick={handleAddToCart}
-              disabled={!selectedVariant || selectedVariant.stockQuantity <= 0}
+              disabled={!selectedVariant || selectedStock <= 0}
               className="flex max-w-xs flex-1 items-center justify-center rounded-xl bg-brand-700 px-8 py-4 text-base font-medium text-white hover:bg-brand-800 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed sm:w-full transition-colors"
             >
               <ShoppingCart className="mr-2 h-5 w-5" />

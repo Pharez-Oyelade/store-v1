@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { apiGet, apiPost, apiPut, apiDelete } from "@/lib/api";
+import { ANALYTICS_KEYS } from "@/hooks/useAnalytics";
 import type {
   Product,
   ProductQueryParams,
@@ -64,6 +65,7 @@ export function useCreateProduct() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Product created successfully");
     },
     onError: (error: Error) => {
@@ -83,6 +85,7 @@ export function useUpdateProduct(id: string) {
       }),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       queryClient.setQueryData(PRODUCT_KEYS.detail(id), updated);
       toast.success("Product updated successfully");
     },
@@ -100,6 +103,7 @@ export function useDeleteProduct() {
     mutationFn: (id: string) => apiDelete(`/products/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Product deleted");
     },
     onError: (error: Error) => {
@@ -117,6 +121,7 @@ export function useBulkAction() {
       apiPost("/products/bulk", data),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: PRODUCT_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Bulk action completed");
     },
     onError: (error: Error) => {

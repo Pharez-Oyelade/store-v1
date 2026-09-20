@@ -7,6 +7,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { initializeTransaction, verifyTransaction } from "../services/paystack.service.js";
 import { createNotification } from "../services/notification.service.js";
+import { depleteInventory } from "./order.controller.js";
 
 /**
  * Generate a unique access token for public invoice links
@@ -16,13 +17,18 @@ const generateAccessToken = () => {
 };
 
 /**
- * Generate human-readable invoice number e.g. INV-2026-0042
+ * Generate human-readable invoice number scoped by vendor e.g. INV-2026-F3A1-0042
  */
-const generateInvoiceNumber = async (vendorId) => {
+const generateInvoiceNumber = async (vendorId, retryCount = 0) => {
   const year = new Date().getFullYear();
+  const vendorTag = vendorId.toString().slice(-4).toUpperCase();
   const count = await Invoice.countDocuments({ vendor: vendorId });
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `INV-${year}-${sequence}`;
+  const sequence = (count + 1 + retryCount).toString().padStart(4, "0");
+  if (retryCount > 0) {
+    const randomSuffix = crypto.randomBytes(2).toString("hex").toUpperCase();
+    return `INV-${year}-${vendorTag}-${sequence}-${randomSuffix}`;
+  }
+  return `INV-${year}-${vendorTag}-${sequence}`;
 };
 
 /* ── POST /api/invoices ─────────────────────────────────────────── */
@@ -125,6 +131,10 @@ export const createInvoice = asyncHandler(async (req, res) => {
       linkedOrder.depositPaid = priorPaidAmount;
       if (linkedOrder.depositPaid >= linkedOrder.totalAmount && linkedOrder.status === "pending") {
         linkedOrder.status = "confirmed";
+        if (!linkedOrder.stockDepleted) {
+          await depleteInventory(linkedOrder);
+          linkedOrder.stockDepleted = true;
+        }
       }
       await linkedOrder.save();
     }
@@ -262,9 +272,6 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
   }
 
-  const invoiceNumber = await generateInvoiceNumber(req.vendor._id);
-  const accessToken = generateAccessToken();
-
   const balanceDue = Math.max(0, invoiceTotal - priorPaidAmount);
   const invoiceStatus =
     balanceDue <= 0 && invoiceTotal > 0
@@ -273,25 +280,42 @@ export const createInvoice = asyncHandler(async (req, res) => {
       ? "partially_paid"
       : "issued";
 
-  const invoice = await Invoice.create({
-    vendor: req.vendor._id,
-    order: linkedOrder ? linkedOrder._id : null,
-    customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
-    invoiceNumber,
-    accessToken,
-    customerSnapshot: invoiceCustomer,
-    items: invoiceItems,
-    totalAmount: invoiceTotal,
-    depositRequired: invoiceDeposit,
-    totalPaid: priorPaidAmount,
-    balanceDue,
-    status: invoiceStatus,
-    paymentHistory: initialPayments,
-    isWatermarked: (req.vendor.subscriptionPlan || "free") === "free",
-    dueDate: dueDate ? new Date(dueDate) : null,
-    notes: notes?.trim() || "",
-    terms: terms?.trim() || undefined,
-  });
+  let invoice = null;
+  let attempts = 0;
+
+  while (!invoice && attempts < 3) {
+    try {
+      const invoiceNumber = await generateInvoiceNumber(req.vendor._id, attempts);
+      const accessToken = generateAccessToken();
+
+      invoice = await Invoice.create({
+        vendor: req.vendor._id,
+        order: linkedOrder ? linkedOrder._id : null,
+        customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
+        invoiceNumber,
+        accessToken,
+        customerSnapshot: invoiceCustomer,
+        items: invoiceItems,
+        totalAmount: invoiceTotal,
+        depositRequired: invoiceDeposit,
+        totalPaid: priorPaidAmount,
+        balanceDue,
+        status: invoiceStatus,
+        paymentHistory: initialPayments,
+        isWatermarked: (req.vendor.subscriptionPlan || "free") === "free",
+        dueDate: dueDate ? new Date(dueDate) : null,
+        notes: notes?.trim() || "",
+        terms: terms?.trim() || undefined,
+      });
+    } catch (createErr) {
+      if (createErr.code === 11000 && createErr.keyPattern?.invoiceNumber) {
+        attempts++;
+        if (attempts >= 3) throw createErr;
+        continue;
+      }
+      throw createErr;
+    }
+  }
 
   return sendSuccess(res, invoice, "Invoice created successfully", 201);
 });
@@ -540,8 +564,13 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
     const order = await Order.findById(invoice.order);
     if (order) {
       order.depositPaid += payAmount;
-      if (order.balanceOwed <= 0 && order.status === "pending") {
+      const remainingBalance = order.totalAmount - order.depositPaid;
+      if (remainingBalance <= 0 && order.status === "pending") {
         order.status = "confirmed";
+        if (!order.stockDepleted) {
+          await depleteInventory(order);
+          order.stockDepleted = true;
+        }
       }
       await order.save();
     }
@@ -549,7 +578,9 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
     const demand = await CustomRequest.findById(invoice.customRequest);
     if (demand) {
       demand.depositPaid += payAmount;
-      if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+      const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+      const remainingBalance = targetPrice - demand.depositPaid;
+      if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
         demand.status = "confirmed";
       }
       await demand.save();
@@ -611,8 +642,13 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
       const order = await Order.findById(invoice.order);
       if (order) {
         order.depositPaid += proof.amount;
-        if (order.balanceOwed <= 0 && order.status === "pending") {
+        const remainingBalance = order.totalAmount - order.depositPaid;
+        if (remainingBalance <= 0 && order.status === "pending") {
           order.status = "confirmed";
+          if (!order.stockDepleted) {
+            await depleteInventory(order);
+            order.stockDepleted = true;
+          }
         }
         await order.save();
       }
@@ -620,7 +656,9 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
       const demand = await CustomRequest.findById(invoice.customRequest);
       if (demand) {
         demand.depositPaid += proof.amount;
-        if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+        const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+        const remainingBalance = targetPrice - demand.depositPaid;
+        if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
           demand.status = "confirmed";
         }
         await demand.save();

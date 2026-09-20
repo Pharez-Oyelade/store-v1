@@ -98,20 +98,14 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // 1. Next.js Static Chunks (_next/static/) -> Cache-First with Stale-While-Revalidate
+  // 1. Next.js Static Chunks (_next/static/) -> Cache-First (Immutable)
   if (url.pathname.startsWith("/_next/static/")) {
     event.respondWith(
       caches.open(CACHE_NAME).then(async (cache) => {
         const cachedResponse = await cache.match(request);
         if (cachedResponse) {
-          // Revalidate in background
-          fetch(request)
-            .then((networkResponse) => {
-              if (networkResponse && networkResponse.status === 200) {
-                cache.put(request, networkResponse.clone());
-              }
-            })
-            .catch(() => {});
+          // Next.js static chunks are immutable (hashed filenames). 
+          // Never revalidate them in the background to prevent network spam.
           return cachedResponse;
         }
 
