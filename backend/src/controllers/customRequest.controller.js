@@ -127,14 +127,20 @@ export const getCustomRequests = asyncHandler(async (req, res) => {
   ]);
 
   const requests = requestsRaw.map((reqObj) => {
-    return {
-      ...reqObj,
-      whatsappLinks: {
+    let whatsappLinks = { quote: "", confirmed: "", fitting: "", completed: "" };
+    try {
+      whatsappLinks = {
         quote: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "quote"),
         confirmed: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "confirmed"),
         fitting: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "fitting"),
         completed: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "completed"),
-      },
+      };
+    } catch (linkErr) {
+      console.error(`[getCustomRequests] Failed to generate WhatsApp links for request ${reqObj._id}:`, linkErr);
+    }
+    return {
+      ...reqObj,
+      whatsappLinks,
     };
   });
 

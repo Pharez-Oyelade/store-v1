@@ -91,35 +91,49 @@ export const getOrders = asyncHandler(async (req, res) => {
     ]);
 
     totalCount = totalCustom;
-    allOrdersList = customRaw.map((cr) => ({
-      _id: cr._id,
-      isBespoke: true,
-      vendor: cr.vendor,
-      customer: cr.customer,
-      customerSnapshot: cr.customerSnapshot,
-      items: [
-        {
-          product: null,
-          productName: cr.title,
-          variantLabel: `Bespoke / ${cr.category}`,
-          price: cr.agreedPrice > 0 ? cr.agreedPrice : cr.estimatedPrice,
-          quantity: 1,
-        },
-      ],
-      totalAmount: cr.agreedPrice > 0 ? cr.agreedPrice : cr.estimatedPrice,
-      depositPaid: cr.depositPaid,
-      balanceOwed: cr.balanceOwed,
-      status: cr.status,
-      source: cr.source,
-      notes: cr.notes,
-      createdAt: cr.createdAt,
-      updatedAt: cr.updatedAt,
-      whatsappLinks: {
-        confirmed: buildCustomRequestWhatsAppLink(req.vendor, cr, "confirmed"),
-        fitting: buildCustomRequestWhatsAppLink(req.vendor, cr, "fitting"),
-        completed: buildCustomRequestWhatsAppLink(req.vendor, cr, "completed"),
-      },
-    }));
+    allOrdersList = customRaw.map((cr) => {
+      let whatsappLinks = { confirmed: "", fitting: "", completed: "" };
+      try {
+        whatsappLinks = {
+          confirmed: buildCustomRequestWhatsAppLink(req.vendor, cr, "confirmed"),
+          fitting: buildCustomRequestWhatsAppLink(req.vendor, cr, "fitting"),
+          completed: buildCustomRequestWhatsAppLink(req.vendor, cr, "completed"),
+        };
+      } catch (linkErr) {
+        console.error(`[getOrders] Failed to generate WhatsApp links for custom request ${cr._id}:`, linkErr);
+      }
+
+      return {
+        _id: cr._id,
+        isBespoke: true,
+        vendor: cr.vendor,
+        customer: cr.customer,
+        customerSnapshot: cr.customerSnapshot,
+        title: cr.title,
+        category: cr.category,
+        estimatedPrice: cr.estimatedPrice || 0,
+        agreedPrice: cr.agreedPrice || 0,
+        deadline: cr.deadline,
+        items: [
+          {
+            product: null,
+            productName: cr.title,
+            variantLabel: `Bespoke / ${cr.category || "Custom"}`,
+            price: cr.agreedPrice > 0 ? cr.agreedPrice : (cr.estimatedPrice || 0),
+            quantity: 1,
+          },
+        ],
+        totalAmount: cr.agreedPrice > 0 ? cr.agreedPrice : (cr.estimatedPrice || 0),
+        depositPaid: cr.depositPaid || 0,
+        balanceOwed: cr.balanceOwed || 0,
+        status: cr.status,
+        source: cr.source,
+        notes: cr.notes,
+        createdAt: cr.createdAt,
+        updatedAt: cr.updatedAt,
+        whatsappLinks,
+      };
+    });
   } else if (type === "ready_to_wear") {
     const [ordersRaw, totalOrders] = await Promise.all([
       Order.find(orderFilter)
@@ -189,6 +203,11 @@ export const getOrders = asyncHandler(async (req, res) => {
                   vendor: 1,
                   customer: 1,
                   customerSnapshot: 1,
+                  title: 1,
+                  category: 1,
+                  estimatedPrice: { $ifNull: ["$estimatedPrice", 0] },
+                  agreedPrice: { $ifNull: ["$agreedPrice", 0] },
+                  deadline: 1,
                   items: [
                     {
                       product: { $literal: null },
@@ -250,16 +269,21 @@ export const getOrders = asyncHandler(async (req, res) => {
           vendor: cr.vendor,
           customer: cr.customer,
           customerSnapshot: cr.customerSnapshot,
+          title: cr.title,
+          category: cr.category,
+          estimatedPrice: cr.estimatedPrice || 0,
+          agreedPrice: cr.agreedPrice || 0,
+          deadline: cr.deadline,
           items: [
             {
               product: null,
               productName: cr.title,
               variantLabel: `Bespoke / ${cr.category || "Custom"}`,
-              price: cr.agreedPrice > 0 ? cr.agreedPrice : cr.estimatedPrice,
+              price: cr.agreedPrice > 0 ? cr.agreedPrice : (cr.estimatedPrice || 0),
               quantity: 1,
             },
           ],
-          totalAmount: cr.agreedPrice > 0 ? cr.agreedPrice : cr.estimatedPrice,
+          totalAmount: cr.agreedPrice > 0 ? cr.agreedPrice : (cr.estimatedPrice || 0),
           depositPaid: cr.depositPaid || 0,
           balanceOwed: cr.balanceOwed || 0,
           status: cr.status,
@@ -280,24 +304,32 @@ export const getOrders = asyncHandler(async (req, res) => {
     // Generate WhatsApp links ONLY for the paginated page items (e.g. 20 items, not thousands)
     allOrdersList = await Promise.all(
       paginatedDocs.map(async (doc) => {
-        if (doc.isBespoke) {
+        try {
+          if (doc.isBespoke) {
+            return {
+              ...doc,
+              whatsappLinks: {
+                confirmed: buildCustomRequestWhatsAppLink(req.vendor, doc, "confirmed"),
+                fitting: buildCustomRequestWhatsAppLink(req.vendor, doc, "fitting"),
+                completed: buildCustomRequestWhatsAppLink(req.vendor, doc, "completed"),
+              },
+            };
+          }
+
+          const confirmed = await buildDynamicWhatsAppLink(req.vendor, doc, "orderConfirmedTemplate");
+          const dispatched = await buildDynamicWhatsAppLink(req.vendor, doc, "orderDispatchedTemplate");
+          const completed = await buildDynamicWhatsAppLink(req.vendor, doc, "orderCompletedTemplate");
           return {
             ...doc,
-            whatsappLinks: {
-              confirmed: buildCustomRequestWhatsAppLink(req.vendor, doc, "confirmed"),
-              fitting: buildCustomRequestWhatsAppLink(req.vendor, doc, "fitting"),
-              completed: buildCustomRequestWhatsAppLink(req.vendor, doc, "completed"),
-            },
+            whatsappLinks: { confirmed, dispatched, completed },
+          };
+        } catch (linkErr) {
+          console.error(`[getOrders] Failed to generate WhatsApp links for doc ${doc._id}:`, linkErr);
+          return {
+            ...doc,
+            whatsappLinks: { confirmed: "", dispatched: "", completed: "" },
           };
         }
-
-        const confirmed = await buildDynamicWhatsAppLink(req.vendor, doc, "orderConfirmedTemplate");
-        const dispatched = await buildDynamicWhatsAppLink(req.vendor, doc, "orderDispatchedTemplate");
-        const completed = await buildDynamicWhatsAppLink(req.vendor, doc, "orderCompletedTemplate");
-        return {
-          ...doc,
-          whatsappLinks: { confirmed, dispatched, completed },
-        };
       })
     );
   }
