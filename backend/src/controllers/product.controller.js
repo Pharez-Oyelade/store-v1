@@ -1,8 +1,7 @@
 import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { deleteImages } from "../services/cloudinary.service.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { deleteImages, uploadMultipleImages } from "../services/cloudinary.service.js";
 
 /* ── GET /api/products ──────────────────────────────────────────── */
 export const getProducts = asyncHandler(async (req, res) => {
@@ -82,13 +81,8 @@ export const createProduct = asyncHandler(async (req, res) => {
     lowStockThreshold,
   } = req.body;
 
-  // Upload each file buffer to Cloudinary manually
-  const images = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    }),
-  );
+  // Upload files to Cloudinary with automatic cleanup on partial failure
+  const images = await uploadMultipleImages(req.files || []);
 
   // Parse variants — may come as JSON string in FormData
   let parsedVariants = variants;
@@ -138,13 +132,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
     removeImageIds, // Array of Cloudinary publicIds to remove
   } = req.body;
 
-  // Process new uploaded images
-  const newImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    }),
-  );
+  // Process new uploaded images with automatic cleanup on partial failure
+  const newImages = await uploadMultipleImages(req.files || []);
 
   // Remove specific images if requested
   if (removeImageIds) {

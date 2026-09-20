@@ -17,13 +17,18 @@ const generateAccessToken = () => {
 };
 
 /**
- * Generate human-readable invoice number e.g. INV-2026-0042
+ * Generate human-readable invoice number scoped by vendor e.g. INV-2026-F3A1-0042
  */
-const generateInvoiceNumber = async (vendorId) => {
+const generateInvoiceNumber = async (vendorId, retryCount = 0) => {
   const year = new Date().getFullYear();
+  const vendorTag = vendorId.toString().slice(-4).toUpperCase();
   const count = await Invoice.countDocuments({ vendor: vendorId });
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `INV-${year}-${sequence}`;
+  const sequence = (count + 1 + retryCount).toString().padStart(4, "0");
+  if (retryCount > 0) {
+    const randomSuffix = crypto.randomBytes(2).toString("hex").toUpperCase();
+    return `INV-${year}-${vendorTag}-${sequence}-${randomSuffix}`;
+  }
+  return `INV-${year}-${vendorTag}-${sequence}`;
 };
 
 /* ── POST /api/invoices ─────────────────────────────────────────── */
@@ -267,9 +272,6 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
   }
 
-  const invoiceNumber = await generateInvoiceNumber(req.vendor._id);
-  const accessToken = generateAccessToken();
-
   const balanceDue = Math.max(0, invoiceTotal - priorPaidAmount);
   const invoiceStatus =
     balanceDue <= 0 && invoiceTotal > 0
@@ -278,25 +280,42 @@ export const createInvoice = asyncHandler(async (req, res) => {
       ? "partially_paid"
       : "issued";
 
-  const invoice = await Invoice.create({
-    vendor: req.vendor._id,
-    order: linkedOrder ? linkedOrder._id : null,
-    customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
-    invoiceNumber,
-    accessToken,
-    customerSnapshot: invoiceCustomer,
-    items: invoiceItems,
-    totalAmount: invoiceTotal,
-    depositRequired: invoiceDeposit,
-    totalPaid: priorPaidAmount,
-    balanceDue,
-    status: invoiceStatus,
-    paymentHistory: initialPayments,
-    isWatermarked: (req.vendor.subscriptionPlan || "free") === "free",
-    dueDate: dueDate ? new Date(dueDate) : null,
-    notes: notes?.trim() || "",
-    terms: terms?.trim() || undefined,
-  });
+  let invoice = null;
+  let attempts = 0;
+
+  while (!invoice && attempts < 3) {
+    try {
+      const invoiceNumber = await generateInvoiceNumber(req.vendor._id, attempts);
+      const accessToken = generateAccessToken();
+
+      invoice = await Invoice.create({
+        vendor: req.vendor._id,
+        order: linkedOrder ? linkedOrder._id : null,
+        customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
+        invoiceNumber,
+        accessToken,
+        customerSnapshot: invoiceCustomer,
+        items: invoiceItems,
+        totalAmount: invoiceTotal,
+        depositRequired: invoiceDeposit,
+        totalPaid: priorPaidAmount,
+        balanceDue,
+        status: invoiceStatus,
+        paymentHistory: initialPayments,
+        isWatermarked: (req.vendor.subscriptionPlan || "free") === "free",
+        dueDate: dueDate ? new Date(dueDate) : null,
+        notes: notes?.trim() || "",
+        terms: terms?.trim() || undefined,
+      });
+    } catch (createErr) {
+      if (createErr.code === 11000 && createErr.keyPattern?.invoiceNumber) {
+        attempts++;
+        if (attempts >= 3) throw createErr;
+        continue;
+      }
+      throw createErr;
+    }
+  }
 
   return sendSuccess(res, invoice, "Invoice created successfully", 201);
 });

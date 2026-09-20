@@ -4,8 +4,7 @@ import Supplier from "../models/supplierModel.js";
 import Invoice from "../models/invoiceModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { deleteImages } from "../services/cloudinary.service.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { deleteImages, uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 import { createNotification } from "../services/notification.service.js";
 
@@ -320,13 +319,8 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     await customer.save();
   }
 
-  // Upload reference images if any
-  const referenceImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    })
-  );
+  // Upload reference images if any (with automatic rollback on partial failure)
+  const referenceImages = await uploadMultipleImages(req.files || []);
 
   // If no measurements provided in form, inherit clean measurements from customer's profile
   let finalMeasurements = parsedMeasurements;
@@ -419,13 +413,8 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     assignedTailor,
   } = req.body;
 
-  // Process newly uploaded reference images
-  const newImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    })
-  );
+  // Process newly uploaded reference images (with automatic rollback on partial failure)
+  const newImages = await uploadMultipleImages(req.files || []);
 
   // Remove images if requested
   if (removeImageIds) {

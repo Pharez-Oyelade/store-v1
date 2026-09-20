@@ -5,9 +5,9 @@ import Order from "../models/orderModel.js";
 import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { normalizeOrderItems } from "./order.controller.js";
+import { normalizeOrderItems, depleteInventory } from "./order.controller.js";
 import { createNotification } from "../services/notification.service.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 
 /* ── GET /api/storefront/:handle ────────────────────────────────── */
@@ -141,6 +141,21 @@ export const createStorefrontOrder = asyncHandler(async (req, res) => {
     source: "storefront",
   });
 
+  // Atomically reserve inventory to prevent overselling on the storefront
+  try {
+    await depleteInventory(order);
+    order.stockDepleted = true;
+    await order.save();
+  } catch (stockErr) {
+    // If inventory depletion fails (e.g. stock exhausted by concurrent checkout), delete unconfirmed order
+    await Order.findByIdAndDelete(order._id);
+    return sendError(
+      res,
+      stockErr.message || "One or more items in your cart are no longer available in the requested quantity",
+      400
+    );
+  }
+
   await createNotification(vendorId, {
     title: "New Storefront Order",
     message: `Order #${order._id.toString().slice(-6).toUpperCase()} received from ${customerName} via Storefront (Total: ₦${totalAmount.toLocaleString("en-NG")}).`,
@@ -225,13 +240,8 @@ export const createStorefrontCustomRequest = asyncHandler(async (req, res) => {
     await customer.save();
   }
 
-  // Upload reference images if any
-  const referenceImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    })
-  );
+  // Upload reference images if any (with automatic rollback on partial failure)
+  const referenceImages = await uploadMultipleImages(req.files || []);
 
   let finalMeasurements = parsedMeasurements;
   if (Object.keys(finalMeasurements).length === 0 && customer.measurements) {
