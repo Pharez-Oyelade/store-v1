@@ -4,6 +4,7 @@ import { Title } from "@/components/ui/Title";
 import { motion } from "framer-motion";
 import React from "react";
 import { cn } from "@/lib/utils";
+import Link from "next/link";
 import {
   Package,
   Clipboard,
@@ -12,6 +13,8 @@ import {
   Store,
   ArrowRight,
   Scissors,
+  WifiOff,
+  MessageCircle,
 } from "lucide-react";
 
 const bentoFeatures = [
@@ -24,12 +27,12 @@ const bentoFeatures = [
     className: "md:col-span-2 md:row-span-2 bg-brand-50",
   },
   {
-    id: "orders",
-    icon: <Clipboard className="w-6 h-6 text-accent-500" />,
-    title: "Manage orders without chaos",
+    id: "whatsapp",
+    icon: <MessageCircle className="w-6 h-6 text-green-600" />,
+    title: "Vendra WhatsApp Assistant",
     description:
-      "Log orders from DM or WhatsApp. One-tap WhatsApp confirmation messages.",
-    className: "md:col-span-1 md:row-span-2 bg-accent-50",
+      "Our smart AI assistant works directly via WhatsApp to help you manage inventory, record orders, and send automated updates.",
+    className: "md:col-span-1 md:row-span-2 bg-green-50",
   },
   {
     id: "bespoke",
@@ -57,12 +60,12 @@ const bentoFeatures = [
     className: "md:col-span-1 md:row-span-1 bg-brand-900 text-white",
   },
   {
-    id: "storefront",
-    icon: <Store className="w-6 h-6 text-brand-400" />,
-    title: "Public storefront & Custom Requests",
+    id: "offline",
+    icon: <WifiOff className="w-6 h-6 text-orange-600" />,
+    title: "Offline Compatibility",
     description:
-      "Get a clean, shareable link (tryvendra.ng/store/yourname) where buyers can shop your ready-made items or submit custom bespoke inquiries.",
-    className: "md:col-span-3 md:row-span-1 bg-brand-100",
+      "Keep working when the internet drops. View inventory and log sales offline. Syncs automatically when back online.",
+    className: "md:col-span-3 md:row-span-1 bg-orange-50",
   },
 ];
 
@@ -73,8 +76,6 @@ const Features = () => {
         <Title
           eyebrowTitle="Features"
           headingStart="Everything your store needs."
-          // headingSpan="Nothing"
-          // headingEnd="it doesn't"
           text="A powerful tool disguised as a simple dashboard. Built specifically for the workflow of a modern Nigerian fashion vendor."
         />
       </div>
@@ -93,7 +94,6 @@ const Features = () => {
               feature.className,
             )}
           >
-            {/* Hover subtle scale background (pseudo-element effect without pseudo element for simplicity) */}
             <div className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300 pointer-events-none" />
 
             <div className="relative z-10 flex flex-col h-full justify-between gap-6">
@@ -123,7 +123,6 @@ const Features = () => {
               </div>
             </div>
 
-            {/* Decorative arrow on hover */}
             <div className="absolute bottom-8 right-8 opacity-0 -translate-x-4 group-hover:opacity-100 group-hover:translate-x-0 transition-all duration-300">
               <ArrowRight
                 className={cn(
@@ -134,6 +133,31 @@ const Features = () => {
             </div>
           </motion.div>
         ))}
+      </div>
+
+      {/* Standalone Features */}
+      <div className="mt-12 flex flex-col items-center justify-center text-center space-y-6">
+        <div className="flex flex-wrap justify-center items-center gap-3 md:gap-5 text-sm font-medium text-gray-500 bg-gray-50 px-5 md:px-8 py-3 rounded-2xl md:rounded-full border border-gray-100">
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <Clipboard className="w-4 h-4 text-accent-500" /> Manage orders
+            without chaos
+          </span>
+          <span className="hidden md:block w-1 h-1 rounded-full bg-gray-300"></span>
+          <span className="flex items-center gap-2 whitespace-nowrap">
+            <Store className="w-4 h-4 text-brand-500" /> Public storefront &
+            Custom Requests
+          </span>
+          {/* <span className="hidden md:block w-1 h-1 rounded-full bg-gray-300"></span> */}
+          {/* <span className="whitespace-nowrap">And much more...</span> */}
+        </div>
+
+        <Link
+          href="/features"
+          className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white transition-all bg-brand-600 rounded-full hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-500/25 mt-4"
+        >
+          <span className="text-white">Explore All Features</span>
+          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-white" />
+        </Link>
       </div>
     </section>
   );
