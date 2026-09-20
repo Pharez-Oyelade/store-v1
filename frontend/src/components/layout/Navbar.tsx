@@ -38,8 +38,15 @@ const Navbar = () => {
   const isAuthenticated = useIsAuthenticated();
   const vendor = useCurrentVendor();
 
+  const [mounted, setMounted] = useState(false);
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileOpen, setIsMobileOpen] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
+  const isClientAuthenticated = mounted && isAuthenticated;
 
   // Detect scroll to add effecr
   useEffect(() => {
@@ -117,9 +124,9 @@ const Navbar = () => {
             </ul>
 
             {/* CTA */}
-            <Link href={isAuthenticated ? "/dashboard" : "/register"}>
+            <Link href={isClientAuthenticated ? "/dashboard" : "/register"}>
               <Button variant="primary" size="small">
-                {isAuthenticated
+                {isClientAuthenticated
                   ? vendor?.businessName || "Dashboard"
                   : "Get Started"}
               </Button>
@@ -200,7 +207,7 @@ const Navbar = () => {
 
           {/* Bottom CTAs */}
           <div className="p-5 border-t border-gray-100 space-y-3">
-            {isAuthenticated ? (
+            {isClientAuthenticated ? (
               <Button variant="primary" className="w-full">
                 <Link href="/dashboard">Go to Dashboard</Link>
               </Button>

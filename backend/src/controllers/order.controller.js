@@ -487,6 +487,17 @@ export const updateOrder = asyncHandler(async (req, res) => {
           $inc: { ltv: finalRevenue, orderCount: 1 },
           $set: { lastOrderDate: new Date() },
         });
+      } else if (prevStatus === "completed" && status !== "completed" && customRequest.customer) {
+        const finalRevenue = customRequest.agreedPrice || customRequest.estimatedPrice || 0;
+        const cust = await Customer.findById(customRequest.customer);
+        if (cust) {
+          await Customer.findByIdAndUpdate(customRequest.customer, {
+            $set: {
+              ltv: Math.max(0, (cust.ltv || 0) - finalRevenue),
+              orderCount: Math.max(0, (cust.orderCount || 0) - 1),
+            },
+          });
+        }
       }
     }
 
@@ -594,9 +605,12 @@ export const updateOrder = asyncHandler(async (req, res) => {
 
   /*
    * Business Logic: When order is "completed", update customer LTV.
+   * If an order was previously "completed" and is now changed to another status, decrement stats.
    */
   if (targetStatus === "completed" && prevStatus !== "completed") {
     await updateCustomerStats(order);
+  } else if (prevStatus === "completed" && targetStatus !== "completed") {
+    await decrementCustomerStats(order);
   }
 
   const orderObj = order.toObject();
@@ -631,12 +645,30 @@ export const deleteOrder = asyncHandler(async (req, res) => {
       return sendError(res, "Completed bespoke requests cannot be deleted", 400);
     }
 
+    const linkedInvoice = await Invoice.findOne({ customRequest: customRequest._id });
+    if (linkedInvoice) {
+      return sendError(
+        res,
+        "Cannot delete bespoke order with linked invoices. Please delete or settle the invoices first.",
+        400,
+      );
+    }
+
     await customRequest.deleteOne();
     return sendSuccess(res, null, "Bespoke order deleted successfully");
   }
 
   if (order.status === "completed") {
     return sendError(res, "Completed orders cannot be deleted", 400);
+  }
+
+  const linkedInvoice = await Invoice.findOne({ order: order._id });
+  if (linkedInvoice) {
+    return sendError(
+      res,
+      "Cannot delete an order with linked invoices. Please delete or settle the invoices first.",
+      400,
+    );
   }
 
   /*
@@ -769,7 +801,8 @@ export async function depleteInventory(order) {
         prevStatus,
       });
 
-      if (variant.quantity <= 3) {
+      const threshold = product.lowStockThreshold ?? 5;
+      if (variant && variant.quantity <= threshold) {
         await createNotification(order.vendor, {
           title: "Low Stock Alert",
           message: `Variant "${variant.label}" of product "${product.name}" is running low on stock (${variant.quantity} left).`,
@@ -842,6 +875,23 @@ async function updateCustomerStats(order) {
       orderCount: 1,
     },
     $set: { lastOrderDate: new Date() },
+  });
+}
+
+/**
+ * Decrement customer LTV and order count when an order moves away from completed.
+ */
+async function decrementCustomerStats(order) {
+  if (!order.customer) return;
+
+  const customer = await Customer.findById(order.customer);
+  if (!customer) return;
+
+  await Customer.findByIdAndUpdate(order.customer, {
+    $set: {
+      ltv: Math.max(0, (customer.ltv || 0) - (order.totalAmount || 0)),
+      orderCount: Math.max(0, (customer.orderCount || 0) - 1),
+    },
   });
 }
 

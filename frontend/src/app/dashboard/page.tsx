@@ -226,7 +226,16 @@ export default function DashboardPage() {
               <span className="text-brand-700">View all</span>
             </Link>
           </div>
-          {orders.data?.orders.length ? (
+          {orders.isLoading ? (
+            <div className="rounded-lg border border-gray-100 bg-white p-8 shadow-card">
+              <div className="space-y-4 animate-pulse">
+                <div className="h-5 bg-gray-100 rounded w-1/4"></div>
+                <div className="h-10 bg-gray-50 rounded"></div>
+                <div className="h-10 bg-gray-50 rounded"></div>
+                <div className="h-10 bg-gray-50 rounded"></div>
+              </div>
+            </div>
+          ) : orders.data?.orders.length ? (
             <TableShell>
               <table className="w-full text-left text-sm">
                 <thead className="bg-gray-50 text-xs uppercase text-gray-500">
@@ -290,7 +299,13 @@ export default function DashboardPage() {
             </Link>
           </div>
           <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
-            {lowStockProducts.length ? (
+            {products.isLoading ? (
+              <div className="space-y-3 animate-pulse">
+                <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                <div className="h-4 bg-gray-100 rounded w-2/3"></div>
+              </div>
+            ) : lowStockProducts.length ? (
               <div className="space-y-3">
                 {lowStockProducts.slice(0, 5).map((product) => (
                   <div

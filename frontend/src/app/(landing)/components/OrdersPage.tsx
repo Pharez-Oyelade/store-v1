@@ -17,6 +17,7 @@ import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
 import { useState } from "react";
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { useDebounce } from "@/hooks/useDebounce";
 
 const BESPOKE_STATUS_OPTIONS = [
   { value: "inquiry", label: "Inquiry" },
@@ -40,6 +41,7 @@ export default function OrdersPage() {
   const [status, setStatus] = useState<string>(initialStatus);
   const [payment, setPayment] = useState<string>(initialPayment);
   const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
 
   const orders = useOrders({
     page,
@@ -47,7 +49,7 @@ export default function OrdersPage() {
     type: orderType,
     status: status !== "all" ? status : undefined,
     payment: payment !== "all" ? payment : undefined,
-    search: searchTerm.trim() || undefined,
+    search: debouncedSearchTerm.trim() || undefined,
   });
   const deleteOrder = useDeleteOrder();
 
