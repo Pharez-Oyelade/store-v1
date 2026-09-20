@@ -72,6 +72,15 @@ export const errorHandler = (err, req, res, next) => {
   }
 
   /*
+   * Mongoose VersionError (Optimistic Concurrency Control):
+   * Thrown when two concurrent requests attempt to save the same document.
+   */
+  if (err.name === "VersionError") {
+    statusCode = 409;
+    message = "This record was updated by another request. Please refresh and try again.";
+  }
+
+  /*
    * JWT Errors (from jsonwebtoken package):
    * - JsonWebTokenError: token is malformed or signature is invalid
    * - TokenExpiredError: token exists but has expired

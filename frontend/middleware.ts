@@ -77,10 +77,14 @@ export async function middleware(request: NextRequest) {
           new URL(getRoleHomePath(userRole), request.url),
         );
       } catch {
-        // Fall back to dashboard
+        // Token is invalid or expired — purge the stale cookie and let them view login/register
+        const response = NextResponse.next();
+        response.cookies.delete(AUTH_COOKIE);
+        return response;
       }
     }
-    return NextResponse.redirect(new URL("/dashboard", request.url));
+    // If no jwtSecret, allow the auth route to render normally
+    return NextResponse.next();
   }
 
   /*
@@ -114,11 +118,13 @@ export async function middleware(request: NextRequest) {
     } catch {
       /*
        * Token is invalid or expired — treat as unauthenticated.
-       * The protect middleware on the backend will also reject it.
+       * Purge invalid cookie and redirect to login.
        */
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
-      return NextResponse.redirect(loginUrl);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete(AUTH_COOKIE);
+      return response;
     }
   }
 
@@ -132,34 +138,41 @@ export async function middleware(request: NextRequest) {
    */
   if (pathname.startsWith("/dashboard") && isAuthenticated && token?.value) {
     const jwtSecret = process.env.JWT_SECRET;
-    if (jwtSecret) {
-      try {
-        const secret = new TextEncoder().encode(jwtSecret);
-        const { payload } = await jwtVerify(token.value, secret);
-        const userRole =
-          (payload.role as string) ||
-          (payload.isTeamMember ? "tailor" : "owner");
+    if (!jwtSecret) {
+      console.error("[Middleware] JWT_SECRET environment variable is missing.");
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      return NextResponse.redirect(loginUrl);
+    }
 
-        if (!isPathAllowedForRole(pathname, userRole)) {
-          const homePath = getRoleHomePath(userRole);
-          const redirectUrl = new URL(homePath, request.url);
-          // Only tag with ?unauthorized if the user deliberately navigated to a specific forbidden section (e.g. /dashboard/settings)
-          // Accessing the root /dashboard portal should seamlessly route to their workspace home without an error alert
-          if (pathname !== "/dashboard") {
-            redirectUrl.searchParams.set("unauthorized", userRole);
-            redirectUrl.searchParams.set("from", pathname);
-          }
-          return NextResponse.redirect(redirectUrl);
+    try {
+      const secret = new TextEncoder().encode(jwtSecret);
+      const { payload } = await jwtVerify(token.value, secret);
+      const userRole =
+        (payload.role as string) ||
+        (payload.isTeamMember ? "tailor" : "owner");
+
+      if (!isPathAllowedForRole(pathname, userRole)) {
+        const homePath = getRoleHomePath(userRole);
+        const redirectUrl = new URL(homePath, request.url);
+        // Only tag with ?unauthorized if the user deliberately navigated to a specific forbidden section (e.g. /dashboard/settings)
+        // Accessing the root /dashboard portal should seamlessly route to their workspace home without an error alert
+        if (pathname !== "/dashboard") {
+          redirectUrl.searchParams.set("unauthorized", userRole);
+          redirectUrl.searchParams.set("from", pathname);
         }
-      } catch (err: any) {
-        console.error(
-          `[Middleware] Dashboard JWT verification failed for ${pathname}:`,
-          err?.message || err,
-        );
-        const loginUrl = new URL("/login", request.url);
-        loginUrl.searchParams.set("from", pathname);
-        return NextResponse.redirect(loginUrl);
+        return NextResponse.redirect(redirectUrl);
       }
+    } catch (err: any) {
+      console.error(
+        `[Middleware] Dashboard JWT verification failed for ${pathname}:`,
+        err?.message || err,
+      );
+      const loginUrl = new URL("/login", request.url);
+      loginUrl.searchParams.set("from", pathname);
+      const response = NextResponse.redirect(loginUrl);
+      response.cookies.delete(AUTH_COOKIE);
+      return response;
     }
   }
 

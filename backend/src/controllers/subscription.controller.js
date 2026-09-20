@@ -15,6 +15,7 @@ import {
   syncVendorSubscription,
   processAllSubscriptionExpiries,
 } from "../services/subscription.service.js";
+import { depleteInventory } from "./order.controller.js";
 
 
 /**
@@ -181,8 +182,13 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
               const order = await Order.findById(invoice.order);
               if (order) {
                 order.depositPaid += paidNaira;
-                if (order.balanceOwed <= 0 && order.status === "pending") {
+                const remainingBalance = order.totalAmount - order.depositPaid;
+                if (remainingBalance <= 0 && order.status === "pending") {
                   order.status = "confirmed";
+                  if (!order.stockDepleted) {
+                    await depleteInventory(order);
+                    order.stockDepleted = true;
+                  }
                 }
                 await order.save();
               }
@@ -192,7 +198,9 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
               const demand = await CustomRequest.findById(invoice.customRequest);
               if (demand) {
                 demand.depositPaid += paidNaira;
-                if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+                const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+                const remainingBalance = targetPrice - demand.depositPaid;
+                if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
                   demand.status = "confirmed";
                 }
                 await demand.save();

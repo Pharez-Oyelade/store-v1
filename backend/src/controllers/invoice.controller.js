@@ -7,6 +7,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { initializeTransaction, verifyTransaction } from "../services/paystack.service.js";
 import { createNotification } from "../services/notification.service.js";
+import { depleteInventory } from "./order.controller.js";
 
 /**
  * Generate a unique access token for public invoice links
@@ -125,6 +126,10 @@ export const createInvoice = asyncHandler(async (req, res) => {
       linkedOrder.depositPaid = priorPaidAmount;
       if (linkedOrder.depositPaid >= linkedOrder.totalAmount && linkedOrder.status === "pending") {
         linkedOrder.status = "confirmed";
+        if (!linkedOrder.stockDepleted) {
+          await depleteInventory(linkedOrder);
+          linkedOrder.stockDepleted = true;
+        }
       }
       await linkedOrder.save();
     }
@@ -540,8 +545,13 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
     const order = await Order.findById(invoice.order);
     if (order) {
       order.depositPaid += payAmount;
-      if (order.balanceOwed <= 0 && order.status === "pending") {
+      const remainingBalance = order.totalAmount - order.depositPaid;
+      if (remainingBalance <= 0 && order.status === "pending") {
         order.status = "confirmed";
+        if (!order.stockDepleted) {
+          await depleteInventory(order);
+          order.stockDepleted = true;
+        }
       }
       await order.save();
     }
@@ -549,7 +559,9 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
     const demand = await CustomRequest.findById(invoice.customRequest);
     if (demand) {
       demand.depositPaid += payAmount;
-      if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+      const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+      const remainingBalance = targetPrice - demand.depositPaid;
+      if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
         demand.status = "confirmed";
       }
       await demand.save();
@@ -611,8 +623,13 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
       const order = await Order.findById(invoice.order);
       if (order) {
         order.depositPaid += proof.amount;
-        if (order.balanceOwed <= 0 && order.status === "pending") {
+        const remainingBalance = order.totalAmount - order.depositPaid;
+        if (remainingBalance <= 0 && order.status === "pending") {
           order.status = "confirmed";
+          if (!order.stockDepleted) {
+            await depleteInventory(order);
+            order.stockDepleted = true;
+          }
         }
         await order.save();
       }
@@ -620,7 +637,9 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
       const demand = await CustomRequest.findById(invoice.customRequest);
       if (demand) {
         demand.depositPaid += proof.amount;
-        if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+        const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+        const remainingBalance = targetPrice - demand.depositPaid;
+        if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
           demand.status = "confirmed";
         }
         await demand.save();

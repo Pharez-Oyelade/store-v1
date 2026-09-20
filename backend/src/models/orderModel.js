@@ -145,7 +145,7 @@ const orderSchema = new mongoose.Schema(
       default: false,
     },
   },
-  { timestamps: true },
+  { timestamps: true, optimisticConcurrency: true },
 );
 
 /* ── Indexes ────────────────────────────────────────────────────── */
