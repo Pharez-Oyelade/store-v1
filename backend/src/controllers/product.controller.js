@@ -81,10 +81,7 @@ export const createProduct = asyncHandler(async (req, res) => {
     lowStockThreshold,
   } = req.body;
 
-  // Upload files to Cloudinary with automatic cleanup on partial failure
-  const images = await uploadMultipleImages(req.files || []);
-
-  // Parse variants — may come as JSON string in FormData
+  // Parse and validate variants before any file uploads
   let parsedVariants = variants;
   if (typeof variants === "string") {
     try {
@@ -93,6 +90,9 @@ export const createProduct = asyncHandler(async (req, res) => {
       return sendError(res, "Invalid variants format", 400);
     }
   }
+
+  // Upload files to Cloudinary with automatic cleanup on partial failure
+  const images = await uploadMultipleImages(req.files || []);
 
   const product = await Product.create({
     vendor: req.vendor._id,
@@ -132,6 +132,23 @@ export const updateProduct = asyncHandler(async (req, res) => {
     removeImageIds, // Array of Cloudinary publicIds to remove
   } = req.body;
 
+  // Parse and validate variants before processing any images
+  let parsedVariants = undefined;
+  if (variants !== undefined) {
+    if (typeof variants === "string") {
+      try {
+        parsedVariants = JSON.parse(variants);
+      } catch {
+        return sendError(res, "Invalid variants format", 400);
+      }
+    } else {
+      parsedVariants = variants;
+    }
+    if (!Array.isArray(parsedVariants) || parsedVariants.length === 0) {
+      return sendError(res, "Variants must be a non-empty array", 400);
+    }
+  }
+
   // Process new uploaded images with automatic cleanup on partial failure
   const newImages = await uploadMultipleImages(req.files || []);
 
@@ -159,9 +176,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
     product.tags =
       typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags;
   }
-  if (variants !== undefined) {
-    product.variants =
-      typeof variants === "string" ? JSON.parse(variants) : variants;
+  if (parsedVariants !== undefined) {
+    product.variants = parsedVariants;
   }
   if (status !== undefined) product.status = status;
   if (lowStockThreshold !== undefined)

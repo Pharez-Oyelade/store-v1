@@ -6,16 +6,44 @@ import {
   sendSubscriptionExpiredEmail,
 } from "./email.service.js";
 
+const SYNC_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes TTL
+const vendorSyncCache = new Map();
+
+/**
+ * Invalidate in-memory sync cache for a vendor (e.g. after upgrade/renewal/cancellation)
+ */
+export function invalidateVendorSyncCache(vendorId) {
+  if (vendorId) {
+    vendorSyncCache.delete(vendorId.toString());
+  }
+}
+
+/**
+ * Clears the entire sync cache (useful for testing or full reset)
+ */
+export function clearAllVendorSyncCache() {
+  vendorSyncCache.clear();
+}
+
 /**
  * Evaluates and synchronizes a vendor's subscription status in real-time.
  * Checks for expiration (downgrade to Free) or upcoming expiry warnings.
+ * Uses a 5-minute in-memory cache to prevent database hammering on every request.
  */
-export async function syncVendorSubscription(vendorId) {
+export async function syncVendorSubscription(vendorId, force = false) {
   if (!vendorId) return null;
+
+  const key = vendorId.toString();
+  const lastSync = vendorSyncCache.get(key);
+  if (!force && lastSync && Date.now() - lastSync < SYNC_CACHE_TTL_MS) {
+    return null;
+  }
 
   try {
     const sub = await Subscription.findOne({ vendor: vendorId });
     if (!sub) return null;
+
+    vendorSyncCache.set(key, Date.now());
 
     const now = new Date();
 
@@ -111,7 +139,7 @@ export async function processAllSubscriptionExpiries() {
     });
 
     for (const sub of activeSubs) {
-      await syncVendorSubscription(sub.vendor);
+      await syncVendorSubscription(sub.vendor, true);
     }
   } catch (err) {
     console.error("[SubscriptionService] Batch process error:", err.message);

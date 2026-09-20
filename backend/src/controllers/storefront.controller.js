@@ -53,15 +53,25 @@ export const getStorefrontProducts = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
-      .select("name description category images variants basePrice status")
+      .select("name description category images variants basePrice status createdAt updatedAt")
       .lean(),
     Product.countDocuments(filter),
   ]);
 
+  const sanitizedProducts = products.map((product) => {
+    const { lowStockThreshold, vendor: _v, __v, ...rest } = product;
+    return {
+      ...rest,
+      variants: Array.isArray(rest.variants)
+        ? rest.variants.map(({ sold, ...vRest }) => vRest)
+        : [],
+    };
+  });
+
   const totalPages = Math.ceil(total / Number(limit));
 
   return sendSuccess(res, {
-    products,
+    products: sanitizedProducts,
     pagination: {
       total,
       page: Number(page),
@@ -90,14 +100,24 @@ export const getStorefrontProduct = asyncHandler(async (req, res) => {
     _id: productId,
     vendor: vendor._id,
     status: "active",
-  }).lean();
+  })
+    .select("name description category images variants basePrice status createdAt updatedAt")
+    .lean();
 
   if (!product) {
     return sendError(res, "Product not found or unavailable", 404);
   }
 
+  // Sanitize internal fields from product and variants (strip internal sold metrics)
+  const { lowStockThreshold, vendor: _v, __v, ...sanitizedProduct } = product;
+  if (Array.isArray(sanitizedProduct.variants)) {
+    sanitizedProduct.variants = sanitizedProduct.variants.map(
+      ({ sold, ...vRest }) => vRest
+    );
+  }
+
   return sendSuccess(res, {
-    product,
+    product: sanitizedProduct,
     vendor: {
       businessName: vendor.businessName,
       whatsapp: vendor.socials?.whatsapp,

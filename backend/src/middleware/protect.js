@@ -68,8 +68,6 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   // Authenticate as primary Store Owner / Vendor
-  await syncVendorSubscription(decoded.id);
-
   const vendor = await Vendor.findById(decoded.id);
 
   if (!vendor) {
@@ -83,6 +81,8 @@ export const protect = asyncHandler(async (req, res, next) => {
       403
     );
   }
+
+  await syncVendorSubscription(vendor._id);
 
   req.vendor = vendor;
   req.user = {

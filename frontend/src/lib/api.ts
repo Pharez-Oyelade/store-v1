@@ -34,6 +34,8 @@ api.interceptors.request.use(
 );
 
 
+let isRedirectingToLogin = false;
+
 // Response Interceptors - run after every response arrives, handle errors globally
 api.interceptors.response.use(
   (response) => {
@@ -62,15 +64,25 @@ api.interceptors.response.use(
     // Status 403 (Forbidden) is an authorization restriction and must NOT clear the user session.
     if (status === 401) {
       if (typeof window !== "undefined") {
-        const { pathname } = window.location;
+        const { pathname, search } = window.location;
         const isProtectedRoute =
           pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+        const isAuthRoute =
+          pathname.startsWith("/login") ||
+          pathname.startsWith("/register") ||
+          pathname.startsWith("/forgot-password") ||
+          pathname.startsWith("/reset-password");
 
         // Clear Zustand auth store to prevent ghost sessions
         useAuthStore.getState().clearVendor();
 
-        if (isProtectedRoute && !pathname.startsWith("/login")) {
-          window.location.href = "/login";
+        if (isProtectedRoute && !isAuthRoute && !isRedirectingToLogin) {
+          isRedirectingToLogin = true;
+          const returnPath = encodeURIComponent(pathname + (search || ""));
+          window.location.href = `/login?from=${returnPath}`;
+          setTimeout(() => {
+            isRedirectingToLogin = false;
+          }, 3000);
         }
       }
     }

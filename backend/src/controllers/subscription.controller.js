@@ -13,6 +13,7 @@ import {
 import { createNotification } from "../services/notification.service.js";
 import {
   syncVendorSubscription,
+  invalidateVendorSyncCache,
   processAllSubscriptionExpiries,
 } from "../services/subscription.service.js";
 import { depleteInventory } from "./order.controller.js";
@@ -47,6 +48,8 @@ export const initializeUpgrade = asyncHandler(async (req, res) => {
       { plan, status: "active", cancelAtPeriodEnd: false },
       { upsert: true }
     );
+
+    invalidateVendorSyncCache(vendor._id);
 
     return sendSuccess(res, { isFree: true, plan }, `Successfully changed to ${plan} plan`);
   }
@@ -119,6 +122,8 @@ export const verifyUpgrade = asyncHandler(async (req, res) => {
     },
     { upsert: true, new: true }
   );
+
+  invalidateVendorSyncCache(vendor._id);
 
   await createNotification(vendor._id, {
     title: "Subscription Upgraded",
@@ -245,6 +250,8 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
         { upsert: true }
       );
 
+      invalidateVendorSyncCache(vendorId);
+
       await createNotification(vendorId, {
         title: "Subscription Renewed",
         message: `Your subscription for the ${plan} plan has been successfully renewed.`,
@@ -262,8 +269,8 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
  * GET /api/subscriptions/current
  */
 export const getCurrentSubscription = asyncHandler(async (req, res) => {
-  // Sync real-time lifecycle check
-  await syncVendorSubscription(req.vendor._id);
+  // Sync real-time lifecycle check (bypass cache to ensure fresh settings display)
+  await syncVendorSubscription(req.vendor._id, true);
 
   let sub = await Subscription.findOne({ vendor: req.vendor._id });
   
