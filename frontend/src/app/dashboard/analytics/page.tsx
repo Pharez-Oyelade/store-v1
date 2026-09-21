@@ -116,7 +116,7 @@ export default function AnalyticsPage() {
       toast.success(`${type.toUpperCase()} report downloaded successfully`);
     } catch (err: any) {
       toast.error(
-        err.response?.data?.message || `Failed to export ${type} data`,
+        err.message || err.response?.data?.message || `Failed to export ${type} data`,
       );
     } finally {
       setExportingType(null);

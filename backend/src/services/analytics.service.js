@@ -652,6 +652,12 @@ export async function getMarginEstimator(vendorId) {
   };
 }
 
+const formatDateSafe = (dateVal) => {
+  if (!dateVal) return "";
+  const d = new Date(dateVal);
+  return isNaN(d.getTime()) ? "" : d.toISOString().split("T")[0];
+};
+
 /**
  * Drape (orders only) and Atelier/Maison (all types): CSV Export.
  */
@@ -687,7 +693,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
     ];
 
     const rows = orders.map((o) => [
-      new Date(o.createdAt).toISOString().split("T")[0],
+      formatDateSafe(o.createdAt),
       o.customerSnapshot?.name || "",
       o.customerSnapshot?.phone || "",
       o.customerSnapshot?.email || "",
@@ -696,7 +702,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       o.totalAmount || 0,
       o.depositPaid || 0,
       o.balanceOwed || 0,
-      o.status,
+      o.status || "",
     ]);
 
     return [headers, ...rows]
@@ -728,10 +734,10 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       c.email || "",
       c.ltv || 0,
       c.orderCount || 0,
-      c.lastOrderDate ? new Date(c.lastOrderDate).toISOString().split("T")[0] : "",
+      formatDateSafe(c.lastOrderDate),
       (c.tags || []).join("; "),
       c.notes || "",
-      new Date(c.createdAt).toISOString().split("T")[0],
+      formatDateSafe(c.createdAt),
     ]);
 
     return [headers, ...rows]
@@ -759,18 +765,18 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
     const rows = products.map((p) => {
       const totalQty = (p.variants || []).reduce((acc, v) => acc + (v.quantity || 0), 0);
       const variantsSummary = (p.variants || [])
-        .map((v) => `${v.size || v.color || "Variant"}: ${v.quantity}`)
+        .map((v) => `${v.size || v.color || "Variant"}: ${v.quantity || 0}`)
         .join("; ");
 
       return [
-        p.name,
+        p.name || "",
         p.category || "RTW",
         p.basePrice || 0,
-        p.status,
+        p.status || "",
         p.lowStockThreshold || 0,
         variantsSummary,
         totalQty,
-        new Date(p.createdAt).toISOString().split("T")[0],
+        formatDateSafe(p.createdAt),
       ];
     });
 
@@ -805,7 +811,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
     orders.forEach((o) => {
       rows.push([
         "RTW Order",
-        new Date(o.createdAt).toISOString().split("T")[0],
+        formatDateSafe(o.createdAt),
         `Order (${o.items?.length || 1} items)`,
         o.totalAmount || 0,
         0,
@@ -817,7 +823,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       const amount = c.agreedPrice || c.estimatedPrice || 0;
       rows.push([
         "Bespoke Demand",
-        new Date(c.updatedAt).toISOString().split("T")[0],
+        formatDateSafe(c.updatedAt),
         `Bespoke: ${c.title || "Custom garment"}`,
         amount,
         0,
@@ -829,7 +835,7 @@ export async function generateVendorCsvExport(vendorId, type, plan) {
       (s.purchases || []).forEach((p) => {
         rows.push([
           "Supplier Material",
-          new Date(p.date).toISOString().split("T")[0],
+          formatDateSafe(p.date),
           `${s.name}: ${p.description || "Fabric/Trims"}`,
           0,
           p.amount || 0,

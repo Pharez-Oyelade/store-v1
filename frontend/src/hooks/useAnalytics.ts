@@ -126,7 +126,15 @@ export async function downloadVendorCsv(
     responseType: "blob",
   });
 
-  const blob = new Blob([response.data], { type: "text/csv;charset=utf-8;" });
+  // The Axios response interceptor in api.ts unwraps response.data directly.
+  // Therefore, response is already the Blob itself (or raw data).
+  const rawData: any = response instanceof Blob ? response : (response as any)?.data ?? response;
+
+  const blob =
+    rawData instanceof Blob
+      ? rawData
+      : new Blob([rawData], { type: "text/csv;charset=utf-8;" });
+
   const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;

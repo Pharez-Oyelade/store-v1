@@ -47,9 +47,20 @@ api.interceptors.response.use(
      */
     return response.data?.data !== undefined ? response.data.data : response.data;
   },
-  (error: AxiosError<ApiError>) => {
+  async (error: AxiosError<ApiError>) => {
     const status = error.response?.status;
-    const serverMessage = error.response?.data?.message;
+    let serverMessage = error.response?.data?.message;
+
+    // When responseType is "blob", Axios packages error JSON into a Blob.
+    if (!serverMessage && error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const parsed = JSON.parse(text);
+        if (parsed.message) {
+          serverMessage = parsed.message;
+        }
+      } catch {}
+    }
 
     // Track offline state when browser is genuinely offline
     if (typeof navigator !== "undefined" && !navigator.onLine) {
