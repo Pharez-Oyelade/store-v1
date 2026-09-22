@@ -435,6 +435,22 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     customRequest.referenceImages = [...customRequest.referenceImages, ...newImages].slice(0, 5);
   }
 
+  const targetStatus = status !== undefined ? status : prevStatus;
+  const effectiveAgreed = agreedPrice !== undefined ? Number(agreedPrice) : (customRequest.agreedPrice || 0);
+  const effectiveEstimated = estimatedPrice !== undefined ? Number(estimatedPrice) : (customRequest.estimatedPrice || 0);
+  const targetPrice = effectiveAgreed > 0 ? effectiveAgreed : effectiveEstimated;
+  const effectiveDeposit = depositPaid !== undefined ? Number(depositPaid) : (customRequest.depositPaid || 0);
+  const remainingBalance = Math.max(0, targetPrice - effectiveDeposit);
+
+  // L8: Guard against completing bespoke demand with unpaid balance
+  if (targetStatus === "completed" && remainingBalance > 0) {
+    return sendError(
+      res,
+      `Cannot mark bespoke demand as completed while a balance of ₦${remainingBalance.toLocaleString()} is still due. Please record full payment before completing the order.`,
+      400
+    );
+  }
+
   if (title !== undefined) customRequest.title = title;
   if (description !== undefined) customRequest.description = description;
   if (category !== undefined) customRequest.category = category;
@@ -448,6 +464,13 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
   if (assignedTailor !== undefined) {
     customRequest.assignedTailor =
       assignedTailor === "unassigned" || !assignedTailor ? null : assignedTailor;
+  }
+
+  // L9: Record completion timestamp
+  if (targetStatus === "completed" && !customRequest.completedAt) {
+    customRequest.completedAt = new Date();
+  } else if (targetStatus !== "completed") {
+    customRequest.completedAt = null;
   }
 
   if (materials !== undefined) {

@@ -13,6 +13,7 @@ import {
   Sparkles,
   ArrowRight,
   Landmark,
+  Mail,
 } from "lucide-react";
 import VendorProfileForm from "@/components/dashboard/VendorProfileForm";
 import {
@@ -115,6 +116,30 @@ function SettingsContent() {
           tone={profile.data?.isActive ? "green" : "rose"}
         />
       </div>
+
+      {/* Missing Email Alert (L4) */}
+      {!profile.isLoading && !profile.data?.email && !vendor?.email && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="p-2 rounded-xl bg-amber-100 text-amber-800 shrink-0 mt-0.5">
+              <Mail className="size-5" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-amber-900">Store Email Not Configured</h3>
+              <p className="text-xs text-amber-700 mt-0.5 leading-relaxed">
+                Add an email to your store profile to receive instant customer payment proof alerts, Paystack receipt notifications, and subscription updates.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => handleTabChange("profile")}
+            className="inline-flex h-9 items-center justify-center rounded-xl bg-amber-700 px-4 text-xs font-bold text-white shadow-xs transition-colors hover:bg-amber-800 shrink-0"
+          >
+            Add Email Address
+          </button>
+        </div>
+      )}
 
       {/* WhatsApp Templates Banner */}
       <div className="rounded-2xl border border-brand-200 bg-brand-50/80 p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">

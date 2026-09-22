@@ -4,6 +4,12 @@
  */
 
 export const sendEmail = async ({ to, subject, html, text }) => {
+  // L4: Validate recipient email address safety guard
+  if (!to || typeof to !== "string" || !to.includes("@")) {
+    console.warn(`⚠️ [Email Skipped] Invalid or missing recipient: "${to}" for subject: "${subject}"`);
+    return { success: false, skipped: true, reason: "Invalid or missing recipient email" };
+  }
+
   // If RESEND_API_KEY is provided, dispatch via Resend (works in both dev and prod)
   if (process.env.RESEND_API_KEY) {
     try {
@@ -125,4 +131,125 @@ export const sendSubscriptionExpiredEmail = async (email, { businessName, plan =
   const text = `Your Vendra ${plan} Plan has expired and your store is now on the Free Plan. Upgrade anytime at: ${url}`;
   return sendEmail({ to: email, subject, html, text });
 };
+
+export const sendOnlinePaymentConfirmationEmail = async (email, {
+  customerName = "Valued Customer",
+  invoiceNumber,
+  amountPaid,
+  balanceRemaining = 0,
+  orderNumber,
+  storeName = "Vendra Store",
+  viewUrl,
+}) => {
+  const subject = `Payment Confirmed: ${invoiceNumber} — ${storeName}`;
+  const formattedAmount = `₦${Number(amountPaid || 0).toLocaleString()}`;
+  const formattedBalance = `₦${Number(balanceRemaining || 0).toLocaleString()}`;
+  const url = viewUrl || `${process.env.FRONTEND_URL || "http://localhost:3000"}`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+      <div style="border-bottom: 2px solid #0D6B31; padding-bottom: 16px; margin-bottom: 20px;">
+        <h2 style="color: #0D6B31; margin: 0; font-size: 22px;">${storeName}</h2>
+        <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 13px;">Payment Receipt & Confirmation</p>
+      </div>
+      <p style="font-size: 15px; color: #111827;">Hello <strong>${customerName}</strong>,</p>
+      <p style="font-size: 14px; color: #374151; line-height: 1.5;">
+        Thank you for your payment! We have successfully received and verified your payment of <strong>${formattedAmount}</strong> for Invoice <strong>${invoiceNumber}</strong>${orderNumber ? ` (Order #${orderNumber})` : ""}.
+      </p>
+
+      <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin: 20px 0; border: 1px solid #f3f4f6;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280;">Invoice Number:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">${invoiceNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280;">Amount Paid:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #0D6B31;">${formattedAmount}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280;">Outstanding Balance:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: ${balanceRemaining > 0 ? '#b91c1c' : '#0D6B31'};">
+              ${balanceRemaining > 0 ? formattedBalance : "₦0 (Fully Paid)"}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin: 24px 0; text-align: center;">
+        <a href="${url}" style="background-color: #0D6B31; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">View Invoice & Order Status</a>
+      </div>
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        Powered by Vendra Fashion Commerce OS
+      </p>
+    </div>
+  `;
+
+  const text = `Payment Confirmed for ${invoiceNumber}: ${formattedAmount} received. Balance remaining: ${balanceRemaining > 0 ? formattedBalance : "₦0"}. View: ${url}`;
+  return sendEmail({ to: email, subject, html, text });
+};
+
+export const sendManualPaymentProofPromptEmail = async (vendorEmail, {
+  vendorName = "Merchant",
+  invoiceNumber,
+  customerName = "Customer",
+  amount,
+  senderName,
+  bankName,
+  reference,
+  proofImageUrl,
+  reviewUrl,
+}) => {
+  const subject = `⚠️ Action Required: New Payment Proof Uploaded for Invoice ${invoiceNumber}`;
+  const formattedAmount = `₦${Number(amount || 0).toLocaleString()}`;
+  const url = reviewUrl || `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard/invoices`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+      <div style="border-bottom: 2px solid #f59e0b; padding-bottom: 16px; margin-bottom: 20px;">
+        <h2 style="color: #92400e; margin: 0; font-size: 20px;">Payment Proof Verification Needed</h2>
+        <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 13px;">Customer submitted bank transfer details</p>
+      </div>
+      <p style="font-size: 15px; color: #111827;">Hello <strong>${vendorName}</strong>,</p>
+      <p style="font-size: 14px; color: #374151; line-height: 1.5;">
+        Customer <strong>${customerName}</strong> has just submitted a bank transfer payment proof for Invoice <strong>${invoiceNumber}</strong>. Please check your bank account and confirm receipt.
+      </p>
+
+      <div style="background-color: #fffbeb; border-radius: 8px; padding: 16px; margin: 20px 0; border: 1px solid #fef3c7;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 6px 0; color: #78350f;">Reported Amount:</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #92400e;">${formattedAmount}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #78350f;">Sender Account Name:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">${senderName || "Not provided"}</td>
+          </tr>
+          ${bankName ? `<tr><td style="padding: 6px 0; color: #78350f;">Sender Bank:</td><td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">${bankName}</td></tr>` : ""}
+          ${reference ? `<tr><td style="padding: 6px 0; color: #78350f;">Transfer Ref / Notes:</td><td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">${reference}</td></tr>` : ""}
+        </table>
+      </div>
+
+      ${proofImageUrl ? `
+        <div style="margin: 20px 0; text-align: center;">
+          <a href="${proofImageUrl}" target="_blank" style="display: inline-block; border: 1px solid #e5e7eb; border-radius: 8px; overflow: hidden; max-width: 250px;">
+            <img src="${proofImageUrl}" alt="Payment Receipt" style="width: 100%; max-height: 200px; object-fit: cover; display: block;" />
+            <div style="padding: 6px; font-size: 12px; background: #f3f4f6; color: #374151;">Click to view receipt image</div>
+          </a>
+        </div>
+      ` : ""}
+
+      <div style="margin: 24px 0; text-align: center;">
+        <a href="${url}" style="background-color: #0D6B31; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">Open Invoice & Verify Payment</a>
+      </div>
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        Once verified in your dashboard, the order status and customer receipt will automatically update.
+      </p>
+    </div>
+  `;
+
+  const text = `Action Required: Customer ${customerName} submitted a payment proof of ${formattedAmount} for Invoice ${invoiceNumber}. Review and confirm at: ${url}`;
+  return sendEmail({ to: vendorEmail, subject, html, text });
+};
+
 
