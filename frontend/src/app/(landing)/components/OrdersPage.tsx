@@ -15,7 +15,7 @@ import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { OrderStatus, type Order } from "@/types";
 import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useDebounce } from "@/hooks/useDebounce";
 
@@ -35,13 +35,30 @@ export default function OrdersPage() {
   const initialStatus = searchParams.get("status") || "all";
   const initialPayment = searchParams.get("payment") || "all";
   const initialSearch = searchParams.get("search") || "";
+  const initialType = (searchParams.get("type") as "all" | "ready_to_wear" | "bespoke") || "all";
+  const initialPage = Number(searchParams.get("page")) || 1;
 
-  const [page, setPage] = useState(1);
-  const [orderType, setOrderType] = useState<"all" | "ready_to_wear" | "bespoke">("all");
+  const [page, setPage] = useState(initialPage);
+  const [orderType, setOrderType] = useState<"all" | "ready_to_wear" | "bespoke">(initialType);
   const [status, setStatus] = useState<string>(initialStatus);
   const [payment, setPayment] = useState<string>(initialPayment);
   const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
   const debouncedSearchTerm = useDebounce(searchTerm, 400);
+
+  // L3: Sync filters and pagination to URL query params
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams();
+    if (page > 1) params.set("page", String(page));
+    if (orderType !== "all") params.set("type", orderType);
+    if (status !== "all") params.set("status", status);
+    if (payment !== "all") params.set("payment", payment);
+    if (debouncedSearchTerm.trim()) params.set("search", debouncedSearchTerm.trim());
+
+    const qs = params.toString();
+    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [page, orderType, status, payment, debouncedSearchTerm]);
 
   const orders = useOrders({
     page,
@@ -255,6 +272,11 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
 
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = event.target.value as any;
+    if ((newStatus === "completed" || newStatus === OrderStatus.Completed) && order.balanceOwed > 0) {
+      toast.error(`Cannot complete order while balance of ${formatCurrency(order.balanceOwed)} is outstanding. Record full payment first.`);
+      event.target.value = order.status;
+      return;
+    }
     updateOrder.mutate({ status: newStatus });
 
     if (isPremium) {
@@ -326,13 +348,21 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
         <NativeSelect className="flex-1 h-10" value={order.status} onChange={handleStatusChange}>
           {order.isBespoke
             ? BESPOKE_STATUS_OPTIONS.map((opt) => (
-                <option key={opt.value} value={opt.value}>
-                  {opt.label}
+                <option
+                  key={opt.value}
+                  value={opt.value}
+                  disabled={opt.value === "completed" && order.balanceOwed > 0}
+                >
+                  {opt.label}{opt.value === "completed" && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
                 </option>
               ))
             : Object.values(OrderStatus).map((value) => (
-                <option key={value} value={value}>
-                  {value}
+                <option
+                  key={value}
+                  value={value}
+                  disabled={value === OrderStatus.Completed && order.balanceOwed > 0}
+                >
+                  {value}{value === OrderStatus.Completed && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
                 </option>
               ))}
         </NativeSelect>
@@ -364,6 +394,11 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
 
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = event.target.value as any;
+    if ((newStatus === "completed" || newStatus === OrderStatus.Completed) && order.balanceOwed > 0) {
+      toast.error(`Cannot complete order while balance of ${formatCurrency(order.balanceOwed)} is outstanding. Record full payment first.`);
+      event.target.value = order.status;
+      return;
+    }
     updateOrder.mutate({ status: newStatus });
 
     if (isPremium) {
@@ -457,13 +492,21 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
           >
             {order.isBespoke
               ? BESPOKE_STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
+                  <option
+                    key={opt.value}
+                    value={opt.value}
+                    disabled={opt.value === "completed" && order.balanceOwed > 0}
+                  >
+                    {opt.label}{opt.value === "completed" && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
                   </option>
                 ))
               : Object.values(OrderStatus).map((value) => (
-                  <option key={value} value={value}>
-                    {value}
+                  <option
+                    key={value}
+                    value={value}
+                    disabled={value === OrderStatus.Completed && order.balanceOwed > 0}
+                  >
+                    {value}{value === OrderStatus.Completed && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
                   </option>
                 ))}
           </NativeSelect>

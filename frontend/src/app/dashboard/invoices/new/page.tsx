@@ -23,7 +23,11 @@ import {
   WifiOff,
   MessageCircle,
 } from "lucide-react";
-import { useCreateInvoice, usePayoutAccount, useInvoices } from "@/hooks/useInvoices";
+import {
+  useCreateInvoice,
+  usePayoutAccount,
+  useInvoices,
+} from "@/hooks/useInvoices";
 import type { Invoice } from "@/types";
 import { useOrders, useOrder } from "@/hooks/useOrders";
 import { useCustomRequests, useCustomRequest } from "@/hooks/useCustomRequests";
@@ -98,7 +102,8 @@ export default function NewInvoicePage() {
     const map = new Map<string, Invoice>();
     invoicesQuery.data?.invoices?.forEach((inv) => {
       if (inv.status !== "cancelled" && inv.order) {
-        const ordId = typeof inv.order === "object" ? (inv.order as any)._id : inv.order;
+        const ordId =
+          typeof inv.order === "object" ? (inv.order as any)._id : inv.order;
         if (ordId) map.set(ordId, inv);
       }
     });
@@ -110,7 +115,10 @@ export default function NewInvoicePage() {
     const map = new Map<string, Invoice>();
     invoicesQuery.data?.invoices?.forEach((inv) => {
       if (inv.status !== "cancelled" && inv.customRequest) {
-        const demId = typeof inv.customRequest === "object" ? (inv.customRequest as any)._id : inv.customRequest;
+        const demId =
+          typeof inv.customRequest === "object"
+            ? (inv.customRequest as any)._id
+            : inv.customRequest;
         if (demId) map.set(demId, inv);
       }
     });
@@ -121,7 +129,8 @@ export default function NewInvoicePage() {
     if (mode === "from_order" && selectedOrderId) {
       return (
         existingOrderInvoiceMap.get(selectedOrderId) ||
-        ((singleOrderQuery.data?._id === selectedOrderId && singleOrderQuery.data?.invoice)
+        (singleOrderQuery.data?._id === selectedOrderId &&
+        singleOrderQuery.data?.invoice
           ? (singleOrderQuery.data.invoice as any)
           : null)
       );
@@ -129,7 +138,8 @@ export default function NewInvoicePage() {
     if (mode === "from_demand" && selectedDemandId) {
       return (
         existingDemandInvoiceMap.get(selectedDemandId) ||
-        ((singleDemandQuery.data?._id === selectedDemandId && singleDemandQuery.data?.invoice)
+        (singleDemandQuery.data?._id === selectedDemandId &&
+        singleDemandQuery.data?.invoice
           ? (singleDemandQuery.data.invoice as any)
           : null)
       );
@@ -421,8 +431,8 @@ export default function NewInvoicePage() {
             href="/dashboard/settings?tab=payouts"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shrink-0 shadow-xs transition-colors whitespace-nowrap"
           >
-            <span>Connect Bank</span>
-            <ArrowRight className="size-3.5" />
+            <span className="text-white">Connect Bank</span>
+            <ArrowRight className="size-3.5 text-white" />
           </Link>
         </div>
       )}
@@ -635,11 +645,13 @@ export default function NewInvoicePage() {
                     </span>
                   </div>
                   <p className="text-xs text-amber-800 mt-1 leading-relaxed">
-                    An invoice has already been issued for this {mode === "from_order" ? "order" : "bespoke demand"}.
+                    An invoice has already been issued for this{" "}
+                    {mode === "from_order" ? "order" : "bespoke demand"}.
                     {activeExistingInvoice.balanceDue > 0
                       ? ` Remaining balance left to pay is ${formatCurrency(activeExistingInvoice.balanceDue)}.`
-                      : " This invoice is already paid in full."}
-                    {" "}You can resend the issued invoice directly with the balance due instead of creating a duplicate.
+                      : " This invoice is already paid in full."}{" "}
+                    You can resend the issued invoice directly with the balance
+                    due instead of creating a duplicate.
                   </p>
                 </div>
               </div>
@@ -1074,7 +1086,9 @@ export default function NewInvoicePage() {
                 className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
-                <span>View Issued Invoice (#{activeExistingInvoice.invoiceNumber})</span>
+                <span>
+                  View Issued Invoice (#{activeExistingInvoice.invoiceNumber})
+                </span>
               </Link>
             ) : (
               <button

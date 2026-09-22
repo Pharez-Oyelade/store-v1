@@ -5,6 +5,7 @@ import Customer from "../models/customerModel.js";
 import CustomRequest from "../models/customRequestModel.js";
 import Supplier from "../models/supplierModel.js";
 import TeamMember from "../models/teamMemberModel.js";
+import Invoice from "../models/invoiceModel.js";
 
 const { Types } = mongoose;
 
@@ -21,10 +22,17 @@ export async function getRevenueOverview(vendorId) {
 
   const vid = new Types.ObjectId(vendorId);
 
-  const [revenueData, bespokeRevenueData, debtData, lowStockData, bespokeData] = await Promise.all([
-    /*
-     * Revenue aggregation: group completed orders by time window.
-     */
+  const [
+    completedOrdersCounts,
+    completedBespokeCounts,
+    invoicePaymentsData,
+    directOrderDepositsData,
+    directBespokeDepositsData,
+    debtData,
+    lowStockData,
+    bespokeData,
+  ] = await Promise.all([
+    /* 1. Completed order counts */
     Order.aggregate([
       {
         $match: {
@@ -35,24 +43,40 @@ export async function getRevenueOverview(vendorId) {
       {
         $facet: {
           today: [
-            { $match: { createdAt: { $gte: startOfDay } } },
-            { $group: { _id: null, revenue: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startOfDay],
+                },
+              },
+            },
+            { $count: "count" },
           ],
           week: [
-            { $match: { createdAt: { $gte: startOfWeek } } },
-            { $group: { _id: null, revenue: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startOfWeek],
+                },
+              },
+            },
+            { $count: "count" },
           ],
           month: [
-            { $match: { createdAt: { $gte: startOfMonth } } },
-            { $group: { _id: null, revenue: { $sum: "$totalAmount" }, count: { $sum: 1 } } },
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startOfMonth],
+                },
+              },
+            },
+            { $count: "count" },
           ],
         },
       },
     ]),
 
-    /*
-     * Bespoke completed requests revenue aggregation
-     */
+    /* 2. Completed bespoke counts */
     CustomRequest.aggregate([
       {
         $match: {
@@ -66,79 +90,167 @@ export async function getRevenueOverview(vendorId) {
             {
               $match: {
                 $expr: {
-                  $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startOfDay],
+                  $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startOfDay],
                 },
               },
             },
-            {
-              $group: {
-                _id: null,
-                revenue: {
-                  $sum: {
-                    $cond: [
-                      { $gt: ["$agreedPrice", 0] },
-                      "$agreedPrice",
-                      { $ifNull: ["$estimatedPrice", 0] },
-                    ],
-                  },
-                },
-                count: { $sum: 1 },
-              },
-            },
+            { $count: "count" },
           ],
           week: [
             {
               $match: {
                 $expr: {
-                  $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startOfWeek],
+                  $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startOfWeek],
                 },
               },
             },
-            {
-              $group: {
-                _id: null,
-                revenue: {
-                  $sum: {
-                    $cond: [
-                      { $gt: ["$agreedPrice", 0] },
-                      "$agreedPrice",
-                      { $ifNull: ["$estimatedPrice", 0] },
-                    ],
-                  },
-                },
-                count: { $sum: 1 },
-              },
-            },
+            { $count: "count" },
           ],
           month: [
             {
               $match: {
                 $expr: {
-                  $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startOfMonth],
+                  $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startOfMonth],
                 },
               },
             },
-            {
-              $group: {
-                _id: null,
-                revenue: {
-                  $sum: {
-                    $cond: [
-                      { $gt: ["$agreedPrice", 0] },
-                      "$agreedPrice",
-                      { $ifNull: ["$estimatedPrice", 0] },
-                    ],
-                  },
-                },
-                count: { $sum: 1 },
-              },
-            },
+            { $count: "count" },
           ],
         },
       },
     ]),
 
-    /* Total debt: sum of balanceOwed on non-completed/cancelled orders */
+    /* 3. Actual cash payments collected via Invoices */
+    Invoice.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: { $ne: "cancelled" },
+        },
+      },
+      { $unwind: "$paymentHistory" },
+      {
+        $match: {
+          "paymentHistory.status": "success",
+        },
+      },
+      {
+        $facet: {
+          today: [
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$paymentHistory.paidAt", "$createdAt"] }, startOfDay],
+                },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$paymentHistory.amount" } } },
+          ],
+          week: [
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$paymentHistory.paidAt", "$createdAt"] }, startOfWeek],
+                },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$paymentHistory.amount" } } },
+          ],
+          month: [
+            {
+              $match: {
+                $expr: {
+                  $gte: [{ $ifNull: ["$paymentHistory.paidAt", "$createdAt"] }, startOfMonth],
+                },
+              },
+            },
+            { $group: { _id: null, total: { $sum: "$paymentHistory.amount" } } },
+          ],
+        },
+      },
+    ]),
+
+    /* 4. Direct orders upfront deposits without an invoice */
+    Order.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: { $ne: "cancelled" },
+          depositPaid: { $gt: 0 },
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          localField: "_id",
+          foreignField: "order",
+          as: "invoices",
+        },
+      },
+      {
+        $match: {
+          "invoices.0": { $exists: false },
+        },
+      },
+      {
+        $facet: {
+          today: [
+            { $match: { createdAt: { $gte: startOfDay } } },
+            { $group: { _id: null, total: { $sum: "$depositPaid" } } },
+          ],
+          week: [
+            { $match: { createdAt: { $gte: startOfWeek } } },
+            { $group: { _id: null, total: { $sum: "$depositPaid" } } },
+          ],
+          month: [
+            { $match: { createdAt: { $gte: startOfMonth } } },
+            { $group: { _id: null, total: { $sum: "$depositPaid" } } },
+          ],
+        },
+      },
+    ]),
+
+    /* 5. Direct bespoke upfront deposits without an invoice */
+    CustomRequest.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: { $ne: "cancelled" },
+          depositPaid: { $gt: 0 },
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          localField: "_id",
+          foreignField: "customRequest",
+          as: "invoices",
+        },
+      },
+      {
+        $match: {
+          "invoices.0": { $exists: false },
+        },
+      },
+      {
+        $facet: {
+          today: [
+            { $match: { createdAt: { $gte: startOfDay } } },
+            { $group: { _id: null, total: { $sum: "$depositPaid" } } },
+          ],
+          week: [
+            { $match: { createdAt: { $gte: startOfWeek } } },
+            { $group: { _id: null, total: { $sum: "$depositPaid" } } },
+          ],
+          month: [
+            { $match: { createdAt: { $gte: startOfMonth } } },
+            { $group: { _id: null, total: { $sum: "$depositPaid" } } },
+          ],
+        },
+      },
+    ]),
+
+    /* 6. Total debt: sum of balanceOwed on non-completed/cancelled orders */
     Order.aggregate([
       {
         $match: {
@@ -156,34 +268,39 @@ export async function getRevenueOverview(vendorId) {
       },
     ]),
 
-    /* Low stock: count of variants at or below lowStockThreshold */
+    /* 7. Low stock variants count: variant.quantity <= (product.lowStockThreshold || 5) */
     Product.aggregate([
-      { $match: { vendor: vid, status: "active" } },
+      { $match: { vendor: vid } },
       { $unwind: "$variants" },
       {
         $match: {
-          $expr: { $lte: ["$variants.quantity", "$lowStockThreshold"] },
+          $expr: {
+            $lte: [
+              "$variants.quantity",
+              { $ifNull: ["$lowStockThreshold", 5] },
+            ],
+          },
         },
       },
       { $count: "lowStockCount" },
     ]),
 
-    /* Bespoke / Custom requests metrics */
+    /* 8. Bespoke demand statistics */
     Promise.all([
       CustomRequest.countDocuments({
         vendor: vid,
-        status: { $nin: ["completed", "cancelled"] },
+        status: { $in: ["confirmed", "sourcing", "in_progress", "fitting"] },
       }),
       CustomRequest.countDocuments({
         vendor: vid,
-        status: { $nin: ["completed", "cancelled"] },
-        deadline: { $lt: now, $ne: null },
+        status: { $in: ["confirmed", "sourcing", "in_progress", "fitting"] },
+        $or: [{ deadline: { $lt: now } }, { deliveryDate: { $lt: now } }],
       }),
       CustomRequest.aggregate([
         {
           $match: {
             vendor: vid,
-            status: { $ne: "cancelled" },
+            status: { $nin: ["completed", "cancelled"] },
             balanceOwed: { $gt: 0 },
           },
         },
@@ -198,29 +315,42 @@ export async function getRevenueOverview(vendorId) {
     ]),
   ]);
 
-  const r = revenueData[0] ?? { today: [], week: [], month: [] };
-  const br = bespokeRevenueData[0] ?? { today: [], week: [], month: [] };
+  const ordCounts = completedOrdersCounts[0] ?? { today: [], week: [], month: [] };
+  const bespCounts = completedBespokeCounts[0] ?? { today: [], week: [], month: [] };
+  const invPayments = invoicePaymentsData[0] ?? { today: [], week: [], month: [] };
+  const dirOrders = directOrderDepositsData[0] ?? { today: [], week: [], month: [] };
+  const dirBespoke = directBespokeDepositsData[0] ?? { today: [], week: [], month: [] };
 
-  const today = r.today[0] ?? { revenue: 0, count: 0 };
-  const bToday = br.today[0] ?? { revenue: 0, count: 0 };
+  const todayRevenue =
+    (invPayments.today[0]?.total || 0) +
+    (dirOrders.today[0]?.total || 0) +
+    (dirBespoke.today[0]?.total || 0);
 
-  const week = r.week[0] ?? { revenue: 0, count: 0 };
-  const bWeek = br.week[0] ?? { revenue: 0, count: 0 };
+  const weekRevenue =
+    (invPayments.week[0]?.total || 0) +
+    (dirOrders.week[0]?.total || 0) +
+    (dirBespoke.week[0]?.total || 0);
 
-  const month = r.month[0] ?? { revenue: 0, count: 0 };
-  const bMonth = br.month[0] ?? { revenue: 0, count: 0 };
+  const monthRevenue =
+    (invPayments.month[0]?.total || 0) +
+    (dirOrders.month[0]?.total || 0) +
+    (dirBespoke.month[0]?.total || 0);
+
+  const todayCompletedCount = (ordCounts.today[0]?.count || 0) + (bespCounts.today[0]?.count || 0);
+  const weekCompletedCount = (ordCounts.week[0]?.count || 0) + (bespCounts.week[0]?.count || 0);
+  const monthCompletedCount = (ordCounts.month[0]?.count || 0) + (bespCounts.month[0]?.count || 0);
 
   const [activeDemands, overdueDemands, bespokeDebtAgg] = bespokeData || [0, 0, []];
   const totalBespokeDebt = bespokeDebtAgg[0]?.totalBespokeDebt ?? 0;
   const bespokeDebtCount = bespokeDebtAgg[0]?.bespokeDebtCount ?? 0;
 
   return {
-    revenueToday: today.revenue + bToday.revenue,
-    ordersToday: today.count + bToday.count,
-    revenueThisWeek: week.revenue + bWeek.revenue,
-    ordersThisWeek: week.count + bWeek.count,
-    revenueThisMonth: month.revenue + bMonth.revenue,
-    ordersThisMonth: month.count + bMonth.count,
+    revenueToday: todayRevenue,
+    ordersToday: todayCompletedCount,
+    revenueThisWeek: weekRevenue,
+    ordersThisWeek: weekCompletedCount,
+    revenueThisMonth: monthRevenue,
+    ordersThisMonth: monthCompletedCount,
     totalDebt: (debtData[0]?.totalDebt ?? 0) + totalBespokeDebt,
     debtOrderCount: (debtData[0]?.debtOrderCount ?? 0) + bespokeDebtCount,
     lowStockCount: lowStockData[0]?.lowStockCount ?? 0,
@@ -230,7 +360,8 @@ export async function getRevenueOverview(vendorId) {
 }
 
 /**
- * Revenue time series for the chart.
+ * Revenue time series for the chart (pure cash-basis revenue & completed order counts).
+ * @param {string} vendorId
  * @param {string} period - "daily" (last 14 days) | "weekly" (last 8 weeks) | "monthly" (last 6 months) | "yearly" (last 12 months)
  * @param {string} plan - Vendor's subscription plan (Stitch is locked to 7-day daily)
  */
@@ -250,14 +381,16 @@ export async function getRevenueSeries(vendorId, period = "daily", plan = "stitc
     startDate = new Date(now);
     startDate.setFullYear(now.getFullYear() - 1);
     dateFormat = "%Y-%m";
-  } else if (period === "weekly") {
-    startDate = new Date(now);
-    startDate.setDate(now.getDate() - 56); // 8 weeks
-    dateFormat = "%Y-W%V";
   } else if (period === "monthly") {
+    // 6 months retention
     startDate = new Date(now);
     startDate.setMonth(now.getMonth() - 6);
     dateFormat = "%Y-%m";
+  } else if (period === "weekly") {
+    // 8 weeks retention
+    startDate = new Date(now);
+    startDate.setDate(now.getDate() - 56);
+    dateFormat = "%Y-%U";
   } else {
     // daily — last 14 days
     startDate = new Date(now);
@@ -265,76 +398,192 @@ export async function getRevenueSeries(vendorId, period = "daily", plan = "stitc
     dateFormat = "%Y-%m-%d";
   }
 
-  const groupByFormat = { $dateToString: { format: dateFormat, date: "$createdAt" } };
-  const bespokeGroupByFormat = {
-    $dateToString: {
-      format: dateFormat,
-      date: { $ifNull: ["$completedAt", "$updatedAt"] },
-    },
-  };
-
-  const [ordersData, bespokeData] = await Promise.all([
+  const [
+    completedOrdersData,
+    completedBespokeData,
+    invoicePaymentsData,
+    directOrderDepositsData,
+    directBespokeDepositsData,
+  ] = await Promise.all([
+    /* 1. Completed RTW orders count by completion date */
     Order.aggregate([
       {
         $match: {
           vendor: vid,
           status: "completed",
-          createdAt: { $gte: startDate },
+          $expr: {
+            $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startDate],
+          },
         },
       },
       {
         $group: {
-          _id: groupByFormat,
-          revenue: { $sum: "$totalAmount" },
+          _id: {
+            $dateToString: {
+              format: dateFormat,
+              date: { $ifNull: ["$completedAt", "$createdAt"] },
+            },
+          },
           orderCount: { $sum: 1 },
         },
       },
-      { $sort: { _id: 1 } },
     ]),
+
+    /* 2. Completed bespoke demands count by completion date */
     CustomRequest.aggregate([
       {
         $match: {
           vendor: vid,
           status: "completed",
           $expr: {
-            $gte: [{ $ifNull: ["$completedAt", "$updatedAt"] }, startDate],
+            $gte: [{ $ifNull: ["$completedAt", "$createdAt"] }, startDate],
           },
         },
       },
       {
         $group: {
-          _id: bespokeGroupByFormat,
-          revenue: {
-            $sum: {
-              $cond: [
-                { $gt: ["$agreedPrice", 0] },
-                "$agreedPrice",
-                { $ifNull: ["$estimatedPrice", 0] },
-              ],
+          _id: {
+            $dateToString: {
+              format: dateFormat,
+              date: { $ifNull: ["$completedAt", "$createdAt"] },
             },
           },
           orderCount: { $sum: 1 },
         },
       },
-      { $sort: { _id: 1 } },
+    ]),
+
+    /* 3. Invoice cash payments by collection date */
+    Invoice.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: { $ne: "cancelled" },
+        },
+      },
+      { $unwind: "$paymentHistory" },
+      {
+        $match: {
+          "paymentHistory.status": "success",
+          $expr: {
+            $gte: [{ $ifNull: ["$paymentHistory.paidAt", "$createdAt"] }, startDate],
+          },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: dateFormat,
+              date: { $ifNull: ["$paymentHistory.paidAt", "$createdAt"] },
+            },
+          },
+          revenue: { $sum: "$paymentHistory.amount" },
+        },
+      },
+    ]),
+
+    /* 4. Direct orders upfront deposits without an invoice by collection date (createdAt) */
+    Order.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: { $ne: "cancelled" },
+          depositPaid: { $gt: 0 },
+          createdAt: { $gte: startDate },
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          localField: "_id",
+          foreignField: "order",
+          as: "invoices",
+        },
+      },
+      {
+        $match: {
+          "invoices.0": { $exists: false },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: dateFormat,
+              date: "$createdAt",
+            },
+          },
+          revenue: { $sum: "$depositPaid" },
+        },
+      },
+    ]),
+
+    /* 5. Direct bespoke upfront deposits without an invoice by collection date (createdAt) */
+    CustomRequest.aggregate([
+      {
+        $match: {
+          vendor: vid,
+          status: { $ne: "cancelled" },
+          depositPaid: { $gt: 0 },
+          createdAt: { $gte: startDate },
+        },
+      },
+      {
+        $lookup: {
+          from: "invoices",
+          localField: "_id",
+          foreignField: "customRequest",
+          as: "invoices",
+        },
+      },
+      {
+        $match: {
+          "invoices.0": { $exists: false },
+        },
+      },
+      {
+        $group: {
+          _id: {
+            $dateToString: {
+              format: dateFormat,
+              date: "$createdAt",
+            },
+          },
+          revenue: { $sum: "$depositPaid" },
+        },
+      },
     ]),
   ]);
 
   // Merge map by date key
   const seriesMap = new Map();
 
-  ordersData.forEach(({ _id, revenue, orderCount }) => {
-    seriesMap.set(_id, { date: _id, revenue, orderCount });
+  const getOrCreate = (date) => {
+    if (!seriesMap.has(date)) {
+      seriesMap.set(date, { date, revenue: 0, orderCount: 0 });
+    }
+    return seriesMap.get(date);
+  };
+
+  completedOrdersData.forEach(({ _id, orderCount }) => {
+    if (_id) getOrCreate(_id).orderCount += orderCount;
   });
 
-  bespokeData.forEach(({ _id, revenue, orderCount }) => {
-    if (seriesMap.has(_id)) {
-      const existing = seriesMap.get(_id);
-      existing.revenue += revenue;
-      existing.orderCount += orderCount;
-    } else {
-      seriesMap.set(_id, { date: _id, revenue, orderCount });
-    }
+  completedBespokeData.forEach(({ _id, orderCount }) => {
+    if (_id) getOrCreate(_id).orderCount += orderCount;
+  });
+
+  invoicePaymentsData.forEach(({ _id, revenue }) => {
+    if (_id) getOrCreate(_id).revenue += revenue;
+  });
+
+  directOrderDepositsData.forEach(({ _id, revenue }) => {
+    if (_id) getOrCreate(_id).revenue += revenue;
+  });
+
+  directBespokeDepositsData.forEach(({ _id, revenue }) => {
+    if (_id) getOrCreate(_id).revenue += revenue;
   });
 
   return Array.from(seriesMap.values()).sort((a, b) => (a.date > b.date ? 1 : -1));

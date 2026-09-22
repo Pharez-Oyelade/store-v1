@@ -445,6 +445,15 @@ export const createOrder = asyncHandler(async (req, res) => {
     0,
   );
 
+  const orderStatus = req.body.status || "pending";
+  if (orderStatus === "completed" && totalAmount - Number(depositPaid || 0) > 0) {
+    return sendError(
+      res,
+      `Cannot create order as completed while a balance of ₦${(totalAmount - Number(depositPaid || 0)).toLocaleString()} is still due. Please record full payment before completing the order.`,
+      400
+    );
+  }
+
   const order = await Order.create({
     vendor: vendorId,
     customer: customer._id,
@@ -455,9 +464,11 @@ export const createOrder = asyncHandler(async (req, res) => {
     },
     items: normalizedItems,
     totalAmount,
-    depositPaid,
+    depositPaid: Number(depositPaid || 0),
     notes,
     source,
+    status: orderStatus,
+    completedAt: orderStatus === "completed" ? new Date() : null,
   });
 
   const orderObj = order.toObject();
@@ -498,10 +509,31 @@ export const updateOrder = asyncHandler(async (req, res) => {
     }
 
     const prevStatus = customRequest.status;
+    const targetStatus = status !== undefined ? status : prevStatus;
+    const effectiveDeposit = depositPaid !== undefined ? Number(depositPaid) : (customRequest.depositPaid || 0);
+    const targetPrice = (customRequest.agreedPrice > 0 ? customRequest.agreedPrice : customRequest.estimatedPrice) || 0;
+    const remainingBalance = Math.max(0, targetPrice - effectiveDeposit);
+
+    // L8: Guard against completing bespoke demand with unpaid balance
+    if (targetStatus === "completed" && remainingBalance > 0) {
+      return sendError(
+        res,
+        `Cannot mark bespoke demand as completed while a balance of ₦${remainingBalance.toLocaleString()} is still due. Please record full payment before completing the order.`,
+        400
+      );
+    }
+
     if (status !== undefined) customRequest.status = status;
     if (depositPaid !== undefined) customRequest.depositPaid = Number(depositPaid);
     if (notes !== undefined) customRequest.notes = notes;
     if (whatsappSent !== undefined) customRequest.whatsappSent = whatsappSent;
+
+    // L9: Record completion timestamp
+    if (targetStatus === "completed" && !customRequest.completedAt) {
+      customRequest.completedAt = new Date();
+    } else if (targetStatus !== "completed") {
+      customRequest.completedAt = null;
+    }
 
     await customRequest.save();
 
@@ -556,6 +588,7 @@ export const updateOrder = asyncHandler(async (req, res) => {
       notes: customRequest.notes,
       createdAt: customRequest.createdAt,
       updatedAt: customRequest.updatedAt,
+      completedAt: customRequest.completedAt,
       whatsappLinks: {
         confirmed: buildCustomRequestWhatsAppLink(req.vendor, customRequest, "confirmed"),
         fitting: buildCustomRequestWhatsAppLink(req.vendor, customRequest, "fitting"),
@@ -569,6 +602,18 @@ export const updateOrder = asyncHandler(async (req, res) => {
   const prevStatus = order.status;
   const targetStatus = status !== undefined ? status : prevStatus;
   const isStatusChanging = status !== undefined && status !== prevStatus;
+
+  const effectiveDeposit = depositPaid !== undefined ? Number(depositPaid) : (order.depositPaid || 0);
+  const remainingBalance = Math.max(0, order.totalAmount - effectiveDeposit);
+
+  // L8: Guard against completing order with unpaid balance
+  if (targetStatus === "completed" && remainingBalance > 0) {
+    return sendError(
+      res,
+      `Cannot mark order as completed while a balance of ₦${remainingBalance.toLocaleString()} is still due. Please record full payment before completing the order.`,
+      400
+    );
+  }
 
   const shouldDeplete =
     isStatusChanging &&
@@ -596,6 +641,13 @@ export const updateOrder = asyncHandler(async (req, res) => {
 
   if (status !== undefined) {
     order.status = status;
+  }
+
+  // L9: Record completion timestamp
+  if (targetStatus === "completed" && !order.completedAt) {
+    order.completedAt = new Date();
+  } else if (targetStatus !== "completed") {
+    order.completedAt = null;
   }
 
   try {

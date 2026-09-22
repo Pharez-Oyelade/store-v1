@@ -46,6 +46,7 @@ export default function InvoiceDetailPage() {
   const [payAmount, setPayAmount] = useState<number | "">("");
   const [payChannel, setPayChannel] = useState("bank_transfer");
   const [payNotes, setPayNotes] = useState("");
+  const [verifyingProofId, setVerifyingProofId] = useState<string | null>(null);
 
   if (isLoading) {
     return (
@@ -179,6 +180,12 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          {pendingProofs.length > 0 && (
+            <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold animate-pulse">
+              <Clock className="w-3.5 h-3.5 text-amber-600" />
+              {pendingProofs.length} Proof{pendingProofs.length > 1 ? "s" : ""} Pending Review
+            </span>
+          )}
           <button
             type="button"
             onClick={() => window.print()}
@@ -201,6 +208,111 @@ export default function InvoiceDetailPage() {
           )}
         </div>
       </div>
+
+      {/* Pending Payment Proofs Alert (Customer submitted bank transfer) - Positioned at top for immediate action */}
+      {pendingProofs.length > 0 && (
+        <div className="bg-amber-50/90 rounded-2xl p-5 border-2 border-amber-300 shadow-sm space-y-3 animate-in fade-in duration-200">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
+              <Clock className="w-4 h-4 text-amber-600" />
+              <span>Customer Bank Transfer Proofs Requiring Review ({pendingProofs.length})</span>
+            </div>
+            <span className="text-[11px] font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
+              Action Required
+            </span>
+          </div>
+
+          <div className="space-y-3">
+            {pendingProofs.map((proof) => {
+              const isBusy = verifyingProofId === proof._id && verifyProof.isPending;
+              return (
+                <div
+                  key={proof._id}
+                  className="bg-white p-4 rounded-xl border border-amber-200/90 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
+                >
+                  <div>
+                    <div className="flex items-baseline gap-2">
+                      <p className="text-base font-extrabold text-gray-900">
+                        {formatCurrency(proof.amount)}
+                      </p>
+                      <span className="text-[11px] font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md border border-amber-200">
+                        Pending Verification
+                      </span>
+                    </div>
+                    <p className="text-xs text-gray-600 mt-1">
+                      Sender:{" "}
+                      <span className="font-semibold text-gray-900">
+                        {proof.bankSenderName || "Customer"}
+                      </span>
+                      {proof.reference && (
+                        <span className="text-gray-400 ml-2">
+                          Ref: <code className="text-gray-600 font-mono text-[11px]">{proof.reference}</code>
+                        </span>
+                      )}
+                    </p>
+                    {proof.notes && (
+                      <p className="text-xs text-gray-500 italic mt-0.5">
+                        &quot;{proof.notes}&quot;
+                      </p>
+                    )}
+                    <p className="text-[10px] text-gray-400 mt-1">
+                      Submitted {formatDate(proof.submittedAt)}
+                    </p>
+                  </div>
+
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVerifyingProofId(proof._id);
+                        verifyProof.mutate(
+                          {
+                            invoiceId: invoice._id,
+                            proofId: proof._id,
+                            action: "reject",
+                          },
+                          {
+                            onSettled: () => setVerifyingProofId(null),
+                          }
+                        );
+                      }}
+                      disabled={verifyProof.isPending}
+                      className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold cursor-pointer disabled:opacity-50 transition-colors"
+                    >
+                      Reject
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setVerifyingProofId(proof._id);
+                        verifyProof.mutate(
+                          {
+                            invoiceId: invoice._id,
+                            proofId: proof._id,
+                            action: "approve",
+                          },
+                          {
+                            onSettled: () => setVerifyingProofId(null),
+                          }
+                        );
+                      }}
+                      disabled={verifyProof.isPending}
+                      className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer disabled:opacity-50 flex items-center gap-1.5 transition-colors"
+                    >
+                      {isBusy ? (
+                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                      ) : (
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                      )}
+                      <span>{isBusy ? "Approving..." : "Approve & Credit"}</span>
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Live Shareable Link Card or Cancelled Notice */}
       {invoice.status === "cancelled" ? (
@@ -276,82 +388,6 @@ export default function InvoiceDetailPage() {
                 <ExternalLink className="w-4 h-4" />
               </a>
             </div>
-          </div>
-        </div>
-      )}
-
-      {/* Pending Payment Proofs Alert (Customer submitted bank transfer) */}
-      {pendingProofs.length > 0 && (
-        <div className="bg-amber-50 rounded-2xl p-5 border border-amber-200 shadow-xs space-y-3">
-          <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
-            <Clock className="w-4 h-4 text-amber-600" />
-            <span>Customer Bank Transfer Proofs ({pendingProofs.length})</span>
-          </div>
-
-          <div className="space-y-3">
-            {pendingProofs.map((proof) => (
-              <div
-                key={proof._id}
-                className="bg-white p-4 rounded-xl border border-amber-200/80 flex flex-col sm:flex-row sm:items-center justify-between gap-3 shadow-2xs"
-              >
-                <div>
-                  <p className="text-sm font-bold text-gray-900">
-                    {formatCurrency(proof.amount)}
-                  </p>
-                  <p className="text-xs text-gray-600 mt-0.5">
-                    Sender:{" "}
-                    <span className="font-semibold">
-                      {proof.bankSenderName || "Customer"}
-                    </span>
-                    {proof.reference && (
-                      <span className="text-gray-400 ml-2">
-                        Ref: {proof.reference}
-                      </span>
-                    )}
-                  </p>
-                  {proof.notes && (
-                    <p className="text-[11px] text-gray-500 italic mt-0.5">
-                      &quot;{proof.notes}&quot;
-                    </p>
-                  )}
-                  <p className="text-[10px] text-gray-400 mt-1">
-                    Submitted {formatDate(proof.submittedAt)}
-                  </p>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    type="button"
-                    onClick={() =>
-                      verifyProof.mutate({
-                        invoiceId: invoice._id,
-                        proofId: proof._id,
-                        action: "reject",
-                      })
-                    }
-                    disabled={verifyProof.isPending}
-                    className="px-3 py-1.5 rounded-lg border border-gray-300 hover:bg-gray-50 text-gray-700 text-xs font-semibold cursor-pointer disabled:opacity-50"
-                  >
-                    Reject
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      verifyProof.mutate({
-                        invoiceId: invoice._id,
-                        proofId: proof._id,
-                        action: "approve",
-                      })
-                    }
-                    disabled={verifyProof.isPending}
-                    className="px-3.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs cursor-pointer disabled:opacity-50 flex items-center gap-1"
-                  >
-                    <CheckCircle2 className="w-3.5 h-3.5" />
-                    <span>Approve & Credit</span>
-                  </button>
-                </div>
-              </div>
-            ))}
           </div>
         </div>
       )}
