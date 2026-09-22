@@ -3,10 +3,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ShoppingBag, MessageCircle } from "lucide-react";
 import { StorefrontNavbar } from "@/components/storefront/StorefrontNavbar";
+import { getServerApiUrl } from "@/lib/api";
 
 async function getVendorStorefront(handle: string) {
   try {
-    const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
+    const apiUrl = getServerApiUrl();
     const res = await fetch(`${apiUrl}/storefront/${handle}`, {
       next: { revalidate: 60 }, // Cache for 60 seconds
     });

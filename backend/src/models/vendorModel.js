@@ -138,6 +138,17 @@ const vendorSchema = new mongoose.Schema(
       },
     },
 
+    /* ── WhatsApp Bot Settings ─────────────────────────── */
+    whatsappBotSettings: {
+      enabled: { type: Boolean, default: true },
+      autoSendCustomerReceipt: { type: Boolean, default: true },
+      customGreeting: {
+        type: String,
+        maxlength: [300, "Custom greeting cannot exceed 300 characters"],
+        default: "",
+      },
+    },
+
     /* ── Payout & Settlement Account ────────────────────────── */
     payoutAccount: {
       bankName: { type: String, default: "" },

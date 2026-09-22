@@ -28,6 +28,8 @@ import contactRouter from "./src/routes/contact.routes.js";
 import newsletterRouter from "./src/routes/newsletter.routes.js";
 import teamRouter from "./src/routes/team.routes.js";
 import invoiceRouter from "./src/routes/invoice.routes.js";
+import whatsappWebhookRouter from "./src/routes/whatsappWebhook.routes.js";
+import { paystackWebhook } from "./src/controllers/subscription.controller.js";
 
 
 
@@ -43,12 +45,37 @@ const app = express();
 /* ── Security ───────────────────────────────────────────────────── */
 app.use(helmet());
 
+// Allowed origins configuration (supports comma-separated origins in FRONTEND_URL)
+const allowedOrigins = (process.env.FRONTEND_URL || "http://localhost:3000")
+  .split(",")
+  .map((url) => url.trim().replace(/\/$/, ""))
+  .filter(Boolean);
+
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:3000",
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. mobile apps, curl, Next.js server rewrites)
+      if (!origin) return callback(null, true);
+
+      // Allow if matches any origin in allowedOrigins list or wildcard
+      if (allowedOrigins.includes(origin) || allowedOrigins.includes("*")) {
+        return callback(null, true);
+      }
+
+      console.warn(`[CORS] Blocked request from unauthorized origin: ${origin}`);
+      return callback(null, false);
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"],
+    allowedHeaders: [
+      "Content-Type",
+      "Authorization",
+      "x-idempotency-key",
+      "X-Idempotency-Key",
+      "idempotency-key",
+      "Idempotency-Key",
+    ],
+    exposedHeaders: ["x-idempotency-key", "X-Idempotency-Key"],
   }),
 );
 
@@ -89,8 +116,15 @@ const storefrontLimiter = rateLimit({
 });
 
 /* ── Body Parsing ───────────────────────────────────────────────── */
-app.use(express.json({ limit: "10kb" }));
-app.use(express.urlencoded({ extended: true, limit: "10kb" }));
+app.use(
+  express.json({
+    limit: "1mb",
+    verify: (req, res, buf) => {
+      req.rawBody = buf;
+    },
+  })
+);
+app.use(express.urlencoded({ extended: true, limit: "1mb" }));
 app.use(cookieParser());
 app.use(sanitizeRequest);
 
@@ -125,12 +159,14 @@ app.use("/api/customers", apiLimiter, customerRouter);
 app.use("/api/suppliers", apiLimiter, supplierRouter);
 app.use("/api/analytics", apiLimiter, analyticsRouter);
 app.use("/api/subscriptions", subscriptionRouter); // Note: webhook handles its own rate limit, endpoints use their own logic or apiLimiter
+app.post("/api/webhook", paystackWebhook);
 app.use("/api/notifications", apiLimiter, notificationRouter);
 app.use("/api/contact", apiLimiter, contactRouter);
 app.use("/api/newsletter", apiLimiter, newsletterRouter);
 app.use("/api/storefront", storefrontLimiter, storefrontRouter);
 app.use("/api/team", apiLimiter, teamRouter);
 app.use("/api/admin", adminLimiter, adminRouter);
+app.use("/api/whatsapp", whatsappWebhookRouter); // No auth limiter — Meta authenticates via HMAC signature
 
 
 

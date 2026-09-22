@@ -70,13 +70,43 @@ export default function OrderDetailPage() {
         description={`Created ${formatDate(order.data.createdAt)} from ${order.data.source.replace("_", " ")}.`}
         action={
           <div className="flex items-center gap-2 flex-wrap">
-            <Link
-              href={`/dashboard/invoices/new?orderId=${order.data._id}`}
-              className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs"
-            >
-              <FileText className="size-4 text-brand-700" />
-              <span>Generate Invoice</span>
-            </Link>
+            {order.data.invoice ? (
+              <>
+                <Link
+                  href={`/dashboard/invoices/${order.data.invoice._id}`}
+                  className="inline-flex h-9 items-center gap-2 rounded-md border border-brand-200 bg-brand-50 px-3 text-sm font-medium text-brand-700 hover:bg-brand-100 transition-colors shadow-2xs"
+                >
+                  <FileText className="size-4 text-brand-700" />
+                  <span>
+                    Invoice #{order.data.invoice.invoiceNumber}
+                    {order.data.invoice.balanceDue > 0
+                      ? ` (${formatCurrency(order.data.invoice.balanceDue)} left)`
+                      : " (Paid)"}
+                  </span>
+                </Link>
+                {order.data.invoice.balanceDue > 0 && (
+                  <a
+                    href={`https://wa.me/${order.data.customerSnapshot?.phone?.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                      `Hi ${order.data.customerSnapshot?.name || "Customer"}, here is your invoice #${order.data.invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(order.data.invoice.totalAmount)}\nBalance Due: ${formatCurrency(order.data.invoice.balanceDue)}\n\nView invoice, pay online, or see transfer details here:\n${typeof window !== "undefined" ? window.location.origin : ""}/i/${order.data.invoice.accessToken}`,
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex h-9 items-center gap-2 rounded-md bg-emerald-600 px-3 text-sm font-medium text-white hover:bg-emerald-700 transition-colors shadow-2xs"
+                  >
+                    <MessageCircle className="size-4 text-white" />
+                    <span>Resend Invoice</span>
+                  </a>
+                )}
+              </>
+            ) : (
+              <Link
+                href={`/dashboard/invoices/new?orderId=${order.data._id}`}
+                className="inline-flex h-9 items-center gap-2 rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors shadow-2xs"
+              >
+                <FileText className="size-4 text-brand-700" />
+                <span>Generate Invoice</span>
+              </Link>
+            )}
             <a
               href={whatsappLink}
               target="_blank"

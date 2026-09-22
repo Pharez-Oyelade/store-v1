@@ -463,6 +463,66 @@ export async function getBillingHealth() {
  * ═══════════════════════════════════════════════════════════════ */
 
 /**
+ * Streams CSV export directly to the HTTP response using Mongoose cursors.
+ * Avoids loading entire collection into memory.
+ */
+export async function streamCsvExport(type, res) {
+  const filename = `vendra-${type}-${new Date().toISOString().split("T")[0]}.csv`;
+  res.setHeader("Content-Type", "text/csv; charset=utf-8");
+  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
+
+  const escapeCsv = (val) => `"${String(val ?? "").replace(/"/g, '""')}"`;
+
+  if (type === "vendors") {
+    res.write("Business Name,Handle,Phone,Email,Active,Plan,Sub Status,State,City,Joined\n");
+    const cursor = Vendor.find({ role: "vendor" })
+      .select("businessName handle phone email isActive subscriptionPlan subscriptionStatus createdAt location")
+      .cursor();
+
+    for await (const v of cursor) {
+      const row = [
+        escapeCsv(v.businessName),
+        escapeCsv(v.handle),
+        escapeCsv(v.phone),
+        escapeCsv(v.email || ""),
+        escapeCsv(v.isActive ? "Yes" : "No"),
+        escapeCsv(v.subscriptionPlan),
+        escapeCsv(v.subscriptionStatus),
+        escapeCsv(v.location?.state || ""),
+        escapeCsv(v.location?.city || ""),
+        escapeCsv(v.createdAt ? new Date(v.createdAt).toISOString().split("T")[0] : ""),
+      ];
+      res.write(row.join(",") + "\n");
+    }
+    return res.end();
+  }
+
+  if (type === "subscriptions") {
+    res.write("Business Name,Handle,Phone,Plan,Status,Period Start,Period End,Cancel At End\n");
+    const cursor = Subscription.find()
+      .populate("vendor", "businessName handle phone")
+      .cursor();
+
+    for await (const s of cursor) {
+      const row = [
+        escapeCsv(s.vendor?.businessName || ""),
+        escapeCsv(s.vendor?.handle || ""),
+        escapeCsv(s.vendor?.phone || ""),
+        escapeCsv(s.plan),
+        escapeCsv(s.status),
+        escapeCsv(s.currentPeriodStart ? new Date(s.currentPeriodStart).toISOString().split("T")[0] : ""),
+        escapeCsv(s.currentPeriodEnd ? new Date(s.currentPeriodEnd).toISOString().split("T")[0] : ""),
+        escapeCsv(s.cancelAtPeriodEnd ? "Yes" : "No"),
+      ];
+      res.write(row.join(",") + "\n");
+    }
+    return res.end();
+  }
+
+  throw new Error(`Unknown export type: ${type}`);
+}
+
+/**
  * Generates a CSV string for the requested data type.
  * @param {"vendors"|"subscriptions"} type
  */

@@ -20,10 +20,15 @@ import {
   ArrowRight,
   AlertCircle,
   CheckCircle2,
+  WifiOff,
+  MessageCircle,
 } from "lucide-react";
-import { useCreateInvoice, usePayoutAccount } from "@/hooks/useInvoices";
+import { useCreateInvoice, usePayoutAccount, useInvoices } from "@/hooks/useInvoices";
+import type { Invoice } from "@/types";
 import { useOrders, useOrder } from "@/hooks/useOrders";
 import { useCustomRequests, useCustomRequest } from "@/hooks/useCustomRequests";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -83,9 +88,62 @@ export default function NewInvoicePage() {
   const singleOrderQuery = useOrder(preloadOrderId || "");
   const singleDemandQuery = useCustomRequest(preloadDemandId || "");
   const payoutQuery = usePayoutAccount();
+  const invoicesQuery = useInvoices({ limit: 100 });
   const isBankLinked = Boolean(
     payoutQuery.data?.isVerified && payoutQuery.data?.paystackSubaccountCode,
   );
+
+  // Map orderId -> existing active invoice
+  const existingOrderInvoiceMap = useMemo(() => {
+    const map = new Map<string, Invoice>();
+    invoicesQuery.data?.invoices?.forEach((inv) => {
+      if (inv.status !== "cancelled" && inv.order) {
+        const ordId = typeof inv.order === "object" ? (inv.order as any)._id : inv.order;
+        if (ordId) map.set(ordId, inv);
+      }
+    });
+    return map;
+  }, [invoicesQuery.data?.invoices]);
+
+  // Map customRequestId -> existing active invoice
+  const existingDemandInvoiceMap = useMemo(() => {
+    const map = new Map<string, Invoice>();
+    invoicesQuery.data?.invoices?.forEach((inv) => {
+      if (inv.status !== "cancelled" && inv.customRequest) {
+        const demId = typeof inv.customRequest === "object" ? (inv.customRequest as any)._id : inv.customRequest;
+        if (demId) map.set(demId, inv);
+      }
+    });
+    return map;
+  }, [invoicesQuery.data?.invoices]);
+
+  const activeExistingInvoice = useMemo(() => {
+    if (mode === "from_order" && selectedOrderId) {
+      return (
+        existingOrderInvoiceMap.get(selectedOrderId) ||
+        ((singleOrderQuery.data?._id === selectedOrderId && singleOrderQuery.data?.invoice)
+          ? (singleOrderQuery.data.invoice as any)
+          : null)
+      );
+    }
+    if (mode === "from_demand" && selectedDemandId) {
+      return (
+        existingDemandInvoiceMap.get(selectedDemandId) ||
+        ((singleDemandQuery.data?._id === selectedDemandId && singleDemandQuery.data?.invoice)
+          ? (singleDemandQuery.data.invoice as any)
+          : null)
+      );
+    }
+    return null;
+  }, [
+    mode,
+    selectedOrderId,
+    selectedDemandId,
+    existingOrderInvoiceMap,
+    existingDemandInvoiceMap,
+    singleOrderQuery.data,
+    singleDemandQuery.data,
+  ]);
 
   // Sync mode and selections when URL searchParams are provided
   useEffect(() => {
@@ -204,6 +262,35 @@ export default function NewInvoicePage() {
   const currentPaid = Number(alreadyPaid) || 0;
   const netBalanceDue = Math.max(0, calculatedTotal - currentPaid);
 
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "invoice",
+    endpoint: "/invoices",
+    description: `Invoice for ${customerName || "Customer"} (₦${calculatedTotal.toLocaleString()})`,
+    queryKeyToUpdate: ["invoices"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: tempId,
+      id: tempId,
+      invoiceNumber: `INV-${new Date().getFullYear()}-${Math.floor(1000 + Math.random() * 9000)}`,
+      customerSnapshot: payload.customerSnapshot,
+      items: payload.items,
+      totalAmount: payload.totalAmount,
+      depositPaid: payload.initialPaid || 0,
+      balanceDue: Math.max(0, payload.totalAmount - (payload.initialPaid || 0)),
+      status:
+        (payload.initialPaid || 0) >= payload.totalAmount
+          ? "paid"
+          : (payload.initialPaid || 0) > 0
+            ? "partially_paid"
+            : "sent",
+      dueDate: payload.dueDate,
+      notes: payload.notes,
+      terms: payload.terms,
+      isPendingSync: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
   const addItem = () => {
     setItems((prev) => [
       ...prev,
@@ -229,6 +316,14 @@ export default function NewInvoicePage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
+    if (activeExistingInvoice) {
+      toast.error(
+        `Invoice #${activeExistingInvoice.invoiceNumber} has already been issued for this selection.`,
+      );
+      router.push(`/dashboard/invoices/${activeExistingInvoice._id}`);
+      return;
+    }
+
     if (!customerName.trim()) {
       toast.error("Customer name is required");
       return;
@@ -239,38 +334,47 @@ export default function NewInvoicePage() {
       return;
     }
 
+    const payload: any = {
+      customerSnapshot: {
+        name: customerName.trim(),
+        phone: customerPhone.trim(),
+        email: customerEmail.trim(),
+        address: customerAddress.trim(),
+      },
+      items: items.map((i) => ({
+        description: i.description.trim(),
+        variantLabel: i.variantLabel.trim(),
+        quantity: Number(i.quantity) || 1,
+        unitPrice: Number(i.unitPrice) || 0,
+      })),
+      totalAmount: calculatedTotal,
+      initialPaid: currentPaid,
+      depositRequired: Number(depositRequired) || 0,
+      dueDate: dueDate || undefined,
+      notes: notes.trim(),
+      terms: terms.trim(),
+    };
+
+    if (mode === "from_order" && selectedOrderId) {
+      payload.orderId = selectedOrderId;
+    } else if (mode === "from_demand" && selectedDemandId) {
+      payload.customRequestId = selectedDemandId;
+    }
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(generateLocalId("temp_invoice"), payload);
+      router.push("/dashboard/invoices");
+      return;
+    }
+
     try {
-      const payload: any = {
-        customerSnapshot: {
-          name: customerName.trim(),
-          phone: customerPhone.trim(),
-          email: customerEmail.trim(),
-          address: customerAddress.trim(),
-        },
-        items: items.map((i) => ({
-          description: i.description.trim(),
-          variantLabel: i.variantLabel.trim(),
-          quantity: Number(i.quantity) || 1,
-          unitPrice: Number(i.unitPrice) || 0,
-        })),
-        totalAmount: calculatedTotal,
-        initialPaid: currentPaid,
-        depositRequired: Number(depositRequired) || 0,
-        dueDate: dueDate || undefined,
-        notes: notes.trim(),
-        terms: terms.trim(),
-      };
-
-      if (mode === "from_order" && selectedOrderId) {
-        payload.orderId = selectedOrderId;
-      } else if (mode === "from_demand" && selectedDemandId) {
-        payload.customRequestId = selectedDemandId;
-      }
-
       const invoice = await createInvoice.mutateAsync(payload);
       router.push(`/dashboard/invoices/${invoice._id}`);
     } catch {
-      // toast error handled in hook
+      if (!navigator.onLine) {
+        await handleOfflineSave(generateLocalId("temp_invoice"), payload);
+        router.push("/dashboard/invoices");
+      }
     }
   };
 
@@ -433,12 +537,16 @@ export default function NewInvoicePage() {
                         o.balanceOwed !== undefined
                           ? o.balanceOwed
                           : Math.max(0, o.totalAmount - paid);
+                      const existingInv = existingOrderInvoiceMap.get(o._id);
                       return (
                         <option key={o._id} value={o._id}>
                           {o.customerSnapshot?.name} — Total:{" "}
                           {formatCurrency(o.totalAmount)} | Paid:{" "}
                           {formatCurrency(paid)} | Balance Due:{" "}
                           {formatCurrency(balance)}
+                          {existingInv
+                            ? ` [Invoice #${existingInv.invoiceNumber} Issued — ₦${existingInv.balanceDue.toLocaleString()} left]`
+                            : ""}
                         </option>
                       );
                     })
@@ -492,17 +600,73 @@ export default function NewInvoicePage() {
                         d.balanceOwed !== undefined
                           ? d.balanceOwed
                           : Math.max(0, total - paid);
+                      const existingInv = existingDemandInvoiceMap.get(d._id);
                       return (
                         <option key={d._id} value={d._id}>
                           {d.customerSnapshot?.name} — {d.title} | Total:{" "}
                           {formatCurrency(total)} | Paid: {formatCurrency(paid)}{" "}
                           | Balance Due: {formatCurrency(balance)}
+                          {existingInv
+                            ? ` [Invoice #${existingInv.invoiceNumber} Issued — ₦${existingInv.balanceDue.toLocaleString()} left]`
+                            : ""}
                         </option>
                       );
                     })
                   )}
                 </select>
               )}
+            </div>
+          )}
+
+          {/* Issued Invoice Alert Banner */}
+          {activeExistingInvoice && (
+            <div className="rounded-2xl border border-amber-300 bg-amber-50/95 p-4 sm:p-5 shadow-xs space-y-3">
+              <div className="flex items-start gap-3">
+                <div className="w-9 h-9 rounded-xl bg-amber-100 border border-amber-300 flex items-center justify-center text-amber-700 shrink-0">
+                  <AlertCircle className="w-5 h-5" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <h3 className="text-xs font-bold text-amber-950 uppercase tracking-wider">
+                      Invoice Already Issued
+                    </h3>
+                    <span className="px-2 py-0.5 rounded-md bg-amber-200 text-amber-900 text-[11px] font-bold">
+                      #{activeExistingInvoice.invoiceNumber}
+                    </span>
+                  </div>
+                  <p className="text-xs text-amber-800 mt-1 leading-relaxed">
+                    An invoice has already been issued for this {mode === "from_order" ? "order" : "bespoke demand"}.
+                    {activeExistingInvoice.balanceDue > 0
+                      ? ` Remaining balance left to pay is ${formatCurrency(activeExistingInvoice.balanceDue)}.`
+                      : " This invoice is already paid in full."}
+                    {" "}You can resend the issued invoice directly with the balance due instead of creating a duplicate.
+                  </p>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 pt-1 flex-wrap">
+                <Link
+                  href={`/dashboard/invoices/${activeExistingInvoice._id}`}
+                  className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-white border border-amber-300 hover:bg-amber-100 text-amber-950 text-xs font-bold transition-colors shadow-2xs"
+                >
+                  <FileText className="w-4 h-4 text-amber-700" />
+                  <span>View Issued Invoice</span>
+                </Link>
+
+                {activeExistingInvoice.balanceDue > 0 && (
+                  <a
+                    href={`https://wa.me/${customerPhone.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                      `Hi ${customerName || "Customer"}, here is your invoice #${activeExistingInvoice.invoiceNumber}.\n\nTotal: ${formatCurrency(activeExistingInvoice.totalAmount)}\nBalance Due: ${formatCurrency(activeExistingInvoice.balanceDue)}\n\nView invoice, pay online, or see transfer details here:\n${typeof window !== "undefined" ? window.location.origin : ""}/i/${activeExistingInvoice.accessToken}`,
+                    )}`}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs"
+                  >
+                    <MessageCircle className="w-4 h-4 text-white" />
+                    <span>Resend via WhatsApp</span>
+                  </a>
+                )}
+              </div>
             </div>
           )}
         </div>
@@ -896,7 +1060,7 @@ export default function NewInvoicePage() {
             </div>
           </div>
 
-          <div className="flex items-center gap-3 w-full sm:w-auto justify-end">
+          <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
             <Link
               href="/dashboard/invoices"
               className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
@@ -904,20 +1068,35 @@ export default function NewInvoicePage() {
               Cancel
             </Link>
 
-            <button
-              type="submit"
-              disabled={createInvoice.isPending}
-              className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
-            >
-              {createInvoice.isPending ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating Invoice...</span>
-                </>
-              ) : (
-                <span>Create & Issue Live Invoice</span>
-              )}
-            </button>
+            {activeExistingInvoice ? (
+              <Link
+                href={`/dashboard/invoices/${activeExistingInvoice._id}`}
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                <span>View Issued Invoice (#{activeExistingInvoice.invoiceNumber})</span>
+              </Link>
+            ) : (
+              <button
+                type="submit"
+                disabled={createInvoice.isPending}
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+              >
+                {createInvoice.isPending ? (
+                  <>
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                    <span>Generating Invoice...</span>
+                  </>
+                ) : !isOnline ? (
+                  <>
+                    <WifiOff className="w-4 h-4" />
+                    <span>Save Offline (Syncs Later)</span>
+                  </>
+                ) : (
+                  <span>Create & Issue Live Invoice</span>
+                )}
+              </button>
+            )}
           </div>
         </div>
       </form>

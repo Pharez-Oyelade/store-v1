@@ -5,9 +5,9 @@ import Order from "../models/orderModel.js";
 import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { normalizeOrderItems } from "./order.controller.js";
+import { normalizeOrderItems, depleteInventory } from "./order.controller.js";
 import { createNotification } from "../services/notification.service.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 
 /* ── GET /api/storefront/:handle ────────────────────────────────── */
@@ -53,15 +53,25 @@ export const getStorefrontProducts = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
-      .select("name description category images variants basePrice status")
+      .select("name description category images variants basePrice status createdAt updatedAt")
       .lean(),
     Product.countDocuments(filter),
   ]);
 
+  const sanitizedProducts = products.map((product) => {
+    const { lowStockThreshold, vendor: _v, __v, ...rest } = product;
+    return {
+      ...rest,
+      variants: Array.isArray(rest.variants)
+        ? rest.variants.map(({ sold, ...vRest }) => vRest)
+        : [],
+    };
+  });
+
   const totalPages = Math.ceil(total / Number(limit));
 
   return sendSuccess(res, {
-    products,
+    products: sanitizedProducts,
     pagination: {
       total,
       page: Number(page),
@@ -90,14 +100,24 @@ export const getStorefrontProduct = asyncHandler(async (req, res) => {
     _id: productId,
     vendor: vendor._id,
     status: "active",
-  }).lean();
+  })
+    .select("name description category images variants basePrice status createdAt updatedAt")
+    .lean();
 
   if (!product) {
     return sendError(res, "Product not found or unavailable", 404);
   }
 
+  // Sanitize internal fields from product and variants (strip internal sold metrics)
+  const { lowStockThreshold, vendor: _v, __v, ...sanitizedProduct } = product;
+  if (Array.isArray(sanitizedProduct.variants)) {
+    sanitizedProduct.variants = sanitizedProduct.variants.map(
+      ({ sold, ...vRest }) => vRest
+    );
+  }
+
   return sendSuccess(res, {
-    product,
+    product: sanitizedProduct,
     vendor: {
       businessName: vendor.businessName,
       whatsapp: vendor.socials?.whatsapp,
@@ -140,6 +160,21 @@ export const createStorefrontOrder = asyncHandler(async (req, res) => {
     notes,
     source: "storefront",
   });
+
+  // Atomically reserve inventory to prevent overselling on the storefront
+  try {
+    await depleteInventory(order);
+    order.stockDepleted = true;
+    await order.save();
+  } catch (stockErr) {
+    // If inventory depletion fails (e.g. stock exhausted by concurrent checkout), delete unconfirmed order
+    await Order.findByIdAndDelete(order._id);
+    return sendError(
+      res,
+      stockErr.message || "One or more items in your cart are no longer available in the requested quantity",
+      400
+    );
+  }
 
   await createNotification(vendorId, {
     title: "New Storefront Order",
@@ -225,13 +260,8 @@ export const createStorefrontCustomRequest = asyncHandler(async (req, res) => {
     await customer.save();
   }
 
-  // Upload reference images if any
-  const referenceImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    })
-  );
+  // Upload reference images if any (with automatic rollback on partial failure)
+  const referenceImages = await uploadMultipleImages(req.files || []);
 
   let finalMeasurements = parsedMeasurements;
   if (Object.keys(finalMeasurements).length === 0 && customer.measurements) {

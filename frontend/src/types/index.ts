@@ -53,13 +53,55 @@ export interface Subscription {
 
 export const PLAN_LIMITS: Record<
   SubscriptionPlan,
-  { products: number; ordersPerMonth: number; teamSeats: number }
+  {
+    products: number;
+    ordersPerMonth: number;
+    teamSeats: number;
+    suppliers: number;
+    invoicesPerMonth: number;
+    customers: number;
+  }
 > = {
-  [SubscriptionPlan.Free]: { products: 5, ordersPerMonth: 5, teamSeats: 1 },
-  [SubscriptionPlan.Stitch]: { products: 50, ordersPerMonth: 25, teamSeats: 1 },
-  [SubscriptionPlan.Drape]: { products: 200, ordersPerMonth: 500, teamSeats: 3 },
-  [SubscriptionPlan.Atelier]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10 },
-  [SubscriptionPlan.Maison]: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
+  [SubscriptionPlan.Free]: {
+    products: 5,
+    ordersPerMonth: 5,
+    teamSeats: 1,
+    suppliers: 0,
+    invoicesPerMonth: 5,
+    customers: 10,
+  },
+  [SubscriptionPlan.Stitch]: {
+    products: 50,
+    ordersPerMonth: 25,
+    teamSeats: 1,
+    suppliers: 3,
+    invoicesPerMonth: 50,
+    customers: 100,
+  },
+  [SubscriptionPlan.Drape]: {
+    products: 200,
+    ordersPerMonth: 500,
+    teamSeats: 3,
+    suppliers: Infinity,
+    invoicesPerMonth: 500,
+    customers: Infinity,
+  },
+  [SubscriptionPlan.Atelier]: {
+    products: Infinity,
+    ordersPerMonth: Infinity,
+    teamSeats: 10,
+    suppliers: Infinity,
+    invoicesPerMonth: Infinity,
+    customers: Infinity,
+  },
+  [SubscriptionPlan.Maison]: {
+    products: Infinity,
+    ordersPerMonth: Infinity,
+    teamSeats: Infinity,
+    suppliers: Infinity,
+    invoicesPerMonth: Infinity,
+    customers: Infinity,
+  },
 };
 
 /* ── Team Seats & Roles ────────────────────────────────────────── */
@@ -107,6 +149,7 @@ export enum OrderSource {
   Call = "call",
   WalkIn = "walk_in",
   Storefront = "storefront",
+  WhatsApp = "whatsapp",
 }
 
 export enum SupplierCategory {
@@ -299,6 +342,16 @@ export interface Order {
   source: OrderSource;
   notes?: string;
   whatsappSent: boolean; // track if order details have been sent to customer via WhatsApp
+  invoice?: {
+    _id: string;
+    invoiceNumber: string;
+    accessToken: string;
+    balanceDue: number;
+    totalAmount: number;
+    totalPaid: number;
+    status: string;
+  };
+  isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -321,6 +374,8 @@ export interface AnalyticsOverview {
   totalDebt: number;
   debtOrderCount: number;
   lowStockCount: number;
+  activeDemandsCount?: number;
+  overdueDemandsCount?: number;
 }
 
 export interface TopProduct {
@@ -329,6 +384,55 @@ export interface TopProduct {
   totalSold: number;
   totalRevenue: number;
   image?: string;
+}
+
+export interface BespokeVsRtwBreakdown {
+  rtw: {
+    revenue: number;
+    count: number;
+    percent: number;
+    aov: number;
+  };
+  bespoke: {
+    revenue: number;
+    count: number;
+    percent: number;
+    aov: number;
+  };
+  combinedTotal: number;
+  totalVolume: number;
+}
+
+export interface TailorProductivityStat {
+  tailorId: string;
+  name: string;
+  activeCount: number;
+  completedCount: number;
+  totalTurnaroundDays: number;
+  avgTurnaroundDays: number;
+}
+
+export interface WorkshopProductivity {
+  tailorStats: TailorProductivityStat[];
+  summary: {
+    totalTailors: number;
+    totalActiveDemands: number;
+    totalCompletedDemands: number;
+    avgOverallTurnaroundDays: number;
+  };
+}
+
+export interface MarginEstimator {
+  grossRevenue: number;
+  supplierExpenses: number;
+  supplierDebt: number;
+  estimatedGrossProfit: number;
+  profitMarginPercent: number;
+  aov: number;
+  totalCompletedOrders: number;
+  totalCustomers: number;
+  repeatCustomers: number;
+  repeatRatePercent: number;
 }
 
 // AUTH TYPES
@@ -726,6 +830,24 @@ export interface CustomRequest {
     fitting: string;
     completed: string;
   };
+  invoice?: {
+    _id: string;
+    invoiceNumber: string;
+    accessToken: string;
+    balanceDue: number;
+    totalAmount: number;
+    totalPaid: number;
+    status: string;
+  };
+  assignedTailor?: {
+    _id: string;
+    name: string;
+    email?: string;
+    phone?: string;
+    role?: string;
+  } | string | null;
+  completedAt?: string | null;
+  isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
 }
@@ -760,6 +882,7 @@ export interface CustomRequestFormValues {
   deadline?: string;
   source?: string;
   notes?: string;
+  assignedTailor?: string;
   measurements?: Record<string, string>;
   materials?: CustomRequestMaterial[];
 }

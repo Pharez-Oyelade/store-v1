@@ -3,6 +3,8 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { apiGet, apiPut, apiDelete } from "@/lib/api";
+import { ORDER_KEYS } from "@/hooks/useOrders";
+import { ANALYTICS_KEYS } from "@/hooks/useAnalytics";
 import type { Customer, CustomerQeryParams, Order } from "@/types";
 
 export const CUSTOMER_KEYS = {
@@ -83,6 +85,8 @@ export function useDeleteCustomer() {
     mutationFn: (id: string) => apiDelete(`/customers/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Customer deleted");
     },
     onError: (error: Error) => {

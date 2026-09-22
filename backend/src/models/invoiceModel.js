@@ -2,6 +2,11 @@ import mongoose from "mongoose";
 
 const invoiceItemSchema = new mongoose.Schema(
   {
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      default: null,
+    },
     description: {
       type: String,
       required: [true, "Item description is required"],
@@ -139,7 +144,6 @@ const invoiceSchema = new mongoose.Schema(
     invoiceNumber: {
       type: String,
       required: true,
-      unique: true,
       trim: true,
       index: true,
     },
@@ -235,6 +239,11 @@ const invoiceSchema = new mongoose.Schema(
     paymentHistory: [paymentRecordSchema],
 
     manualPaymentProofs: [manualPaymentProofSchema],
+
+    isWatermarked: {
+      type: Boolean,
+      default: false,
+    },
   },
   {
     timestamps: true,
@@ -242,6 +251,7 @@ const invoiceSchema = new mongoose.Schema(
 );
 
 /* ── Compound Indexes ───────────────────────────────────────── */
+invoiceSchema.index({ vendor: 1, invoiceNumber: 1 }, { unique: true });
 invoiceSchema.index({ vendor: 1, status: 1 });
 invoiceSchema.index({ vendor: 1, createdAt: -1 });
 invoiceSchema.index({ vendor: 1, balanceDue: 1 });

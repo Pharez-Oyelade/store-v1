@@ -4,6 +4,7 @@ import toast from "react-hot-toast";
 import { apiGet, apiPost } from "@/lib/api";
 import { useAuthStore } from "@/store/authStore";
 import { getRoleHomePath, isPathAllowedForRole } from "@/lib/rbac";
+import { clearPersistedQueryCache } from "@/lib/offline/queryPersister";
 import type { AuthUser, LoginCredentials, RegisterPayload } from "@/types";
 
 export const AUTH_QUERY_KEYS = {
@@ -105,6 +106,7 @@ export function useLogout() {
       clearVendor();
       queryClient.removeQueries({ queryKey: AUTH_QUERY_KEYS.me });
       queryClient.clear(); //nuke all cached queries
+      clearPersistedQueryCache().catch(() => {});
       toast.success("signed out successfully.");
       router.push("/login");
     },
@@ -113,6 +115,7 @@ export function useLogout() {
       // still clear all client state, always logout from UI perspective
       clearVendor();
       queryClient.clear();
+      clearPersistedQueryCache().catch(() => {});
       router.push("/login");
     },
   });

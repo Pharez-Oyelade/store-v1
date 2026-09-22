@@ -6,7 +6,7 @@ import {
   getCurrentSubscription,
   checkSubscriptionLifecycle,
 } from "../controllers/subscription.controller.js";
-import { protect } from "../middleware/protect.js";
+import { protect, restrictTo } from "../middleware/protect.js";
 import { requireRole } from "../middleware/rbac.middleware.js";
 
 const subscriptionRouter = Router();
@@ -20,7 +20,7 @@ subscriptionRouter.use(protect);
 subscriptionRouter.post("/initialize", requireRole("owner"), initializeUpgrade);
 subscriptionRouter.post("/verify", requireRole("owner"), verifyUpgrade);
 subscriptionRouter.get("/current", getCurrentSubscription);
-subscriptionRouter.post("/check-lifecycle", checkSubscriptionLifecycle);
+subscriptionRouter.post("/check-lifecycle", restrictTo("admin"), checkSubscriptionLifecycle);
 
 export default subscriptionRouter;
 

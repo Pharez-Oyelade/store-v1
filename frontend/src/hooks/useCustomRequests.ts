@@ -3,6 +3,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { apiGet, apiPost, apiPut, apiDelete, apiPatch } from "@/lib/api";
+import { ANALYTICS_KEYS } from "@/hooks/useAnalytics";
 import type {
   CustomRequest,
   CustomRequestQueryParams,
@@ -80,6 +81,7 @@ export function useCreateCustomRequest() {
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Bespoke request recorded successfully");
     },
     onError: (error: Error) => {
@@ -101,6 +103,7 @@ export function useUpdateCustomRequest(id: string) {
       ),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       queryClient.setQueryData(CUSTOM_REQUEST_KEYS.detail(id), updated);
       toast.success("Request updated");
     },
@@ -119,6 +122,7 @@ export function useDeleteCustomRequest() {
     mutationFn: (id: string) => apiDelete(`/custom-requests/${id}`),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       toast.success("Request deleted");
     },
     onError: (error: Error) => {
@@ -139,6 +143,7 @@ export function useToggleMaterialAcquired(requestId: string) {
       ),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
       queryClient.setQueryData(CUSTOM_REQUEST_KEYS.detail(requestId), updated);
       toast.success("Material status updated");
     },

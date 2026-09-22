@@ -5,7 +5,9 @@ import Order from "../models/orderModel.js";
 import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { initializeTransaction } from "../services/paystack.service.js";
+import { initializeTransaction, verifyTransaction } from "../services/paystack.service.js";
+import { createNotification } from "../services/notification.service.js";
+import { depleteInventory } from "./order.controller.js";
 
 /**
  * Generate a unique access token for public invoice links
@@ -15,13 +17,18 @@ const generateAccessToken = () => {
 };
 
 /**
- * Generate human-readable invoice number e.g. INV-2026-0042
+ * Generate human-readable invoice number scoped by vendor e.g. INV-2026-F3A1-0042
  */
-const generateInvoiceNumber = async (vendorId) => {
+const generateInvoiceNumber = async (vendorId, retryCount = 0) => {
   const year = new Date().getFullYear();
+  const vendorTag = vendorId.toString().slice(-4).toUpperCase();
   const count = await Invoice.countDocuments({ vendor: vendorId });
-  const sequence = (count + 1).toString().padStart(4, "0");
-  return `INV-${year}-${sequence}`;
+  const sequence = (count + 1 + retryCount).toString().padStart(4, "0");
+  if (retryCount > 0) {
+    const randomSuffix = crypto.randomBytes(2).toString("hex").toUpperCase();
+    return `INV-${year}-${vendorTag}-${sequence}-${randomSuffix}`;
+  }
+  return `INV-${year}-${vendorTag}-${sequence}`;
 };
 
 /* ── POST /api/invoices ─────────────────────────────────────────── */
@@ -55,6 +62,21 @@ export const createInvoice = asyncHandler(async (req, res) => {
       return sendError(res, "Linked order not found", 404);
     }
 
+    // Check if an active invoice already exists for this order to prevent duplicates
+    const existingInvoice = await Invoice.findOne({
+      order: orderId,
+      vendor: req.vendor._id,
+      status: { $ne: "cancelled" },
+    });
+    if (existingInvoice) {
+      return sendSuccess(
+        res,
+        existingInvoice,
+        `Invoice #${existingInvoice.invoiceNumber} has already been issued for this order with ₦${existingInvoice.balanceDue.toLocaleString()} balance due.`,
+        200
+      );
+    }
+
     invoiceCustomer = {
       name: customerSnapshot?.name?.trim() || linkedOrder.customerSnapshot?.name || "Customer",
       phone: customerSnapshot?.phone?.trim() ?? (linkedOrder.customerSnapshot?.phone || ""),
@@ -67,6 +89,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
         const qty = Math.max(1, Number(item.quantity) || 1);
         const price = Math.max(0, Number(item.unitPrice) || 0);
         return {
+          product: item.product || null,
           description: item.description?.trim() || "Item",
           variantLabel: item.variantLabel?.trim() || "",
           quantity: qty,
@@ -77,6 +100,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
       invoiceTotal = totalAmount !== undefined ? Math.max(0, Number(totalAmount)) : invoiceItems.reduce((acc, i) => acc + i.subtotal, 0);
     } else {
       invoiceItems = linkedOrder.items.map((item) => ({
+        product: item.product || null,
         description: item.productName || "Product",
         variantLabel: item.variantLabel || "",
         quantity: item.quantity || 1,
@@ -107,6 +131,10 @@ export const createInvoice = asyncHandler(async (req, res) => {
       linkedOrder.depositPaid = priorPaidAmount;
       if (linkedOrder.depositPaid >= linkedOrder.totalAmount && linkedOrder.status === "pending") {
         linkedOrder.status = "confirmed";
+        if (!linkedOrder.stockDepleted) {
+          await depleteInventory(linkedOrder);
+          linkedOrder.stockDepleted = true;
+        }
       }
       await linkedOrder.save();
     }
@@ -119,6 +147,21 @@ export const createInvoice = asyncHandler(async (req, res) => {
     });
     if (!linkedCustomRequest) {
       return sendError(res, "Linked bespoke demand not found", 404);
+    }
+
+    // Check if an active invoice already exists for this bespoke demand
+    const existingInvoice = await Invoice.findOne({
+      customRequest: customRequestId,
+      vendor: req.vendor._id,
+      status: { $ne: "cancelled" },
+    });
+    if (existingInvoice) {
+      return sendSuccess(
+        res,
+        existingInvoice,
+        `Invoice #${existingInvoice.invoiceNumber} has already been issued for this bespoke demand with ₦${existingInvoice.balanceDue.toLocaleString()} balance due.`,
+        200
+      );
     }
 
     invoiceCustomer = {
@@ -229,9 +272,6 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
   }
 
-  const invoiceNumber = await generateInvoiceNumber(req.vendor._id);
-  const accessToken = generateAccessToken();
-
   const balanceDue = Math.max(0, invoiceTotal - priorPaidAmount);
   const invoiceStatus =
     balanceDue <= 0 && invoiceTotal > 0
@@ -240,24 +280,42 @@ export const createInvoice = asyncHandler(async (req, res) => {
       ? "partially_paid"
       : "issued";
 
-  const invoice = await Invoice.create({
-    vendor: req.vendor._id,
-    order: linkedOrder ? linkedOrder._id : null,
-    customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
-    invoiceNumber,
-    accessToken,
-    customerSnapshot: invoiceCustomer,
-    items: invoiceItems,
-    totalAmount: invoiceTotal,
-    depositRequired: invoiceDeposit,
-    totalPaid: priorPaidAmount,
-    balanceDue,
-    status: invoiceStatus,
-    paymentHistory: initialPayments,
-    dueDate: dueDate ? new Date(dueDate) : null,
-    notes: notes?.trim() || "",
-    terms: terms?.trim() || undefined,
-  });
+  let invoice = null;
+  let attempts = 0;
+
+  while (!invoice && attempts < 3) {
+    try {
+      const invoiceNumber = await generateInvoiceNumber(req.vendor._id, attempts);
+      const accessToken = generateAccessToken();
+
+      invoice = await Invoice.create({
+        vendor: req.vendor._id,
+        order: linkedOrder ? linkedOrder._id : null,
+        customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
+        invoiceNumber,
+        accessToken,
+        customerSnapshot: invoiceCustomer,
+        items: invoiceItems,
+        totalAmount: invoiceTotal,
+        depositRequired: invoiceDeposit,
+        totalPaid: priorPaidAmount,
+        balanceDue,
+        status: invoiceStatus,
+        paymentHistory: initialPayments,
+        isWatermarked: (req.vendor.subscriptionPlan || "free") === "free",
+        dueDate: dueDate ? new Date(dueDate) : null,
+        notes: notes?.trim() || "",
+        terms: terms?.trim() || undefined,
+      });
+    } catch (createErr) {
+      if (createErr.code === 11000 && createErr.keyPattern?.invoiceNumber) {
+        attempts++;
+        if (attempts >= 3) throw createErr;
+        continue;
+      }
+      throw createErr;
+    }
+  }
 
   return sendSuccess(res, invoice, "Invoice created successfully", 201);
 });
@@ -270,6 +328,14 @@ export const getInvoices = asyncHandler(async (req, res) => {
 
   if (status && status !== "all") {
     query.status = status;
+  }
+
+  if (req.query.orderId) {
+    query.order = req.query.orderId;
+  }
+
+  if (req.query.customRequestId) {
+    query.customRequest = req.query.customRequestId;
   }
 
   if (search && search.trim()) {
@@ -390,9 +456,15 @@ export const initializeInvoicePayment = asyncHandler(async (req, res) => {
     invoice.customerSnapshot?.email ||
     `${invoice.customerSnapshot?.name?.toLowerCase().replace(/\s+/g, "") || "customer"}@tryvendra.ng`;
 
+  const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000")
+    .split(",")[0]
+    .trim()
+    .replace(/\/$/, "");
+
   const payload = {
     email: customerEmail,
     amount: amountInKobo,
+    callback_url: `${frontendUrl}/i/${invoice.accessToken}`,
     metadata: {
       invoiceId: invoice._id.toString(),
       accessToken: invoice.accessToken,
@@ -492,8 +564,13 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
     const order = await Order.findById(invoice.order);
     if (order) {
       order.depositPaid += payAmount;
-      if (order.balanceOwed <= 0 && order.status === "pending") {
+      const remainingBalance = order.totalAmount - order.depositPaid;
+      if (remainingBalance <= 0 && order.status === "pending") {
         order.status = "confirmed";
+        if (!order.stockDepleted) {
+          await depleteInventory(order);
+          order.stockDepleted = true;
+        }
       }
       await order.save();
     }
@@ -501,7 +578,9 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
     const demand = await CustomRequest.findById(invoice.customRequest);
     if (demand) {
       demand.depositPaid += payAmount;
-      if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+      const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+      const remainingBalance = targetPrice - demand.depositPaid;
+      if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
         demand.status = "confirmed";
       }
       await demand.save();
@@ -563,8 +642,13 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
       const order = await Order.findById(invoice.order);
       if (order) {
         order.depositPaid += proof.amount;
-        if (order.balanceOwed <= 0 && order.status === "pending") {
+        const remainingBalance = order.totalAmount - order.depositPaid;
+        if (remainingBalance <= 0 && order.status === "pending") {
           order.status = "confirmed";
+          if (!order.stockDepleted) {
+            await depleteInventory(order);
+            order.stockDepleted = true;
+          }
         }
         await order.save();
       }
@@ -572,7 +656,9 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
       const demand = await CustomRequest.findById(invoice.customRequest);
       if (demand) {
         demand.depositPaid += proof.amount;
-        if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+        const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+        const remainingBalance = targetPrice - demand.depositPaid;
+        if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
           demand.status = "confirmed";
         }
         await demand.save();
@@ -608,4 +694,91 @@ export const cancelInvoice = asyncHandler(async (req, res) => {
   await invoice.save();
 
   return sendSuccess(res, invoice, "Invoice cancelled successfully");
+});
+
+/* ── POST /api/invoices/public/:token/verify ─────────────────────── */
+export const verifyInvoicePayment = asyncHandler(async (req, res) => {
+  const { token } = req.params;
+  const { reference } = req.body;
+
+  if (!reference) {
+    return sendError(res, "Transaction reference is required", 400);
+  }
+
+  const invoice = await Invoice.findOne({ accessToken: token }).populate("vendor");
+  if (!invoice) {
+    return sendError(res, "Invoice not found", 404);
+  }
+
+  if (invoice.status === "cancelled") {
+    return sendError(res, "Cannot process payment on a cancelled invoice", 400);
+  }
+
+  // Idempotency check: if payment with this reference is already recorded
+  const existingPayment = invoice.paymentHistory?.find(
+    (p) => p.reference === reference
+  );
+  if (existingPayment) {
+    return sendSuccess(res, invoice, "Payment already recorded");
+  }
+
+  // Verify transaction with Paystack API
+  const paymentData = await verifyTransaction(reference);
+  if (!paymentData || paymentData.status !== "success") {
+    return sendError(
+      res,
+      `Payment verification failed: ${paymentData?.gateway_response || "Transaction was not successful"}`,
+      400
+    );
+  }
+
+  const paidNaira = Number(paymentData.amount) / 100;
+
+  invoice.paymentHistory.push({
+    reference: paymentData.reference,
+    amount: paidNaira,
+    channel: paymentData.channel || "card",
+    paidAt: paymentData.paid_at ? new Date(paymentData.paid_at) : new Date(),
+    verifiedBy: "paystack",
+    status: "success",
+    notes: `Online checkout via ${paymentData.channel || "card"}`,
+  });
+
+  invoice.totalPaid += paidNaira;
+  await invoice.save();
+
+  // Sync linked Order
+  if (invoice.order) {
+    const order = await Order.findById(invoice.order);
+    if (order) {
+      order.depositPaid += paidNaira;
+      if (order.balanceOwed <= 0 && order.status === "pending") {
+        order.status = "confirmed";
+      }
+      await order.save();
+    }
+  } else if (invoice.customRequest) {
+    const demand = await CustomRequest.findById(invoice.customRequest);
+    if (demand) {
+      demand.depositPaid += paidNaira;
+      if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+        demand.status = "confirmed";
+      }
+      await demand.save();
+    }
+  }
+
+  // Create notification for vendor
+  try {
+    await createNotification(invoice.vendor._id || invoice.vendor, {
+      title: "Invoice Payment Received",
+      message: `Payment of ₦${paidNaira.toLocaleString()} received for Invoice #${invoice.invoiceNumber}.`,
+      type: "order",
+      actionUrl: `/dashboard/invoices/${invoice._id}`,
+    });
+  } catch (notifErr) {
+    console.error("[Notification Error]", notifErr.message);
+  }
+
+  return sendSuccess(res, invoice, "Payment verified and invoice updated successfully");
 });

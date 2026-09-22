@@ -66,6 +66,11 @@ export const createCustomRequestValidators = [
   body("measurements")
     .optional()
     .customSanitizer(parseJsonField),
+
+  body("assignedTailor")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Invalid assigned tailor ID"),
 ];
 
 export const updateCustomRequestValidators = [
@@ -111,4 +116,12 @@ export const updateCustomRequestValidators = [
   body("measurements")
     .optional()
     .customSanitizer(parseJsonField),
+
+  body("assignedTailor")
+    .optional({ values: "null" })
+    .custom((value) => {
+      if (value === null || value === "" || value === "unassigned") return true;
+      if (/^[0-9a-fA-F]{24}$/.test(value)) return true;
+      throw new Error("Invalid assigned tailor ID");
+    }),
 ];

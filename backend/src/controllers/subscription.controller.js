@@ -13,8 +13,10 @@ import {
 import { createNotification } from "../services/notification.service.js";
 import {
   syncVendorSubscription,
+  invalidateVendorSyncCache,
   processAllSubscriptionExpiries,
 } from "../services/subscription.service.js";
+import { depleteInventory } from "./order.controller.js";
 
 
 /**
@@ -46,6 +48,8 @@ export const initializeUpgrade = asyncHandler(async (req, res) => {
       { plan, status: "active", cancelAtPeriodEnd: false },
       { upsert: true }
     );
+
+    invalidateVendorSyncCache(vendor._id);
 
     return sendSuccess(res, { isFree: true, plan }, `Successfully changed to ${plan} plan`);
   }
@@ -119,6 +123,8 @@ export const verifyUpgrade = asyncHandler(async (req, res) => {
     { upsert: true, new: true }
   );
 
+  invalidateVendorSyncCache(vendor._id);
+
   await createNotification(vendor._id, {
     title: "Subscription Upgraded",
     message: `Your account has been upgraded to the ${plan} plan.`,
@@ -135,9 +141,11 @@ export const verifyUpgrade = asyncHandler(async (req, res) => {
  */
 export const paystackWebhook = asyncHandler(async (req, res) => {
   const signature = req.headers["x-paystack-signature"];
-  const isValid = verifyWebhookSignature(signature, JSON.stringify(req.body));
+  const rawPayload = req.rawBody || JSON.stringify(req.body);
+  const isValid = verifyWebhookSignature(signature, rawPayload);
 
   if (!isValid) {
+    console.warn("[Paystack Webhook] Signature verification failed");
     return res.status(401).send("Invalid signature");
   }
 
@@ -179,8 +187,13 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
               const order = await Order.findById(invoice.order);
               if (order) {
                 order.depositPaid += paidNaira;
-                if (order.balanceOwed <= 0 && order.status === "pending") {
+                const remainingBalance = order.totalAmount - order.depositPaid;
+                if (remainingBalance <= 0 && order.status === "pending") {
                   order.status = "confirmed";
+                  if (!order.stockDepleted) {
+                    await depleteInventory(order);
+                    order.stockDepleted = true;
+                  }
                 }
                 await order.save();
               }
@@ -190,7 +203,9 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
               const demand = await CustomRequest.findById(invoice.customRequest);
               if (demand) {
                 demand.depositPaid += paidNaira;
-                if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+                const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+                const remainingBalance = targetPrice - demand.depositPaid;
+                if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
                   demand.status = "confirmed";
                 }
                 await demand.save();
@@ -235,6 +250,8 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
         { upsert: true }
       );
 
+      invalidateVendorSyncCache(vendorId);
+
       await createNotification(vendorId, {
         title: "Subscription Renewed",
         message: `Your subscription for the ${plan} plan has been successfully renewed.`,
@@ -252,8 +269,8 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
  * GET /api/subscriptions/current
  */
 export const getCurrentSubscription = asyncHandler(async (req, res) => {
-  // Sync real-time lifecycle check
-  await syncVendorSubscription(req.vendor._id);
+  // Sync real-time lifecycle check (bypass cache to ensure fresh settings display)
+  await syncVendorSubscription(req.vendor._id, true);
 
   let sub = await Subscription.findOne({ vendor: req.vendor._id });
   

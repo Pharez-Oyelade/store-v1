@@ -20,26 +20,31 @@ export function formatCurrency(amount: number): string {
   }).format(amount);
 }
 
-// Format date string for display
-export function formatDate(dateString: string): string {
+// Format date string for display safely
+export function formatDate(date?: string | number | Date | null): string {
+  if (!date) return "—";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "—";
   return new Intl.DateTimeFormat("en-NG", {
     year: "numeric",
     month: "short",
     day: "numeric",
-  }).format(new Date(dateString));
+  }).format(d);
 }
 
-// Format date as relative date e.g yesterday, 2 days ago
-export function formatRelativeTime(dateString: string): string {
-  const date = new Date(dateString);
+// Format date as relative date e.g yesterday, 2 days ago safely
+export function formatRelativeTime(date?: string | number | Date | null): string {
+  if (!date) return "Just now";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "Just now";
   const now = new Date();
-  const diffMs = now.getTime() - date.getTime();
+  const diffMs = now.getTime() - d.getTime();
   const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-  if (diffDays === 0) return "Today";
+  if (diffDays <= 0) return "Today";
   if (diffDays === 1) return "Yesterday";
   if (diffDays < 7) return `${diffDays} days ago`;
-  return formatDate(dateString);
+  return formatDate(d);
 }
 
 // build whatsapp deeplink URL with prefilled message

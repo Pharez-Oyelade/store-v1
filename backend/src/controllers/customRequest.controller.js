@@ -1,10 +1,10 @@
 import CustomRequest from "../models/customRequestModel.js";
 import Customer from "../models/customerModel.js";
 import Supplier from "../models/supplierModel.js";
+import Invoice from "../models/invoiceModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { deleteImages } from "../services/cloudinary.service.js";
-import { uploadToCloudinary } from "../middleware/upload.middleware.js";
+import { deleteImages, uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 import { createNotification } from "../services/notification.service.js";
 
@@ -118,6 +118,7 @@ export const getCustomRequests = asyncHandler(async (req, res) => {
   const [requestsRaw, total] = await Promise.all([
     CustomRequest.find(filter)
       .populate("materials.supplier", "name phone category")
+      .populate("assignedTailor", "name email phone role")
       .sort({ [sort]: sortDir })
       .skip(skip)
       .limit(Number(limit))
@@ -126,14 +127,20 @@ export const getCustomRequests = asyncHandler(async (req, res) => {
   ]);
 
   const requests = requestsRaw.map((reqObj) => {
-    return {
-      ...reqObj,
-      whatsappLinks: {
+    let whatsappLinks = { quote: "", confirmed: "", fitting: "", completed: "" };
+    try {
+      whatsappLinks = {
         quote: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "quote"),
         confirmed: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "confirmed"),
         fitting: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "fitting"),
         completed: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "completed"),
-      },
+      };
+    } catch (linkErr) {
+      console.error(`[getCustomRequests] Failed to generate WhatsApp links for request ${reqObj._id}:`, linkErr);
+    }
+    return {
+      ...reqObj,
+      whatsappLinks,
     };
   });
 
@@ -225,7 +232,8 @@ export const getCustomRequest = asyncHandler(async (req, res) => {
     vendor: req.vendor._id,
   })
     .populate("customer", "name phone email instagram measurements notes tags")
-    .populate("materials.supplier", "name phone category contactName");
+    .populate("materials.supplier", "name phone category contactName")
+    .populate("assignedTailor", "name email phone role");
 
   if (!requestDoc) {
     return sendError(res, "Custom request not found", 404);
@@ -238,6 +246,16 @@ export const getCustomRequest = asyncHandler(async (req, res) => {
     fitting: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "fitting"),
     completed: buildCustomRequestWhatsAppLink(req.vendor, reqObj, "completed"),
   };
+
+  const existingInvoice = await Invoice.findOne({
+    customRequest: requestDoc._id,
+    vendor: req.vendor._id,
+    status: { $ne: "cancelled" },
+  }).select("_id invoiceNumber accessToken balanceDue totalAmount totalPaid status");
+
+  if (existingInvoice) {
+    reqObj.invoice = existingInvoice;
+  }
 
   return sendSuccess(res, reqObj);
 });
@@ -260,6 +278,7 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     deadline,
     source = "dm",
     notes = "",
+    assignedTailor,
   } = req.body;
 
   const parsedMeasurements = normalizeMeasurements(measurements);
@@ -306,18 +325,19 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     await customer.save();
   }
 
-  // Upload reference images if any
-  const referenceImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    })
-  );
+  // Upload reference images if any (with automatic rollback on partial failure)
+  const referenceImages = await uploadMultipleImages(req.files || []);
 
   // If no measurements provided in form, inherit clean measurements from customer's profile
   let finalMeasurements = parsedMeasurements;
   if (Object.keys(finalMeasurements).length === 0 && customer.measurements) {
     finalMeasurements = normalizeMeasurements(customer.measurements);
+  }
+
+  // Auto-assign tailor if creator is a tailor, or use explicit assignedTailor
+  let resolvedTailor = assignedTailor || null;
+  if (!resolvedTailor && req.teamMember && req.teamMember.role === "tailor") {
+    resolvedTailor = req.teamMember._id;
   }
 
   const customRequest = await CustomRequest.create({
@@ -341,7 +361,12 @@ export const createCustomRequest = asyncHandler(async (req, res) => {
     source,
     notes,
     status: Number(depositPaid) > 0 ? "confirmed" : "inquiry",
+    assignedTailor: resolvedTailor,
   });
+
+  if (resolvedTailor) {
+    await customRequest.populate("assignedTailor", "name email phone role");
+  }
 
 
   const reqObj = customRequest.toObject({ flattenMaps: true });
@@ -391,15 +416,11 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     notes,
     whatsappSent,
     removeImageIds,
+    assignedTailor,
   } = req.body;
 
-  // Process newly uploaded reference images
-  const newImages = await Promise.all(
-    (req.files || []).map(async (file) => {
-      const result = await uploadToCloudinary(file.buffer);
-      return { url: result.secure_url, publicId: result.public_id };
-    })
-  );
+  // Process newly uploaded reference images (with automatic rollback on partial failure)
+  const newImages = await uploadMultipleImages(req.files || []);
 
   // Remove images if requested
   if (removeImageIds) {
@@ -424,6 +445,10 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
   if (status !== undefined) customRequest.status = status;
   if (notes !== undefined) customRequest.notes = notes;
   if (whatsappSent !== undefined) customRequest.whatsappSent = whatsappSent;
+  if (assignedTailor !== undefined) {
+    customRequest.assignedTailor =
+      assignedTailor === "unassigned" || !assignedTailor ? null : assignedTailor;
+  }
 
   if (materials !== undefined) {
     customRequest.materials = typeof materials === "string" ? JSON.parse(materials) : materials;
@@ -433,8 +458,8 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     customRequest.measurements = normalizeMeasurements(measurements);
   }
 
-
   await customRequest.save();
+  await customRequest.populate("assignedTailor", "name email phone role");
 
   // Sync supplier purchases
   await syncSupplierMaterials(customRequest);

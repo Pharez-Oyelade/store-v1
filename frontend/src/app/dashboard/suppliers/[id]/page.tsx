@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, MessageCircle, Save, Plus } from "lucide-react";
+import { ArrowLeft, MessageCircle, Save, Plus, WifiOff } from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -16,6 +16,7 @@ import {
   TextArea,
 } from "@/components/dashboard/DashboardPrimitives";
 import { useSupplier, useUpdateSupplier } from "@/hooks/useSuppliers";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import {
   SupplierStatus,
@@ -81,8 +82,31 @@ export default function SupplierDetailPage() {
     );
   }
 
-  function saveSupplier() {
-    updateSupplier.mutate({
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "supplier",
+    endpoint: `/suppliers/${params.id}`,
+    method: "PUT",
+    description: `Update Supplier: ${supplier.data?.name || name || "Supplier"}`,
+    queryKeyToUpdate: ["suppliers"],
+    getOptimisticRecord: (_tempId, payload) => ({
+      ...supplier.data,
+      ...payload,
+      materials:
+        typeof payload.materials === "string"
+          ? payload.materials
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : payload.materials || [],
+      _id: params.id,
+      id: params.id,
+      isPendingSync: true,
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
+  async function saveSupplier() {
+    const payload = {
       name,
       phone,
       email,
@@ -91,10 +115,23 @@ export default function SupplierDetailPage() {
       status,
       category,
       materials,
-    });
+    };
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(params.id, payload);
+      return;
+    }
+
+    try {
+      await updateSupplier.mutateAsync(payload);
+    } catch {
+      if (!navigator.onLine) {
+        await handleOfflineSave(params.id, payload);
+      }
+    }
   }
 
-  function addPurchase(e: React.FormEvent) {
+  async function addPurchase(e: React.FormEvent) {
     e.preventDefault();
     const purchaseToSave = {
       ...newPurchase,
@@ -102,31 +139,52 @@ export default function SupplierDetailPage() {
       paidAmount: Number(newPurchase.paidAmount) || 0,
     };
     const updatedPurchases = [...(supplier.data?.purchases || []), purchaseToSave];
-    updateSupplier.mutate(
-      { purchases: updatedPurchases as any },
-      {
-        onSuccess: () => {
-          setShowNewPurchase(false);
-          setNewPurchase({
-            description: "",
-            amount: "",
-            paidAmount: "",
-            status: "ordered",
-            date: new Date().toISOString().slice(0, 10),
-          });
-        },
-      },
-    );
+    const payload = { purchases: updatedPurchases as any };
+
+    setShowNewPurchase(false);
+    setNewPurchase({
+      description: "",
+      amount: "",
+      paidAmount: "",
+      status: "ordered",
+      date: new Date().toISOString().slice(0, 10),
+    });
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(params.id, payload);
+      return;
+    }
+
+    try {
+      await updateSupplier.mutateAsync(payload);
+    } catch {
+      if (!navigator.onLine) {
+        await handleOfflineSave(params.id, payload);
+      }
+    }
   }
 
-  function updatePurchaseField(
+  async function updatePurchaseField(
     index: number,
     field: "status" | "paidAmount",
     value: any,
   ) {
     const updatedPurchases = [...(supplier.data?.purchases || [])];
     (updatedPurchases[index] as any)[field] = value;
-    updateSupplier.mutate({ purchases: updatedPurchases as any });
+    const payload = { purchases: updatedPurchases as any };
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(params.id, payload);
+      return;
+    }
+
+    try {
+      await updateSupplier.mutateAsync(payload);
+    } catch {
+      if (!navigator.onLine) {
+        await handleOfflineSave(params.id, payload);
+      }
+    }
   }
 
   return (
@@ -414,11 +472,11 @@ export default function SupplierDetailPage() {
           <Button
             type="button"
             isLoading={updateSupplier.isPending}
-            leftIcon={<Save className="size-4" />}
+            leftIcon={!isOnline ? <WifiOff className="size-4" /> : <Save className="size-4" />}
             className="w-full"
             onClick={saveSupplier}
           >
-            Save changes
+            {!isOnline ? "Save Offline (Syncs Later)" : "Save changes"}
           </Button>
         </aside>
       </div>

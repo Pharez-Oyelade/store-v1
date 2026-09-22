@@ -36,6 +36,8 @@ export function useInvoices(params?: {
   limit?: number;
   status?: string;
   search?: string;
+  orderId?: string;
+  customRequestId?: string;
 }) {
   return useQuery({
     queryKey: INVOICE_KEYS.list(params),
@@ -45,6 +47,8 @@ export function useInvoices(params?: {
       if (params?.limit) sp.set("limit", String(params.limit));
       if (params?.status && params.status !== "all") sp.set("status", params.status);
       if (params?.search) sp.set("search", params.search);
+      if (params?.orderId) sp.set("orderId", params.orderId);
+      if (params?.customRequestId) sp.set("customRequestId", params.customRequestId);
       return apiGet<InvoiceListResponse>(`/invoices?${sp.toString()}`);
     },
     staleTime: 1000 * 30, // 30s
@@ -77,6 +81,7 @@ export function useCreateInvoice() {
     mutationFn: (payload: CreateInvoicePayload) => apiPost<Invoice>("/invoices", payload),
     onSuccess: (newInvoice) => {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success(`Invoice #${newInvoice.invoiceNumber} created!`);
     },
     onError: (err: any) => {
@@ -103,6 +108,7 @@ export function useRecordManualPayment() {
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(updated._id) });
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success("Payment recorded successfully!");
     },
     onError: (err: any) => {
@@ -127,6 +133,7 @@ export function useVerifyPaymentProof() {
     onSuccess: (updated, vars) => {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(updated._id) });
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success(
         vars.action === "approve"
           ? "Payment approved and credited to balance!"
@@ -172,6 +179,29 @@ export function useInitializeInvoicePayment() {
         access_code: string;
         reference: string;
       }>(`/invoices/public/${token}/pay`, { amount, email }),
+  });
+}
+
+/* ── Mutation: Verify Online Payment (Paystack) ─────────────────── */
+export function useVerifyInvoicePayment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: ({
+      token,
+      reference,
+    }: {
+      token: string;
+      reference: string;
+    }) =>
+      apiPost<Invoice>(`/invoices/public/${token}/verify`, { reference }),
+    onSuccess: (updated, vars) => {
+      qc.invalidateQueries({ queryKey: INVOICE_KEYS.public(vars.token) });
+      qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      toast.success("Payment verified successfully!");
+    },
+    onError: (err: any) => {
+      toast.error(err.message || "Failed to verify payment");
+    },
   });
 }
 

@@ -10,6 +10,7 @@ import {
 } from "../controllers/customRequest.controller.js";
 import { protect } from "../middleware/protect.js";
 import { requireRole } from "../middleware/rbac.middleware.js";
+import { checkIdempotency } from "../middleware/idempotency.middleware.js";
 import { uploadMultiple } from "../middleware/upload.middleware.js";
 import {
   createCustomRequestValidators,
@@ -20,7 +21,7 @@ import { checkOrderLimit } from "../middleware/subscription.middleware.js";
 
 const customRequestRouter = Router();
 
-customRequestRouter.use(protect, requireRole("owner", "manager", "tailor"));
+customRequestRouter.use(protect, requireRole("owner", "manager", "tailor"), checkIdempotency);
 
 customRequestRouter.get("/summary", getCustomRequestSummary);
 customRequestRouter.get("/", getCustomRequests);

@@ -10,11 +10,11 @@ import mongoose from "mongoose";
  */
 
 export const PLAN_LIMITS = {
-  free: { products: 5, ordersPerMonth: 5, teamSeats: 1 },
-  stitch: { products: 50, ordersPerMonth: 25, teamSeats: 1 },
-  drape: { products: 200, ordersPerMonth: 500, teamSeats: 3 },
-  atelier: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10 },
-  maison: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity },
+  free: { products: 5, ordersPerMonth: 5, teamSeats: 1, suppliers: 0, invoicesPerMonth: 5, customers: 10 },
+  stitch: { products: 50, ordersPerMonth: 25, teamSeats: 1, suppliers: 3, invoicesPerMonth: 50, customers: 100 },
+  drape: { products: 200, ordersPerMonth: 500, teamSeats: 3, suppliers: Infinity, invoicesPerMonth: 500, customers: Infinity },
+  atelier: { products: Infinity, ordersPerMonth: Infinity, teamSeats: 10, suppliers: Infinity, invoicesPerMonth: Infinity, customers: Infinity },
+  maison: { products: Infinity, ordersPerMonth: Infinity, teamSeats: Infinity, suppliers: Infinity, invoicesPerMonth: Infinity, customers: Infinity },
 };
 
 export const PLAN_PRICES = {

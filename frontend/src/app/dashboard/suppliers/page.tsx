@@ -23,11 +23,22 @@ import {
   useSuppliers,
   useUpdateSupplier,
 } from "@/hooks/useSuppliers";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { SupplierCategory, SupplierStatus, type Supplier } from "@/types";
-import { Banknote, Handshake, Star, WalletCards, Package } from "lucide-react";
+import {
+  Banknote,
+  Handshake,
+  Star,
+  WalletCards,
+  Package,
+  WifiOff,
+} from "lucide-react";
 
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import PlanGate from "@/components/dashboard/PlanGate";
+import { useAuthStore } from "@/store/authStore";
 
 export default function SuppliersPage() {
   const [page, setPage] = useState(1);
@@ -36,175 +47,213 @@ export default function SuppliersPage() {
   const suppliers = useSuppliers({ page, limit: 10, search });
   const summary = useSupplierSummary();
   const deleteSupplier = useDeleteSupplier();
+  const vendor = useAuthStore((s) => s.vendor);
+  const currentPlan =
+    vendor?.subscriptionPlan || vendor?.subscription?.plan || "free";
+
+  const totalSuppliers = summary.data?.total ?? 0;
+  const isStitch = currentPlan === "stitch";
+  const isAtStitchLimit = isStitch && totalSuppliers >= 3;
 
   return (
-    <div className="mx-auto max-w-7xl">
-      <PageHeader
-        title="Suppliers"
-        description="Manage the material vendors, makers, packaging partners and tool suppliers behind production."
-        action={
-          <a href="#new_supplier">
-            <Button
-              type="button"
-              leftIcon={<Plus className="size-4" />}
-              onClick={() => setSelected(null)}
-              className="w-full"
+    <PlanGate
+      requiredPlan="stitch"
+      featureName="Supplier & Material Management"
+      description="Track fabric vendors, trim suppliers, and unpaid supplier balances. Available on The Stitch (up to 3 suppliers) and The Drape (unlimited)."
+      fallbackMode="card"
+    >
+      <div className="mx-auto max-w-7xl">
+        {isStitch && (
+          <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50/80 px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 text-xs">
+            <span className="text-blue-950 font-medium">
+              You have recorded <strong>{totalSuppliers} of 3</strong> suppliers
+              on <strong>The Stitch</strong> plan.
+              {isAtStitchLimit && " Limit reached."}
+            </span>
+            <Link
+              href="/dashboard/settings?tab=billing"
+              className="font-bold text-blue-800 hover:text-blue-950 underline shrink-0"
             >
-              New supplier
-            </Button>
-          </a>
-        }
-      />
+              <span className="text-blue-800 hover:text-blue-950">
+                Upgrade to The Drape for Unlimited Suppliers →
+              </span>
+            </Link>
+          </div>
+        )}
 
-      <div className="mb-6 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
-        <StatCard
-          label="Total suppliers"
-          value={String(summary.data?.total ?? 0)}
-          icon={Handshake}
+        <PageHeader
+          title="Suppliers"
+          description="Manage the material vendors, makers, packaging partners and tool suppliers behind production."
+          action={
+            <a href="#new_supplier">
+              <Button
+                type="button"
+                leftIcon={<Plus className="size-4" />}
+                onClick={() => setSelected(null)}
+                className="w-full"
+                disabled={isAtStitchLimit}
+              >
+                {isAtStitchLimit
+                  ? "Supplier Limit Reached (3/3)"
+                  : "New supplier"}
+              </Button>
+            </a>
+          }
         />
-        <StatCard
-          label="Preferred"
-          value={String(summary.data?.preferred ?? 0)}
-          icon={Star}
-          tone="amber"
-        />
-        <StatCard
-          label="Pending deliveries"
-          value={String(summary.data?.pendingDeliveries ?? 0)}
-          icon={Package}
-          tone="amber"
-        />
-        <StatCard
-          label="Outstanding"
-          value={formatCurrency(summary.data?.outstandingBalance ?? 0)}
-          icon={WalletCards}
-          tone="rose"
-        />
-        <StatCard
-          label="Total purchases"
-          value={formatCurrency(summary.data?.totalPurchaseAmount ?? 0)}
-          icon={Banknote}
-          tone="blue"
-        />
-      </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
-        <section className="min-w-0">
-          <div className="mb-4">
-            <Input
-              placeholder="Search suppliers or materials"
-              value={search}
-              onChange={(event) => setSearch(event.target.value)}
-              leftElement={<Search className="size-4" />}
+        <div className="mb-6 grid gap-4 md:grid-cols-3 xl:grid-cols-5">
+          <StatCard
+            label="Total suppliers"
+            value={String(summary.data?.total ?? 0)}
+            icon={Handshake}
+          />
+          <StatCard
+            label="Preferred"
+            value={String(summary.data?.preferred ?? 0)}
+            icon={Star}
+            tone="amber"
+          />
+          <StatCard
+            label="Pending deliveries"
+            value={String(summary.data?.pendingDeliveries ?? 0)}
+            icon={Package}
+            tone="amber"
+          />
+          <StatCard
+            label="Outstanding"
+            value={formatCurrency(summary.data?.outstandingBalance ?? 0)}
+            icon={WalletCards}
+            tone="rose"
+          />
+          <StatCard
+            label="Total purchases"
+            value={formatCurrency(summary.data?.totalPurchaseAmount ?? 0)}
+            icon={Banknote}
+            tone="blue"
+          />
+        </div>
+
+        <div className="grid gap-6 xl:grid-cols-[1.5fr_1fr]">
+          <section className="min-w-0">
+            <div className="mb-4">
+              <Input
+                placeholder="Search suppliers or materials"
+                value={search}
+                onChange={(event) => setSearch(event.target.value)}
+                leftElement={<Search className="size-4" />}
+              />
+            </div>
+
+            {suppliers.data?.suppliers.length ? (
+              <TableShell>
+                <table className="w-full text-left text-sm">
+                  <thead className="bg-gray-50 text-xs uppercase text-gray-500">
+                    <tr>
+                      <th className="px-4 py-3">Supplier</th>
+                      <th className="px-4 py-3">Materials</th>
+                      <th className="px-4 py-3">Last purchase</th>
+                      <th className="px-4 py-3">Outstanding</th>
+                      <th className="px-4 py-3">Status</th>
+                      <th className="px-4 py-3 text-right">Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {suppliers.data.suppliers.map((supplier) => (
+                      <tr key={supplier._id} className="hover:bg-gray-50">
+                        <td className="px-4 py-3">
+                          <Link
+                            href={`/dashboard/suppliers/${supplier._id}`}
+                            className="text-left font-medium text-gray-950 hover:underline"
+                          >
+                            {supplier.name}
+                          </Link>
+                          <p className="text-xs text-gray-500">
+                            {supplier.phone}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex max-w-xs flex-wrap gap-1">
+                            {supplier.materials.slice(0, 3).map((material) => (
+                              <span
+                                key={material}
+                                className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
+                              >
+                                {material}
+                              </span>
+                            ))}
+                          </div>
+                        </td>
+                        <td className="px-4 py-3">
+                          <p>{formatCurrency(supplier.lastPurchaseAmount)}</p>
+                          <p className="text-xs text-gray-500">
+                            {supplier.lastPurchaseDate
+                              ? formatDate(supplier.lastPurchaseDate)
+                              : "No date"}
+                          </p>
+                        </td>
+                        <td className="px-4 py-3">
+                          {formatCurrency(supplier.outstandingBalance)}
+                        </td>
+                        <td className="px-4 py-3">
+                          <StatusBadge value={supplier.status} />
+                        </td>
+                        <td className="px-4 py-3">
+                          <div className="flex justify-end gap-2">
+                            <a
+                              href={buildWhatsAppLink(
+                                supplier.whatsapp || supplier.phone,
+                              )}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-brand-700 hover:bg-brand-50"
+                              aria-label="WhatsApp supplier"
+                            >
+                              <MessageCircle className="size-4" />
+                            </a>
+                            <button
+                              onClick={() => {
+                                if (confirm(`Delete ${supplier.name}?`))
+                                  deleteSupplier.mutate(supplier._id);
+                              }}
+                              className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50"
+                              aria-label="Delete supplier"
+                            >
+                              <Trash2 className="size-4" />
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {suppliers.data?.pagination && (
+                  <PaginationControls
+                    currentPage={suppliers.data.pagination.page}
+                    totalPages={suppliers.data.pagination.totalPages}
+                    hasNextPage={suppliers.data.pagination.hasNextPage}
+                    hasPrevPage={suppliers.data.pagination.hasPrevPage}
+                    onPageChange={(newPage) => setPage(newPage)}
+                  />
+                )}
+              </TableShell>
+            ) : (
+              <EmptyState
+                title="No suppliers yet"
+                description="Add the fabric shops, trim vendors, packaging partners and tool suppliers you buy from."
+              />
+            )}
+          </section>
+
+          <div id="new_supplier">
+            <SupplierForm
+              supplier={selected}
+              onSaved={() => setSelected(null)}
             />
           </div>
-
-          {suppliers.data?.suppliers.length ? (
-            <TableShell>
-              <table className="w-full text-left text-sm">
-                <thead className="bg-gray-50 text-xs uppercase text-gray-500">
-                  <tr>
-                    <th className="px-4 py-3">Supplier</th>
-                    <th className="px-4 py-3">Materials</th>
-                    <th className="px-4 py-3">Last purchase</th>
-                    <th className="px-4 py-3">Outstanding</th>
-                    <th className="px-4 py-3">Status</th>
-                    <th className="px-4 py-3 text-right">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {suppliers.data.suppliers.map((supplier) => (
-                    <tr key={supplier._id} className="hover:bg-gray-50">
-                      <td className="px-4 py-3">
-                        <Link
-                          href={`/dashboard/suppliers/${supplier._id}`}
-                          className="text-left font-medium text-gray-950 hover:underline"
-                        >
-                          {supplier.name}
-                        </Link>
-                        <p className="text-xs text-gray-500">
-                          {supplier.phone}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex max-w-xs flex-wrap gap-1">
-                          {supplier.materials.slice(0, 3).map((material) => (
-                            <span
-                              key={material}
-                              className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-600"
-                            >
-                              {material}
-                            </span>
-                          ))}
-                        </div>
-                      </td>
-                      <td className="px-4 py-3">
-                        <p>{formatCurrency(supplier.lastPurchaseAmount)}</p>
-                        <p className="text-xs text-gray-500">
-                          {supplier.lastPurchaseDate
-                            ? formatDate(supplier.lastPurchaseDate)
-                            : "No date"}
-                        </p>
-                      </td>
-                      <td className="px-4 py-3">
-                        {formatCurrency(supplier.outstandingBalance)}
-                      </td>
-                      <td className="px-4 py-3">
-                        <StatusBadge value={supplier.status} />
-                      </td>
-                      <td className="px-4 py-3">
-                        <div className="flex justify-end gap-2">
-                          <a
-                            href={buildWhatsAppLink(
-                              supplier.whatsapp || supplier.phone,
-                            )}
-                            target="_blank"
-                            rel="noreferrer"
-                            className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-brand-700 hover:bg-brand-50"
-                            aria-label="WhatsApp supplier"
-                          >
-                            <MessageCircle className="size-4" />
-                          </a>
-                          <button
-                            onClick={() => {
-                              if (confirm(`Delete ${supplier.name}?`))
-                                deleteSupplier.mutate(supplier._id);
-                            }}
-                            className="inline-flex size-8 items-center justify-center rounded-md border border-gray-200 text-error-600 hover:bg-error-50"
-                            aria-label="Delete supplier"
-                          >
-                            <Trash2 className="size-4" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              
-              {suppliers.data?.pagination && (
-                <PaginationControls
-                  currentPage={suppliers.data.pagination.page}
-                  totalPages={suppliers.data.pagination.totalPages}
-                  hasNextPage={suppliers.data.pagination.hasNextPage}
-                  hasPrevPage={suppliers.data.pagination.hasPrevPage}
-                  onPageChange={(newPage) => setPage(newPage)}
-                />
-              )}
-            </TableShell>
-          ) : (
-            <EmptyState
-              title="No suppliers yet"
-              description="Add the fabric shops, trim vendors, packaging partners and tool suppliers you buy from."
-            />
-          )}
-        </section>
-
-        <div id="new_supplier">
-          <SupplierForm supplier={selected} onSaved={() => setSelected(null)} />
         </div>
       </div>
-    </div>
+    </PlanGate>
   );
 }
 
@@ -217,6 +266,7 @@ function SupplierForm({
 }) {
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier(supplier?._id ?? "");
+
   const [form, setForm] = useState<{
     name: string;
     category: SupplierCategory;
@@ -247,6 +297,41 @@ function SupplierForm({
     lastPurchaseAmount: "",
     outstandingBalance: "",
     lastPurchaseDate: "",
+  });
+
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "supplier",
+    endpoint: supplier ? `/suppliers/${supplier._id}` : "/suppliers",
+    method: supplier ? "PUT" : "POST",
+    description: `${supplier ? "Update" : "Create"} Supplier: ${form.name || "New Supplier"}`,
+    queryKeyToUpdate: ["suppliers"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: supplier?._id || tempId,
+      id: supplier?._id || tempId,
+      name: payload.name,
+      category: payload.category,
+      contactName: payload.contactName,
+      phone: payload.phone,
+      email: payload.email,
+      whatsapp: payload.whatsapp,
+      location: payload.location,
+      materials:
+        typeof payload.materials === "string"
+          ? payload.materials
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : payload.materials || [],
+      status: payload.status,
+      lastPurchaseAmount: Number(payload.lastPurchaseAmount) || 0,
+      outstandingBalance: Number(payload.outstandingBalance) || 0,
+      lastPurchaseDate: payload.lastPurchaseDate,
+      notes: payload.notes,
+      purchases: supplier?.purchases || [],
+      isPendingSync: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
   });
 
   useEffect(() => {
@@ -302,11 +387,30 @@ function SupplierForm({
       lastPurchaseAmount: Number(form.lastPurchaseAmount) || 0,
       outstandingBalance: Number(form.outstandingBalance) || 0,
     };
-    if (supplier) await updateSupplier.mutateAsync(payload);
-    else await createSupplier.mutateAsync(payload);
-    onSaved();
-  }
 
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(
+        supplier?._id || generateLocalId("temp_supplier"),
+        payload,
+      );
+      onSaved();
+      return;
+    }
+
+    try {
+      if (supplier) await updateSupplier.mutateAsync(payload);
+      else await createSupplier.mutateAsync(payload);
+      onSaved();
+    } catch {
+      if (!navigator.onLine) {
+        await handleOfflineSave(
+          supplier?._id || generateLocalId("temp_supplier"),
+          payload,
+        );
+        onSaved();
+      }
+    }
+  }
 
   return (
     <form
@@ -445,9 +549,14 @@ function SupplierForm({
       <Button
         type="submit"
         isLoading={createSupplier.isPending || updateSupplier.isPending}
+        leftIcon={!isOnline ? <WifiOff className="size-4" /> : undefined}
         className="w-full"
       >
-        {supplier ? "Save supplier" : "Create supplier"}
+        {!isOnline
+          ? "Save Offline (Syncs Later)"
+          : supplier
+            ? "Save supplier"
+            : "Create supplier"}
       </Button>
     </form>
   );

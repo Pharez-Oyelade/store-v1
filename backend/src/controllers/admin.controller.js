@@ -14,6 +14,7 @@ import {
   getVendorCohorts,
   getBillingHealth,
   generateCsvExport,
+  streamCsvExport,
 } from "../services/admin.service.js";
 
 /* ═══════════════════════════════════════════════════════════════
@@ -239,12 +240,7 @@ export const exportData = asyncHandler(async (req, res) => {
     return sendError(res, "Invalid export type. Use: vendors, subscriptions", 400);
   }
 
-  const csv = await generateCsvExport(type);
-  const filename = `vendra-${type}-${new Date().toISOString().split("T")[0]}.csv`;
-
-  res.setHeader("Content-Type", "text/csv");
-  res.setHeader("Content-Disposition", `attachment; filename="${filename}"`);
-  res.status(200).send(csv);
+  await streamCsvExport(type, res);
 });
 
 /* ═══════════════════════════════════════════════════════════════

@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useParams, useSearchParams } from "next/navigation";
 import Image from "next/image";
 import {
   CheckCircle2,
@@ -23,14 +23,22 @@ import {
 import {
   usePublicInvoice,
   useInitializeInvoicePayment,
+  useVerifyInvoicePayment,
   useSubmitManualProof,
 } from "@/hooks/useInvoices";
+import { usePaystackInline } from "@/hooks/usePaystackInline";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 export default function PublicInvoicePage() {
   const params = useParams();
+  const searchParams = useSearchParams();
   const token = params?.token as string;
+  const redirectRef = searchParams.get("reference") || searchParams.get("trxref");
+
+  const [isVerifying, setIsVerifying] = useState(false);
+  const verifyPayment = useVerifyInvoicePayment();
+  const { initializePayment: initializePaystackPopup, isLoaded: isPaystackLoaded } = usePaystackInline();
 
   const [activeTab, setActiveTab] = useState<"card" | "transfer">("card");
   const [copiedAccount, setCopiedAccount] = useState(false);
@@ -66,6 +74,39 @@ export default function PublicInvoicePage() {
       }
     }
   }, [invoice]);
+
+  // Verify transaction if returned from Paystack hosted checkout
+  useEffect(() => {
+    if (redirectRef && token && invoice && !isVerifying) {
+      const alreadyProcessed = invoice.paymentHistory?.some(
+        (p) => p.reference === redirectRef,
+      );
+      if (alreadyProcessed) {
+        window.history.replaceState({}, "", window.location.pathname);
+        return;
+      }
+
+      setIsVerifying(true);
+      const loadingToast = toast.loading("Verifying your payment with Paystack...");
+      verifyPayment.mutate(
+        { token, reference: redirectRef },
+        {
+          onSuccess: () => {
+            toast.dismiss(loadingToast);
+            toast.success("Payment confirmed! Your invoice has been updated.");
+            refetch();
+            setIsVerifying(false);
+            window.history.replaceState({}, "", window.location.pathname);
+          },
+          onError: (err: any) => {
+            toast.dismiss(loadingToast);
+            toast.error(err.message || "Failed to verify payment reference");
+            setIsVerifying(false);
+          },
+        },
+      );
+    }
+  }, [redirectRef, token, invoice, isVerifying, refetch, verifyPayment]);
 
   if (isLoading) {
     return (
@@ -129,7 +170,55 @@ export default function PublicInvoicePage() {
         email: invoice.customerSnapshot?.email,
       });
 
-      if (res?.authorization_url) {
+      const customerEmail =
+        invoice.customerSnapshot?.email ||
+        `${invoice.customerSnapshot?.name?.toLowerCase().replace(/\s+/g, "") || "customer"}@tryvendra.ng`;
+
+      // Try Paystack Inline Popup first so the user never leaves the invoice page
+      if (
+        isPaystackLoaded &&
+        typeof window !== "undefined" &&
+        window.PaystackPop &&
+        process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+      ) {
+        initializePaystackPopup({
+          key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+          email: customerEmail,
+          amount: Math.round(amount * 100),
+          ref: res.reference,
+          metadata: {
+            invoiceId: invoice._id,
+            accessToken: token,
+          },
+          onSuccess: (paystackRes: any) => {
+            const ref = paystackRes.reference || res.reference;
+            setIsVerifying(true);
+            const verifyToast = toast.loading("Confirming your payment...");
+            verifyPayment.mutate(
+              { token, reference: ref },
+              {
+                onSuccess: () => {
+                  toast.dismiss(verifyToast);
+                  toast.success("Payment confirmed! Balance updated.");
+                  refetch();
+                  setIsVerifying(false);
+                },
+                onError: (err: any) => {
+                  toast.dismiss(verifyToast);
+                  toast.error(err.message || "Payment verification failed");
+                  setIsVerifying(false);
+                  refetch();
+                },
+              },
+            );
+          },
+          onClose: () => {
+            // Refetch in case webhook already processed the charge
+            refetch();
+          },
+        });
+      } else if (res?.authorization_url) {
+        // Fallback to hosted redirect if inline popup script is not ready
         window.location.href = res.authorization_url;
       } else {
         toast.error("Could not initialize payment gateway");
@@ -173,6 +262,15 @@ export default function PublicInvoicePage() {
   return (
     <div className="min-h-screen bg-slate-100/70 py-6 px-4 sm:px-6 lg:px-8 font-sans">
       <div className="max-w-2xl mx-auto space-y-6">
+        {isVerifying && (
+          <div className="bg-brand-50 border border-brand-200 rounded-3xl p-4 flex items-center justify-center gap-3 text-brand-900 shadow-sm animate-pulse">
+            <Loader2 className="w-5 h-5 text-brand-600 animate-spin" />
+            <span className="text-xs font-bold">
+              Confirming payment with Paystack... Please do not close this window.
+            </span>
+          </div>
+        )}
+
         {/* Top Branding Header */}
         <div className="bg-white rounded-3xl p-6 shadow-sm border border-gray-200/70 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
@@ -540,13 +638,13 @@ export default function PublicInvoicePage() {
                 <button
                   type="button"
                   onClick={handlePayOnline}
-                  disabled={initPayment.isPending}
+                  disabled={initPayment.isPending || isVerifying || verifyPayment.isPending}
                   className="w-full py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold text-sm rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {initPayment.isPending ? (
+                  {initPayment.isPending || isVerifying || verifyPayment.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Opening Secure Checkout...</span>
+                      <span>{isVerifying || verifyPayment.isPending ? "Confirming Payment..." : "Opening Secure Checkout..."}</span>
                     </>
                   ) : (
                     <>

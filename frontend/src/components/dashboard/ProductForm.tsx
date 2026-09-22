@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Trash2 } from "lucide-react";
+import { Plus, Save, Trash2, WifiOff } from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -13,6 +13,8 @@ import {
 } from "@/components/dashboard/DashboardPrimitives";
 import { useCreateProduct, useUpdateProduct } from "@/hooks/useProducts";
 import { useProductOptions } from "@/hooks/useProductOptions";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import CreatableCombobox from "@/components/ui/CreatableCombobox";
 import CreatableTagInput from "@/components/ui/CreatableTagInput";
 import { ProductStatus, type Product, type ProductVariant } from "@/types";
@@ -70,6 +72,39 @@ export default function ProductForm({ product }: { product?: Product }) {
   }, [product]);
 
   const isPending = createProduct.isPending || updateProduct.isPending;
+
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "product",
+    endpoint: product ? `/products/${product._id}` : "/products",
+    method: product ? "PUT" : "POST",
+    description: `${product ? "Update" : "Create"} Product: ${name || "New Product"}`,
+    queryKeyToUpdate: ["products"],
+    getOptimisticRecord: (tempId, payload) => {
+      const parsedVariants =
+        typeof payload.variants === "string"
+          ? JSON.parse(payload.variants)
+          : payload.variants;
+      return {
+        _id: product?._id || tempId,
+        id: product?._id || tempId,
+        name,
+        description,
+        category,
+        tags,
+        status: status || "active",
+        variants: parsedVariants,
+        images: product?.images || [],
+        basePrice: Number(parsedVariants[0]?.price) || 0,
+        totalStock: parsedVariants.reduce(
+          (acc: number, v: any) => acc + (Number(v.quantity) || 0),
+          0,
+        ),
+        isPendingSync: true,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+      };
+    },
+  });
 
   function updateVariant(index: number, field: keyof VariantDraft, value: string) {
     setVariants((current) =>
@@ -150,14 +185,64 @@ export default function ProductForm({ product }: { product?: Product }) {
     event.preventDefault();
     const formData = buildFormData();
 
-    if (product) {
-      await updateProduct.mutateAsync(formData);
+    const fileList = Array.from(files ?? []).map((file) => ({
+      file,
+      name: file.name,
+    }));
+
+    const productPayload = {
+      name,
+      description,
+      category,
+      tags: tags.join(", "),
+      status,
+      lowStockThreshold: Number(lowStockThreshold) || 0,
+      variants: JSON.stringify(
+        variants.map((variant) => ({
+          label:
+            variant.label ||
+            [variant.size, variant.color].filter(Boolean).join(" / ") ||
+            "Standard",
+          size: variant.size,
+          color: variant.color,
+          custom: variant.custom,
+          sku: variant.sku,
+          price: Number(variant.price) || 0,
+          quantity: Number(variant.quantity) || 0,
+          sold: variant.sold ?? 0,
+        })),
+      ),
+    };
+
+    if (!navigator.onLine || !isOnline) {
+      await handleOfflineSave(
+        product?._id || generateLocalId("temp_product"),
+        productPayload,
+        fileList.length > 0 ? fileList : undefined,
+      );
       router.push("/dashboard/products");
       return;
     }
 
-    await createProduct.mutateAsync(formData);
-    router.push("/dashboard/products");
+    try {
+      if (product) {
+        await updateProduct.mutateAsync(formData);
+        router.push("/dashboard/products");
+        return;
+      }
+
+      await createProduct.mutateAsync(formData);
+      router.push("/dashboard/products");
+    } catch {
+      if (!navigator.onLine) {
+        await handleOfflineSave(
+          product?._id || generateLocalId("temp_product"),
+          productPayload,
+          fileList.length > 0 ? fileList : undefined,
+        );
+        router.push("/dashboard/products");
+      }
+    }
   }
 
   return (
@@ -309,9 +394,17 @@ export default function ProductForm({ product }: { product?: Product }) {
         </div>
 
 
-        <Button type="submit" isLoading={isPending} leftIcon={<Save className="size-4" />} className="w-full">
-
-          {product ? "Save product" : "Create product"}
+        <Button
+          type="submit"
+          isLoading={isPending}
+          leftIcon={!isOnline ? <WifiOff className="size-4" /> : <Save className="size-4" />}
+          className="w-full"
+        >
+          {!isOnline
+            ? "Save Offline (Syncs Later)"
+            : product
+              ? "Save product"
+              : "Create product"}
         </Button>
       </section>
     </form>

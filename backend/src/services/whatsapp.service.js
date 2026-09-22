@@ -5,15 +5,17 @@ import Vendor from "../models/vendorModel.js";
  */
 const normalizePhone = (phone) => {
   if (!phone) return "";
-  return phone.startsWith("0") ? `234${phone.slice(1)}` : phone.replace(/^\+/, "");
+  const cleaned = String(phone).trim();
+  return cleaned.startsWith("0") ? `234${cleaned.slice(1)}` : cleaned.replace(/^\+/, "");
 };
 
 /**
  * Replaces tokens in a template string with actual data
  */
 const interpolate = (template, data) => {
+  if (!template) return "";
   return template.replace(/\{(\w+)\}/g, (match, key) => {
-    return data[key] !== undefined ? data[key] : match;
+    return data && data[key] !== undefined ? data[key] : match;
   });
 };
 
@@ -23,29 +25,34 @@ const interpolate = (template, data) => {
 export const buildDynamicWhatsAppLink = async (vendor, order, messageType) => {
   if (!vendor) throw new Error("Vendor not found");
 
-  const { customerSnapshot, totalAmount, balanceOwed, items } = order;
+  const { customerSnapshot, totalAmount, balanceOwed, items } = order || {};
 
   // Compile items list
-  const itemsList = items
+  const itemsList = (items || [])
     .map(
       (item) =>
-        `• ${item.productName} (${item.variantLabel}) × ${item.quantity} — ₦${item.price.toLocaleString("en-NG")}`
+        `• ${item?.productName || "Item"} (${item?.variantLabel || "Standard"}) × ${item?.quantity || 1} — ₦${(Number(item?.price) || 0).toLocaleString("en-NG")}`
     )
     .join("\n");
 
+  const safeTotal = Number(totalAmount) || 0;
+  const safeBalance = Number(balanceOwed) || 0;
+  const orderId = order?._id ? order._id.toString().slice(-6).toUpperCase() : "ORDER";
+  const trackingCode = order?._id ? order._id.toString().slice(-8).toUpperCase() : "TRACK";
+
   const templateData = {
-    customerName: customerSnapshot.name,
-    businessName: vendor.businessName,
-    orderId: order._id.toString().slice(-6).toUpperCase(),
-    totalAmount: totalAmount.toLocaleString("en-NG"),
-    balanceOwed: balanceOwed.toLocaleString("en-NG"),
+    customerName: customerSnapshot?.name || "Valued Customer",
+    businessName: vendor?.businessName || "our store",
+    orderId,
+    totalAmount: safeTotal.toLocaleString("en-NG"),
+    balanceOwed: safeBalance.toLocaleString("en-NG"),
     itemsList,
-    trackingCode: order._id.toString().slice(-8).toUpperCase(), // Mock tracking code for now
+    trackingCode,
   };
 
   // Determine if vendor is allowed custom templates
-  const plan = vendor.subscriptionPlan;
-  const isPremium = plan === "atelier" || plan === "maison";
+  const plan = vendor?.subscriptionPlan;
+  const isPremium = plan === "drape" || plan === "atelier" || plan === "maison";
 
   let template = "";
   
@@ -56,7 +63,7 @@ export const buildDynamicWhatsAppLink = async (vendor, order, messageType) => {
     orderCompletedTemplate: `Thank you for shopping with {businessName}, {customerName}! We'd love your feedback.`,
   };
 
-  if (isPremium && vendor.socialMessaging && vendor.socialMessaging[messageType]) {
+  if (isPremium && vendor?.socialMessaging && vendor.socialMessaging[messageType]) {
     // Use vendor's custom template
     template = vendor.socialMessaging[messageType];
   } else {
@@ -65,7 +72,7 @@ export const buildDynamicWhatsAppLink = async (vendor, order, messageType) => {
   }
 
   const message = interpolate(template, templateData);
-  const targetPhone = customerSnapshot.phone; // Messaging the customer
+  const targetPhone = customerSnapshot?.phone || ""; // Messaging the customer
 
   return `https://wa.me/${normalizePhone(targetPhone)}?text=${encodeURIComponent(message)}`;
 };
@@ -76,25 +83,39 @@ export const buildDynamicWhatsAppLink = async (vendor, order, messageType) => {
 export const buildCustomRequestWhatsAppLink = (vendor, request, actionType = "quote") => {
   if (!vendor) throw new Error("Vendor not found");
 
-  const { customerSnapshot, title, estimatedPrice, agreedPrice, depositPaid, balanceOwed, deadline } = request;
-  const price = agreedPrice > 0 ? agreedPrice : estimatedPrice;
+  const { customerSnapshot, title, estimatedPrice, agreedPrice, depositPaid, balanceOwed, deadline } = request || {};
 
-  const deadlineStr = deadline ? new Date(deadline).toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" }) : "To be scheduled";
+  const rawPrice = (agreedPrice > 0 ? agreedPrice : estimatedPrice) ?? request?.totalAmount ?? 0;
+  const price = typeof rawPrice === "number" ? rawPrice : Number(rawPrice) || 0;
+  const safeDeposit = Number(depositPaid) || 0;
+  const safeBalance = Number(balanceOwed) || 0;
+
+  const safeTitle = title || request?.items?.[0]?.productName || "Custom Order";
+  const customerName = customerSnapshot?.name || "there";
+  const businessName = vendor?.businessName || "our store";
+
+  let deadlineStr = "To be scheduled";
+  if (deadline) {
+    const d = new Date(deadline);
+    if (!isNaN(d.getTime())) {
+      deadlineStr = d.toLocaleDateString("en-NG", { day: "numeric", month: "short", year: "numeric" });
+    }
+  }
 
   let message = "";
   if (actionType === "quote") {
-    message = `Hi ${customerSnapshot.name}! Here is your quote from *${vendor.businessName}* for "${title}":\n\n💰 *Estimated Total:* ₦${price.toLocaleString("en-NG")}\n📅 *Estimated Completion:* ${deadlineStr}\n\nPlease let us know if you'd like to proceed!`;
+    message = `Hi ${customerName}! Here is your quote from *${businessName}* for "${safeTitle}":\n\n💰 *Estimated Total:* ₦${price.toLocaleString("en-NG")}\n📅 *Estimated Completion:* ${deadlineStr}\n\nPlease let us know if you'd like to proceed!`;
   } else if (actionType === "confirmed") {
-    message = `Hi ${customerSnapshot.name}! Your custom order for *"${title}"* with *${vendor.businessName}* has been confirmed.\n\n💰 *Total:* ₦${price.toLocaleString("en-NG")}\n💵 *Deposit Paid:* ₦${(depositPaid || 0).toLocaleString("en-NG")}\n⚖️ *Balance Due:* ₦${(balanceOwed || 0).toLocaleString("en-NG")}\n📅 *Expected Completion:* ${deadlineStr}\n\nWe'll update you as work begins!`;
+    message = `Hi ${customerName}! Your custom order for *"${safeTitle}"* with *${businessName}* has been confirmed.\n\n💰 *Total:* ₦${price.toLocaleString("en-NG")}\n💵 *Deposit Paid:* ₦${safeDeposit.toLocaleString("en-NG")}\n⚖️ *Balance Due:* ₦${safeBalance.toLocaleString("en-NG")}\n📅 *Expected Completion:* ${deadlineStr}\n\nWe'll update you as work begins!`;
   } else if (actionType === "fitting") {
-    message = `Hi ${customerSnapshot.name}! Great news — your custom outfit *"${title}"* is ready for fitting/review with *${vendor.businessName}*! Please reach out to arrange a convenient time.`;
+    message = `Hi ${customerName}! Great news — your custom outfit *"${safeTitle}"* is ready for fitting/review with *${businessName}*! Please reach out to arrange a convenient time.`;
   } else if (actionType === "completed") {
-    message = `Hi ${customerSnapshot.name}! Your bespoke order for *"${title}"* is completed and ready for pickup/delivery. Thank you for choosing *${vendor.businessName}*!`;
+    message = `Hi ${customerName}! Your bespoke order for *"${safeTitle}"* is completed and ready for pickup/delivery. Thank you for choosing *${businessName}*!`;
   } else {
-    message = `Hi ${customerSnapshot.name}, update on your custom order *"${title}"* with *${vendor.businessName}*: Status is currently "${request.status}".`;
+    message = `Hi ${customerName}, update on your custom order *"${safeTitle}"* with *${businessName}*: Status is currently "${request?.status || "pending"}".`;
   }
 
-  const targetPhone = customerSnapshot.phone;
+  const targetPhone = customerSnapshot?.phone || "";
   return `https://wa.me/${normalizePhone(targetPhone)}?text=${encodeURIComponent(message)}`;
 };
 

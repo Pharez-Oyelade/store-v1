@@ -18,6 +18,7 @@ import {
   Calendar,
   Layers,
   Ruler,
+  WifiOff,
 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/custom/Button";
@@ -25,6 +26,10 @@ import MeasurementsEditor from "./MeasurementsEditor";
 import MaterialsBuilder from "./MaterialsBuilder";
 import { useCreateCustomRequest, useUpdateCustomRequest } from "@/hooks/useCustomRequests";
 import { useCustomers } from "@/hooks/useCustomers";
+import { useTeamSummary } from "@/hooks/useTeam";
+import { useAuthStore } from "@/store/authStore";
+import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { generateLocalId } from "@/lib/offline/outbox";
 import type { CustomRequest, CustomRequestMaterial } from "@/types";
 import toast from "react-hot-toast";
 import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
@@ -42,6 +47,7 @@ const demandSchema = z.object({
   deadline: z.string().optional(),
   source: z.enum(["dm", "call", "walk_in", "storefront", "referral"]),
   notes: z.string().optional(),
+  assignedTailor: z.string().optional(),
 });
 
 type DemandFormSchema = z.infer<typeof demandSchema>;
@@ -54,12 +60,60 @@ interface DemandFormProps {
 
 export default function DemandForm({ initialData }: DemandFormProps) {
   const router = useRouter();
+  const vendor = useAuthStore((s) => s.vendor);
+  const isTailor = Boolean(vendor?.user?.isTeamMember && vendor?.user?.role === "tailor");
+  const teamQuery = useTeamSummary();
+  const tailors = (teamQuery.data?.members || []).filter((m) => m.role === "tailor" && m.isActive);
+
+  const defaultTailorId =
+    typeof initialData?.assignedTailor === "object" && initialData?.assignedTailor
+      ? initialData.assignedTailor._id
+      : (initialData?.assignedTailor as string) || (isTailor ? vendor?.user?._id : "") || "";
+
   const createMutation = useCreateCustomRequest();
   const updateMutation = useUpdateCustomRequest(initialData?._id || "");
   const customersQuery = useCustomers({ page: 1, limit: 200 });
   const customerList = customersQuery.data?.customers || [];
 
   const [createdDemand, setCreatedDemand] = useState<any | null>(null);
+
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "demand",
+    endpoint: "/custom-requests",
+    description: `Bespoke Demand for ${initialData?.title || "Customer"}`,
+    queryKeyToUpdate: ["custom-requests"],
+    getOptimisticRecord: (tempId, payload) => ({
+      _id: tempId,
+      id: tempId,
+      title: payload.title || "Bespoke Garment",
+      category: payload.category || "custom",
+      description: payload.description || "",
+      customerSnapshot: {
+        name: payload.customerName || "Customer",
+        phone: payload.customerPhone || "",
+        email: payload.customerEmail || "",
+      },
+      status: "inquiry",
+      estimatedPrice: Number(payload.estimatedPrice) || 0,
+      agreedPrice: Number(payload.agreedPrice) || 0,
+      depositPaid: Number(payload.depositPaid) || 0,
+      balanceOwed: Math.max(
+        0,
+        (Number(payload.agreedPrice) || Number(payload.estimatedPrice) || 0) -
+          (Number(payload.depositPaid) || 0),
+      ),
+      measurements: payload.measurements || {},
+      materials: payload.materials || [],
+      referenceImages: [],
+      source: payload.source || "manual",
+      notes: payload.notes || "",
+      targetDate: payload.targetDate,
+      isPendingSync: true,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     (typeof initialData?.customer === "object"
       ? (initialData?.customer as any)?._id
@@ -111,6 +165,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
         : "",
       source: (initialData?.source as any) || "dm",
       notes: initialData?.notes || "",
+      assignedTailor: defaultTailorId,
     },
   });
 
@@ -210,6 +265,11 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     if (data.deadline) formData.append("deadline", data.deadline);
     formData.append("source", data.source);
     if (data.notes) formData.append("notes", data.notes);
+    if (data.assignedTailor) {
+      formData.append("assignedTailor", data.assignedTailor);
+    } else if (initialData) {
+      formData.append("assignedTailor", "unassigned");
+    }
 
     // JSON encoded objects
     formData.append("measurements", JSON.stringify(measurements));
@@ -231,12 +291,58 @@ export default function DemandForm({ initialData }: DemandFormProps) {
         },
       });
     } else {
+      const demandPayload = {
+        title: data.title,
+        customerName: data.customerName,
+        customerPhone: data.customerPhone,
+        customerEmail: data.customerEmail || "",
+        category: data.category,
+        description: data.description || "",
+        estimatedPrice: data.estimatedPrice,
+        agreedPrice: data.agreedPrice,
+        depositPaid: data.depositPaid,
+        deadline: data.deadline,
+        source: data.source,
+        notes: data.notes,
+        assignedTailor: data.assignedTailor || null,
+        measurements,
+        materials,
+      };
+
+      const filePayloads = selectedFiles.map((file) => ({
+        file,
+        name: file.name,
+      }));
+
+      if (!navigator.onLine || !isOnline) {
+        await handleOfflineSave(
+          generateLocalId("temp_demand"),
+          demandPayload,
+          filePayloads.length > 0 ? filePayloads : undefined
+        );
+
+        router.push("/dashboard/demands");
+        return;
+      }
+
       createMutation.mutate(formData, {
         onSuccess: (created: any) => {
           if (created && created._id) {
             setCreatedDemand(created);
           } else {
             router.push(`/dashboard/demands`);
+          }
+        },
+        onError: async (err: any) => {
+          if (!navigator.onLine) {
+            await handleOfflineSave(
+              generateLocalId("temp_demand"),
+              demandPayload,
+              filePayloads.length > 0 ? filePayloads : undefined
+            );
+            router.push("/dashboard/demands");
+          } else {
+            toast.error(err?.message || "Failed to create demand. Please try again.");
           }
         },
       });
@@ -663,7 +769,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               </span>
             </div>
 
-            {/* Target Delivery Date */}
+            {/* Target Delivery Date & Tailor Assignment */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -677,16 +783,34 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Internal Workshop Notes
+                <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
+                  <span>Assigned Tailor</span>
+                  <span className="text-xs text-brand-700 font-normal">Turnaround Tracking</span>
                 </label>
-                <input
-                  type="text"
-                  placeholder="e.g. Needs expedited delivery for wedding on Saturday"
-                  {...register("notes")}
-                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-brand-700 focus:outline-none"
-                />
+                <select
+                  {...register("assignedTailor")}
+                  className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-brand-700 focus:outline-none bg-white"
+                >
+                  <option value="">Unassigned Workshop Pool</option>
+                  {tailors.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name} (Tailor)
+                    </option>
+                  ))}
+                </select>
               </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Internal Workshop Notes
+              </label>
+              <input
+                type="text"
+                placeholder="e.g. Needs expedited delivery for wedding on Saturday"
+                {...register("notes")}
+                className="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm focus:border-brand-700 focus:outline-none"
+              />
             </div>
           </div>
 
@@ -704,8 +828,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               variant="primary"
               size="large"
               isLoading={isPending}
+              leftIcon={!isOnline ? <WifiOff className="size-4" /> : undefined}
             >
-              {initialData ? "Save Changes" : "Create Bespoke Request"}
+              {!isOnline ? "Save Offline (Syncs Later)" : (initialData ? "Save Changes" : "Create Bespoke Request")}
             </Button>
           </div>
         </div>

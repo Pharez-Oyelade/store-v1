@@ -18,7 +18,13 @@ const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     if (config.data instanceof FormData) {
-      delete config.headers["Content-Type"];
+      if (typeof config.headers?.delete === "function") {
+        config.headers.delete("Content-Type");
+        config.headers.delete("content-type");
+      } else if (config.headers) {
+        delete (config.headers as any)["Content-Type"];
+        delete (config.headers as any)["content-type"];
+      }
     }
     return config;
   },
@@ -27,6 +33,8 @@ api.interceptors.request.use(
   },
 );
 
+
+let isRedirectingToLogin = false;
 
 // Response Interceptors - run after every response arrives, handle errors globally
 api.interceptors.response.use(
@@ -39,24 +47,53 @@ api.interceptors.response.use(
      */
     return response.data?.data !== undefined ? response.data.data : response.data;
   },
-  (error: AxiosError<ApiError>) => {
+  async (error: AxiosError<ApiError>) => {
     const status = error.response?.status;
-    const serverMessage = error.response?.data?.message;
+    let serverMessage = error.response?.data?.message;
+
+    // When responseType is "blob", Axios packages error JSON into a Blob.
+    if (!serverMessage && error.response?.data instanceof Blob) {
+      try {
+        const text = await error.response.data.text();
+        const parsed = JSON.parse(text);
+        if (parsed.message) {
+          serverMessage = parsed.message;
+        }
+      } catch {}
+    }
+
+    // Track offline state when browser is genuinely offline
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      try {
+        const { useNetworkStore } = require("@/store/networkStore");
+        useNetworkStore.getState().setOnline(false);
+      } catch {}
+    }
 
     // Handle 401 unauthorized - auth cookie expired or missing.
     // Only redirect to /login when the user is on a protected route and status is 401.
     // Status 403 (Forbidden) is an authorization restriction and must NOT clear the user session.
     if (status === 401) {
       if (typeof window !== "undefined") {
-        const { pathname } = window.location;
+        const { pathname, search } = window.location;
         const isProtectedRoute =
           pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+        const isAuthRoute =
+          pathname.startsWith("/login") ||
+          pathname.startsWith("/register") ||
+          pathname.startsWith("/forgot-password") ||
+          pathname.startsWith("/reset-password");
 
         // Clear Zustand auth store to prevent ghost sessions
         useAuthStore.getState().clearVendor();
 
-        if (isProtectedRoute && !pathname.startsWith("/login")) {
-          window.location.href = "/login";
+        if (isProtectedRoute && !isAuthRoute && !isRedirectingToLogin) {
+          isRedirectingToLogin = true;
+          const returnPath = encodeURIComponent(pathname + (search || ""));
+          window.location.href = `/login?from=${returnPath}`;
+          setTimeout(() => {
+            isRedirectingToLogin = false;
+          }, 3000);
         }
       }
     }
@@ -74,7 +111,9 @@ api.interceptors.response.use(
               : error.message ||
                 "Something went wrong. Please check your connection.");
 
-    return Promise.reject(new Error(message));
+    const customError = new Error(message);
+    (customError as any).status = status;
+    return Promise.reject(customError);
   },
 );
 
@@ -104,6 +143,22 @@ export async function apiPatch<T>(
 }
 export async function apiDelete<T>(url: string, config?: object): Promise<T> {
   return api.delete(url, config) as unknown as Promise<T>;
+}
+
+/**
+ * Resolves the backend API URL for Server Components (RSC) and Server-Side requests.
+ * Uses BACKEND_INTERNAL_URL if set, or absolute NEXT_PUBLIC_API_URL, or localhost fallback.
+ */
+export function getServerApiUrl(): string {
+  const rawUrl =
+    process.env.BACKEND_INTERNAL_URL ||
+    (process.env.NEXT_PUBLIC_API_URL && !process.env.NEXT_PUBLIC_API_URL.startsWith("/")
+      ? process.env.NEXT_PUBLIC_API_URL
+      : "") ||
+    "http://127.0.0.1:5000/api";
+
+  const baseUrl = rawUrl.replace(/\/api\/?$/, "").replace(/\/$/, "");
+  return `${baseUrl}/api`;
 }
 
 export default api;

@@ -33,6 +33,8 @@ import {
   useDeleteCustomRequest,
   useToggleMaterialAcquired,
 } from "@/hooks/useCustomRequests";
+import { useTeamSummary } from "@/hooks/useTeam";
+import { useAuthStore } from "@/store/authStore";
 import { formatCurrency } from "@/lib/utils";
 import type { CustomRequestStatus } from "@/types";
 import toast from "react-hot-toast";
@@ -60,6 +62,14 @@ export default function DemandDetailPage({
   const updateMutation = useUpdateCustomRequest(id);
   const deleteMutation = useDeleteCustomRequest();
   const toggleMaterialMutation = useToggleMaterialAcquired(id);
+
+  const vendor = useAuthStore((s) => s.vendor);
+  const isTailor = Boolean(vendor?.user?.isTeamMember && vendor?.user?.role === "tailor");
+  const isOwnerOrManager = Boolean(
+    !vendor?.user?.isTeamMember || vendor?.user?.role === "owner" || vendor?.user?.role === "manager"
+  );
+  const teamQuery = useTeamSummary();
+  const tailors = (teamQuery.data?.members || []).filter((m) => m.role === "tailor" && m.isActive);
 
   // Edit pricing inline state
   const [isEditingPayment, setIsEditingPayment] = useState(false);
@@ -119,6 +129,17 @@ export default function DemandDetailPage({
   const targetPrice = request.agreedPrice > 0 ? request.agreedPrice : request.estimatedPrice;
   const currentStageIndex = STAGES.findIndex((s) => s.key === request.status);
 
+  const assignedTailorObj =
+    typeof request.assignedTailor === "object" && request.assignedTailor !== null
+      ? request.assignedTailor
+      : null;
+
+  const assignedTailorId =
+    assignedTailorObj?._id || (typeof request.assignedTailor === "string" ? request.assignedTailor : "");
+
+  const isCurrentTailorAssigned =
+    Boolean(isTailor && vendor?.user?._id && assignedTailorId === vendor.user._id);
+
   return (
     <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-20 px-1 sm:px-0">
       {/* Header */}
@@ -145,11 +166,37 @@ export default function DemandDetailPage({
         </div>
 
         <div className="flex items-center gap-2 self-start sm:self-auto flex-wrap">
-          <Link href={`/dashboard/invoices/new?demandId=${id}`}>
-            <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
-              Generate Invoice
-            </Button>
-          </Link>
+          {request.invoice ? (
+            <>
+              <Link href={`/dashboard/invoices/${request.invoice._id}`}>
+                <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+                  Invoice #{request.invoice.invoiceNumber}
+                  {request.invoice.balanceDue > 0
+                    ? ` (${formatCurrency(request.invoice.balanceDue)} left)`
+                    : " (Paid)"}
+                </Button>
+              </Link>
+              {request.invoice.balanceDue > 0 && (
+                <a
+                  href={`https://wa.me/${request.customerSnapshot?.phone?.replace(/[^0-9]/g, "")}?text=${encodeURIComponent(
+                    `Hi ${request.customerSnapshot?.name || "Customer"}, here is your invoice #${request.invoice.invoiceNumber} for "${request.title}".\n\nTotal: ${formatCurrency(request.invoice.totalAmount)}\nBalance Due: ${formatCurrency(request.invoice.balanceDue)}\n\nView invoice, pay online, or see transfer details here:\n${typeof window !== "undefined" ? window.location.origin : ""}/i/${request.invoice.accessToken}`,
+                  )}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-emerald-600 px-3 text-xs font-semibold text-white hover:bg-emerald-700 transition-colors shadow-2xs"
+                >
+                  <MessageCircle size={14} className="text-white" />
+                  <span>Resend Invoice</span>
+                </a>
+              )}
+            </>
+          ) : (
+            <Link href={`/dashboard/invoices/new?demandId=${id}`}>
+              <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+                Generate Invoice
+              </Button>
+            </Link>
+          )}
           <Link href={`/dashboard/demands/${id}/edit`}>
             <Button variant="secondary" size="small" leftIcon={<Edit size={14} />}>
               Edit Demand
@@ -382,6 +429,99 @@ export default function DemandDetailPage({
               >
                 View Full CRM History &rarr;
               </Link>
+            )}
+          </div>
+
+          {/* Workshop & Tailor Assignment Card */}
+          <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-bold text-gray-900 flex items-center gap-2">
+                <Scissors size={16} className="text-brand-700" />
+                Workshop Assignment
+              </h3>
+              {assignedTailorObj ? (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
+                  Assigned
+                </span>
+              ) : (
+                <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
+                  Unassigned Pool
+                </span>
+              )}
+            </div>
+
+            {assignedTailorObj ? (
+              <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] text-purple-700 font-bold uppercase tracking-wider">Tailor in Charge</p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">{assignedTailorObj.name}</p>
+                  {assignedTailorObj.phone && (
+                    <p className="text-xs text-gray-500 font-mono mt-0.5">{assignedTailorObj.phone}</p>
+                  )}
+                </div>
+                {isCurrentTailorAssigned && (
+                  <span className="text-[10px] bg-purple-200 text-purple-800 font-bold px-2 py-0.5 rounded-full">
+                    You
+                  </span>
+                )}
+              </div>
+            ) : (
+              <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500 leading-relaxed">
+                This bespoke order is currently in the unassigned pool. Assign a tailor to track turnaround times and workshop productivity.
+              </div>
+            )}
+
+            {/* If logged-in user is a tailor and order is unassigned, offer 1-click Claim */}
+            {isTailor && vendor?.user?._id && !assignedTailorId && (
+              <Button
+                variant="secondary"
+                size="small"
+                className="w-full text-xs font-semibold"
+                leftIcon={<Scissors size={14} />}
+                disabled={updateMutation.isPending}
+                onClick={() => updateMutation.mutate({ assignedTailor: vendor.user?._id })}
+              >
+                Claim This Bespoke Order
+              </Button>
+            )}
+
+            {/* If logged-in user is the assigned tailor, offer release option */}
+            {isTailor && isCurrentTailorAssigned && (
+              <div className="pt-1">
+                <button
+                  type="button"
+                  disabled={updateMutation.isPending}
+                  onClick={() => updateMutation.mutate({ assignedTailor: "unassigned" })}
+                  className="text-xs text-gray-400 hover:text-red-600 font-medium transition-colors cursor-pointer"
+                >
+                  Release back to workshop pool
+                </button>
+              </div>
+            )}
+
+            {/* Owner or Manager Reassignment Controls */}
+            {isOwnerOrManager && (
+              <div className="space-y-1.5 pt-1 border-t border-gray-100">
+                <label className="text-xs text-gray-500 font-medium block">
+                  {assignedTailorObj ? "Reassign Tailor" : "Assign to Tailor"}
+                </label>
+                <select
+                  value={assignedTailorId}
+                  disabled={updateMutation.isPending}
+                  onChange={(e) => {
+                    const newTailor = e.target.value || "unassigned";
+                    updateMutation.mutate({ assignedTailor: newTailor });
+                  }}
+                  className="w-full px-3 py-2 text-xs border border-gray-200 rounded-xl focus:border-brand-700 focus:outline-none bg-white text-gray-800"
+                >
+                  <option value="">Unassigned Workshop Pool</option>
+                  {tailors.map((t) => (
+                    <option key={t._id} value={t._id}>
+                      {t.name} {t.phone ? `(${t.phone})` : ""}
+                    </option>
+                  ))}
+                </select>
+              </div>
             )}
           </div>
 

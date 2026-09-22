@@ -3,9 +3,9 @@
 import { useState, use } from "react";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { useCartStore } from "@/store/cartStore";
 import { formatCurrency, buildWhatsAppLink } from "@/lib/utils";
-import { apiPost } from "@/lib/api";
+import { apiPost, apiGet } from "@/lib/api";
+import { useCartStore, CartItem } from "@/store/cartStore";
 
 export default function StorefrontCheckout({ params }: { params: Promise<{ handle: string }> }) {
   const unwrappedParams = use(params);
@@ -58,15 +58,13 @@ export default function StorefrontCheckout({ params }: { params: Promise<{ handl
       await apiPost(`/storefront/${handle}/orders`, payload);
 
       // 2. Fetch the vendor's WhatsApp number to redirect the customer
-      // Ideally, the layout passed this down or we fetch it. We will fetch it quickly.
-      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
-      const vendorRes = await fetch(`${apiUrl}/storefront/${handle}`);
-      const vendorData = await vendorRes.json();
-      const whatsappPhone = vendorData.data.socials?.whatsapp || vendorData.data.phone;
+      const vendorData = await apiGet<any>(`/storefront/${handle}`);
+      const whatsappPhone = vendorData?.socials?.whatsapp || vendorData?.phone;
 
       // 3. Build the WhatsApp message
       const orderLines = items.map(i => `${i.name} (${i.variantLabel}) x${i.quantity} - ${formatCurrency(i.price * i.quantity)}`).join('%0A');
-      const message = `Hello ${vendorData.data.businessName}!%0AI just placed an order on your storefront:%0A%0A${orderLines}%0A%0A*Total: ${formatCurrency(getTotalPrice())}*%0A%0AMy Name: ${formData.name}%0APhone: ${formData.phone}`;
+      const storeName = vendorData?.businessName || vendorData?.data?.businessName || "Store";
+      const message = `Hello ${storeName}!%0AI just placed an order on your storefront:%0A%0A${orderLines}%0A%0A*Total: ${formatCurrency(getTotalPrice())}*%0A%0AMy Name: ${formData.name}%0APhone: ${formData.phone}`;
       
       clearCart();
       toast.success("Order placed successfully!");

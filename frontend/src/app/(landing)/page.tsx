@@ -19,11 +19,10 @@ const page = () => {
       <Process />
       <Testimonials />
       <FAQ />
-      <Newsletter />
+      {/* <Newsletter /> */}
       <CTA />
     </div>
   );
 };
 
 export default page;
-

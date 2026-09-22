@@ -13,11 +13,13 @@ import { useCustomers, useDeleteCustomer } from "@/hooks/useCustomers";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 
 import { PaginationControls } from "@/components/ui/PaginationControls";
+import { useDebounce } from "@/hooks/useDebounce";
 
 export default function CustomersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
-  const customers = useCustomers({ page, limit: 10, search });
+  const debouncedSearch = useDebounce(search, 400);
+  const customers = useCustomers({ page, limit: 10, search: debouncedSearch });
   const deleteCustomer = useDeleteCustomer();
 
   return (

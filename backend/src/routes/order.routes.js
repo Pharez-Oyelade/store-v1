@@ -9,6 +9,7 @@ import {
 } from "../controllers/order.controller.js";
 import { protect } from "../middleware/protect.js";
 import { requireRole } from "../middleware/rbac.middleware.js";
+import { checkIdempotency } from "../middleware/idempotency.middleware.js";
 import {
   createOrderValidators,
   updateOrderValidators,
@@ -18,7 +19,7 @@ import { checkOrderLimit } from "../middleware/subscription.middleware.js";
 
 const orderRouter = Router();
 
-orderRouter.use(protect, requireRole("owner", "manager", "sales"));
+orderRouter.use(protect, requireRole("owner", "manager", "sales"), checkIdempotency);
 
 // Specific sub-routes BEFORE /:id to prevent route conflicts
 orderRouter.get("/summary/debt", getDebtSummary);
