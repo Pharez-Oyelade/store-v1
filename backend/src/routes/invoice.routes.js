@@ -30,6 +30,7 @@ const invoicePublicLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 50,
   message: { success: false, message: "Too many payment requests. Please try again later." },
+  validate: { forwardedHeader: false },
 });
 
 /* ── Public Routes (Unauthenticated, accessed via secret token or webhook) ─── */

@@ -220,7 +220,7 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
             await createNotification(invoice.vendor, {
               title: "Invoice Payment Received",
               message: `Payment of ₦${paidNaira.toLocaleString()} received for Invoice #${invoice.invoiceNumber}.`,
-              type: "order",
+              type: "payment",
               actionUrl: `/dashboard/invoices/${invoice._id}`,
             });
 

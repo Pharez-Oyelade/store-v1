@@ -41,6 +41,9 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   // Fallback: local terminal logging when RESEND_API_KEY is not configured
+  if (process.env.NODE_ENV === "production") {
+    console.warn("⚠️ [RESEND_API_KEY Missing] Real email delivery skipped in production. To send live emails, add RESEND_API_KEY in your server environment (Render dashboard).");
+  }
   console.log(`\n📧 [MOCK EMAIL LOG] To: ${to} | Subject: ${subject}`);
   if (text) console.log(`📝 Content: ${text}\n`);
   return { success: true, mocked: true };

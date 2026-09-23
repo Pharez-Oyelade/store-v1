@@ -44,6 +44,9 @@ dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
 
+// Trust reverse proxy (Render, AWS, Cloudflare, etc.) to correctly extract client IP
+app.set("trust proxy", 1);
+
 /* ── Security ───────────────────────────────────────────────────── */
 app.use(helmet());
 
@@ -81,11 +84,12 @@ app.use(
   }),
 );
 
-// Rate limiters
+// Rate limiters (silence RFC 7239 Forwarded header check behind reverse proxies)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: "Too many requests, Please slow down." },
+  validate: { forwardedHeader: false },
 });
 
 const authLimiter = rateLimit({
@@ -95,6 +99,7 @@ const authLimiter = rateLimit({
     success: false,
     message: "Too many login attempts. Try again later.",
   },
+  validate: { forwardedHeader: false },
 });
 
 /* Admin limiter: tighter than API, looser than auth (admins make many reads) */
@@ -105,6 +110,7 @@ const adminLimiter = rateLimit({
     success: false,
     message: "Too many admin requests. Please slow down.",
   },
+  validate: { forwardedHeader: false },
 });
 
 /* Storefront limiter: generous for shopping, protects against scraping / spam orders */
@@ -115,6 +121,7 @@ const storefrontLimiter = rateLimit({
     success: false,
     message: "Too many storefront requests. Please try again later.",
   },
+  validate: { forwardedHeader: false },
 });
 
 /* ── Body Parsing ───────────────────────────────────────────────── */

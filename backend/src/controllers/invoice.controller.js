@@ -521,16 +521,21 @@ export const submitManualPaymentProof = asyncHandler(async (req, res) => {
 
   await invoice.save();
 
-  // L10: Create notification & prompt email for the merchant
+  // L10: Create in-app notification for the merchant
   try {
-    const vendor = await Vendor.findById(invoice.vendor);
     await createNotification(invoice.vendor, {
       title: "New Payment Proof Uploaded",
       message: `Customer ${invoice.customerSnapshot?.name || "Customer"} submitted a payment proof of ₦${Number(amount).toLocaleString()} for Invoice #${invoice.invoiceNumber}. Please verify.`,
-      type: "order",
+      type: "payment",
       actionUrl: `/dashboard/invoices/${invoice._id}`,
     });
+  } catch (notifErr) {
+    console.error("[Payment Proof In-App Notification Error]", notifErr.message);
+  }
 
+  // L10: Send email prompt to merchant to review payment proof
+  try {
+    const vendor = await Vendor.findById(invoice.vendor);
     if (vendor?.email) {
       const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
       await sendManualPaymentProofPromptEmail(vendor.email, {
@@ -543,8 +548,8 @@ export const submitManualPaymentProof = asyncHandler(async (req, res) => {
         reviewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
       });
     }
-  } catch (alertErr) {
-    console.error("[Payment Proof Alert Error]", alertErr.message);
+  } catch (emailErr) {
+    console.error("[Payment Proof Prompt Email Error]", emailErr.message);
   }
 
   return sendSuccess(
@@ -854,7 +859,7 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     await createNotification(invoice.vendor._id || invoice.vendor, {
       title: "Invoice Payment Received",
       message: `Payment of ₦${paidNaira.toLocaleString()} received for Invoice #${invoice.invoiceNumber}.`,
-      type: "order",
+      type: "payment",
       actionUrl: `/dashboard/invoices/${invoice._id}`,
     });
   } catch (notifErr) {

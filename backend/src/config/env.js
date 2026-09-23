@@ -17,6 +17,7 @@ export function validateEnv() {
     "CLOUDINARY_CLOUD_NAME",
     "CLOUDINARY_API_KEY",
     "CLOUDINARY_API_SECRET",
+    "RESEND_API_KEY",
   ];
   const missingRecommended = recommended.filter((key) => !process.env[key]);
 
