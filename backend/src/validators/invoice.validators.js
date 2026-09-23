@@ -11,43 +11,110 @@ function parseJsonArray(value) {
 }
 
 export const createInvoiceValidators = [
-  body("customerName")
-    .trim()
-    .notEmpty()
-    .withMessage("Customer name is required"),
+  body().customSanitizer((reqBody) => {
+    if (typeof reqBody.customerSnapshot === "string") {
+      try {
+        reqBody.customerSnapshot = JSON.parse(reqBody.customerSnapshot);
+      } catch {}
+    }
+    if (!reqBody.customerSnapshot && reqBody.customerName) {
+      reqBody.customerSnapshot = {
+        name: reqBody.customerName,
+        phone: reqBody.customerPhone || "",
+        email: reqBody.customerEmail || "",
+        address: reqBody.customerAddress || "",
+      };
+    }
+    return reqBody;
+  }),
 
-  body("customerPhone")
+  body("customerSnapshot.name")
+    .custom((val, { req }) => {
+      const hasLinkedSource = Boolean(req.body.orderId || req.body.customRequestId);
+      const name = val || req.body.customerName;
+      if (!hasLinkedSource && (!name || !String(name).trim())) {
+        throw new Error("Customer name is required");
+      }
+      return true;
+    }),
+
+  body("customerSnapshot.phone")
+    .optional({ values: "falsy" })
+    .trim(),
+
+  body("customerSnapshot.email")
+    .optional({ values: "falsy" })
     .trim()
-    .notEmpty()
-    .withMessage("Customer phone is required"),
+    .isEmail()
+    .withMessage("Invalid customer email address"),
 
   body("items")
     .customSanitizer(parseJsonArray)
-    .isArray({ min: 1 })
-    .withMessage("At least one item is required on an invoice"),
+    .custom((items, { req }) => {
+      const hasLinkedSource = Boolean(req.body.orderId || req.body.customRequestId);
+      if (!hasLinkedSource) {
+        if (!Array.isArray(items) || items.length === 0) {
+          throw new Error("At least one item is required on an invoice");
+        }
+      }
+      return true;
+    }),
 
   body("items.*.description")
+    .if(body("items").isArray({ min: 1 }))
     .trim()
     .notEmpty()
     .withMessage("Each item must have a description"),
 
   body("items.*.quantity")
-    .isInt({ min: 1 })
-    .withMessage("Each item quantity must be at least 1"),
+    .if(body("items").isArray({ min: 1 }))
+    .custom((val) => {
+      const num = Number(val);
+      if (isNaN(num) || num < 1 || !Number.isInteger(num)) {
+        throw new Error("Each item quantity must be at least 1");
+      }
+      return true;
+    }),
 
   body("items.*.unitPrice")
+    .if(body("items").isArray({ min: 1 }))
+    .custom((val) => {
+      const num = Number(val);
+      if (isNaN(num) || num < 0) {
+        throw new Error("Each item must have a non-negative unit price");
+      }
+      return true;
+    }),
+
+  body("totalAmount")
+    .optional({ values: "falsy" })
     .isFloat({ min: 0 })
-    .withMessage("Each item must have a non-negative unit price"),
+    .withMessage("Total amount must be a non-negative number"),
 
   body("depositRequired")
-    .optional()
+    .optional({ values: "falsy" })
     .isFloat({ min: 0 })
     .withMessage("Deposit required must be a non-negative number"),
+
+  body("initialPaid")
+    .optional({ values: "falsy" })
+    .isFloat({ min: 0 })
+    .withMessage("Initial payment must be a non-negative number"),
 
   body("dueDate")
     .optional({ values: "falsy" })
     .isISO8601()
     .withMessage("Due date must be a valid date"),
+
+  body("orderId")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Invalid order ID"),
+
+  body("customRequestId")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Invalid custom request ID"),
 ];
 
 export const recordManualPaymentValidators = [
