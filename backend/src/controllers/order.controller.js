@@ -446,11 +446,18 @@ export const createOrder = asyncHandler(async (req, res) => {
     0,
   );
 
-  const orderStatus = req.body.status || "pending";
-  if (orderStatus === "completed" && totalAmount - Number(depositPaid || 0) > 0) {
+  let orderStatus = req.body.status || "pending";
+  const numDeposit = Number(depositPaid || 0);
+
+  // Auto-confirm order if full payment is recorded upon creation
+  if (totalAmount > 0 && numDeposit >= totalAmount && orderStatus === "pending") {
+    orderStatus = "confirmed";
+  }
+
+  if (orderStatus === "completed" && totalAmount - numDeposit > 0) {
     return sendError(
       res,
-      `Cannot create order as completed while a balance of ₦${(totalAmount - Number(depositPaid || 0)).toLocaleString()} is still due. Please record full payment before completing the order.`,
+      `Cannot create order as completed while a balance of ₦${(totalAmount - numDeposit).toLocaleString()} is still due. Please record full payment before completing the order.`,
       400
     );
   }
@@ -465,12 +472,28 @@ export const createOrder = asyncHandler(async (req, res) => {
     },
     items: normalizedItems,
     totalAmount,
-    depositPaid: Number(depositPaid || 0),
+    depositPaid: numDeposit,
     notes,
     source,
     status: orderStatus,
     completedAt: orderStatus === "completed" ? new Date() : null,
   });
+
+  // If order is created as confirmed, ready, dispatched, or completed, deplete inventory
+  if (["confirmed", "ready", "dispatched", "completed"].includes(orderStatus)) {
+    try {
+      await depleteInventory(order);
+      order.stockDepleted = true;
+      await order.save();
+    } catch (stockErr) {
+      await Order.findByIdAndDelete(order._id);
+      return sendError(
+        res,
+        stockErr.message || "Failed to deplete inventory for new order",
+        400
+      );
+    }
+  }
 
   const orderObj = order.toObject();
   orderObj.whatsappLinks = {
@@ -510,10 +533,15 @@ export const updateOrder = asyncHandler(async (req, res) => {
     }
 
     const prevStatus = customRequest.status;
-    const targetStatus = status !== undefined ? status : prevStatus;
+    let targetStatus = status !== undefined ? status : prevStatus;
     const effectiveDeposit = depositPaid !== undefined ? Number(depositPaid) : (customRequest.depositPaid || 0);
     const targetPrice = (customRequest.agreedPrice > 0 ? customRequest.agreedPrice : customRequest.estimatedPrice) || 0;
     const remainingBalance = Math.max(0, targetPrice - effectiveDeposit);
+
+    // Auto-confirm bespoke demand if fully paid and currently inquiry or quoted
+    if (status === undefined && remainingBalance <= 0 && targetPrice > 0 && ["inquiry", "quoted"].includes(prevStatus)) {
+      targetStatus = "confirmed";
+    }
 
     // L8: Guard against completing bespoke demand with unpaid balance
     if (targetStatus === "completed" && remainingBalance > 0) {
@@ -524,8 +552,8 @@ export const updateOrder = asyncHandler(async (req, res) => {
       );
     }
 
-    if (status !== undefined) customRequest.status = status;
-    if (depositPaid !== undefined) customRequest.depositPaid = Number(depositPaid);
+    customRequest.status = targetStatus;
+    if (depositPaid !== undefined) customRequest.depositPaid = effectiveDeposit;
     if (notes !== undefined) customRequest.notes = notes;
     if (whatsappSent !== undefined) customRequest.whatsappSent = whatsappSent;
 
@@ -546,21 +574,21 @@ export const updateOrder = asyncHandler(async (req, res) => {
       );
     }
 
-    if (status && status !== prevStatus) {
+    if (targetStatus !== prevStatus) {
       await createNotification(customRequest.vendor, {
         title: "Bespoke Status Updated",
-        message: `Bespoke order "${customRequest.title}" status changed to "${status}".`,
+        message: `Bespoke order "${customRequest.title}" status changed to "${targetStatus}".`,
         type: "order_status",
         actionUrl: `/dashboard/demands/${customRequest._id}`,
       });
 
-      if (status === "completed" && prevStatus !== "completed" && customRequest.customer) {
+      if (targetStatus === "completed" && prevStatus !== "completed" && customRequest.customer) {
         const finalRevenue = customRequest.agreedPrice || customRequest.estimatedPrice || 0;
         await Customer.findByIdAndUpdate(customRequest.customer, {
           $inc: { ltv: finalRevenue, orderCount: 1 },
           $set: { lastOrderDate: new Date() },
         });
-      } else if (prevStatus === "completed" && status !== "completed" && customRequest.customer) {
+      } else if (prevStatus === "completed" && targetStatus !== "completed" && customRequest.customer) {
         const finalRevenue = customRequest.agreedPrice || customRequest.estimatedPrice || 0;
         const cust = await Customer.findById(customRequest.customer);
         if (cust) {
@@ -609,11 +637,16 @@ export const updateOrder = asyncHandler(async (req, res) => {
   }
 
   const prevStatus = order.status;
-  const targetStatus = status !== undefined ? status : prevStatus;
-  const isStatusChanging = status !== undefined && status !== prevStatus;
-
   const effectiveDeposit = depositPaid !== undefined ? Number(depositPaid) : (order.depositPaid || 0);
   const remainingBalance = Math.max(0, order.totalAmount - effectiveDeposit);
+
+  // Auto-confirm order if fully paid and currently pending
+  let targetStatus = status !== undefined ? status : prevStatus;
+  if (status === undefined && remainingBalance <= 0 && order.totalAmount > 0 && prevStatus === "pending") {
+    targetStatus = "confirmed";
+  }
+
+  const isStatusChanging = targetStatus !== prevStatus;
 
   // L8: Guard against completing order with unpaid balance
   if (targetStatus === "completed" && remainingBalance > 0) {
@@ -625,7 +658,7 @@ export const updateOrder = asyncHandler(async (req, res) => {
   }
 
   const shouldDeplete =
-    isStatusChanging &&
+    (isStatusChanging || targetStatus === "confirmed") &&
     !order.stockDepleted &&
     ["confirmed", "ready", "dispatched", "completed"].includes(targetStatus);
 
@@ -634,9 +667,10 @@ export const updateOrder = asyncHandler(async (req, res) => {
     order.stockDepleted &&
     targetStatus === "cancelled";
 
-  if (depositPaid !== undefined) order.depositPaid = depositPaid;
+  if (depositPaid !== undefined) order.depositPaid = effectiveDeposit;
   if (notes !== undefined) order.notes = notes;
   if (whatsappSent !== undefined) order.whatsappSent = whatsappSent;
+  order.status = targetStatus;
 
   if (shouldDeplete) {
     await depleteInventory(order);
@@ -646,10 +680,6 @@ export const updateOrder = asyncHandler(async (req, res) => {
   if (shouldRestore) {
     await restoreInventory(order);
     order.stockDepleted = false;
-  }
-
-  if (status !== undefined) {
-    order.status = status;
   }
 
   // L9: Record completion timestamp
@@ -698,7 +728,7 @@ export const updateOrder = asyncHandler(async (req, res) => {
   if (isStatusChanging) {
     await createNotification(order.vendor, {
       title: "Order Status Updated",
-      message: `Order #${order._id.toString().slice(-6).toUpperCase()} status has changed to "${status}".`,
+      message: `Order #${order._id.toString().slice(-6).toUpperCase()} status has changed to "${targetStatus}".`,
       type: "order_status",
       actionUrl: `/dashboard/orders/${order._id}`,
     });
@@ -941,7 +971,7 @@ export async function depleteInventory(order) {
  * Restore product variant quantities when an order is cancelled.
  * Reverses the depletion done by depleteInventory.
  */
-async function restoreInventory(order) {
+export async function restoreInventory(order) {
   for (const item of order.items) {
     if (!item.product) continue; // Skip custom items
 

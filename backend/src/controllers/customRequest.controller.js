@@ -437,12 +437,17 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
     customRequest.referenceImages = [...customRequest.referenceImages, ...newImages].slice(0, 5);
   }
 
-  const targetStatus = status !== undefined ? status : prevStatus;
+  let targetStatus = status !== undefined ? status : prevStatus;
   const effectiveAgreed = agreedPrice !== undefined ? Number(agreedPrice) : (customRequest.agreedPrice || 0);
   const effectiveEstimated = estimatedPrice !== undefined ? Number(estimatedPrice) : (customRequest.estimatedPrice || 0);
   const targetPrice = effectiveAgreed > 0 ? effectiveAgreed : effectiveEstimated;
   const effectiveDeposit = depositPaid !== undefined ? Number(depositPaid) : (customRequest.depositPaid || 0);
   const remainingBalance = Math.max(0, targetPrice - effectiveDeposit);
+
+  // Auto-confirm bespoke demand if fully paid and currently inquiry or quoted
+  if (status === undefined && remainingBalance <= 0 && targetPrice > 0 && ["inquiry", "quoted"].includes(prevStatus)) {
+    targetStatus = "confirmed";
+  }
 
   // L8: Guard against completing bespoke demand with unpaid balance
   if (targetStatus === "completed" && remainingBalance > 0) {
@@ -458,9 +463,9 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
   if (category !== undefined) customRequest.category = category;
   if (estimatedPrice !== undefined) customRequest.estimatedPrice = Number(estimatedPrice);
   if (agreedPrice !== undefined) customRequest.agreedPrice = Number(agreedPrice);
-  if (depositPaid !== undefined) customRequest.depositPaid = Number(depositPaid);
+  if (depositPaid !== undefined) customRequest.depositPaid = effectiveDeposit;
   if (deadline !== undefined) customRequest.deadline = deadline ? new Date(deadline) : null;
-  if (status !== undefined) customRequest.status = status;
+  customRequest.status = targetStatus;
   if (notes !== undefined) customRequest.notes = notes;
   if (whatsappSent !== undefined) customRequest.whatsappSent = whatsappSent;
   if (assignedTailor !== undefined) {
@@ -498,15 +503,15 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
   await syncSupplierMaterials(customRequest);
 
   // If status changed, notify and check if completed to update customer stats
-  if (status && status !== prevStatus) {
+  if (targetStatus !== prevStatus) {
     await createNotification(customRequest.vendor, {
       title: "Bespoke Status Updated",
-      message: `Request "${customRequest.title}" status changed to "${status}".`,
+      message: `Request "${customRequest.title}" status changed to "${targetStatus}".`,
       type: "order_status",
       actionUrl: `/dashboard/demands/${customRequest._id}`,
     });
 
-    if (status === "completed" && prevStatus !== "completed" && customRequest.customer) {
+    if (targetStatus === "completed" && prevStatus !== "completed" && customRequest.customer) {
       const finalRevenue = customRequest.agreedPrice || customRequest.estimatedPrice || 0;
       await Customer.findByIdAndUpdate(customRequest.customer, {
         $inc: { ltv: finalRevenue, orderCount: 1 },

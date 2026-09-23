@@ -5,7 +5,7 @@ import Order from "../models/orderModel.js";
 import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
-import { initializeTransaction, verifyTransaction } from "../services/paystack.service.js";
+import { initializeTransaction, verifyTransaction, createSubaccount } from "../services/paystack.service.js";
 import { createNotification } from "../services/notification.service.js";
 import { depleteInventory } from "./order.controller.js";
 import {
@@ -464,10 +464,13 @@ export const initializeInvoicePayment = asyncHandler(async (req, res) => {
 
   const amountInKobo = Math.round(payAmount * 100);
 
+  const sanitizeLocalPart = (str) =>
+    (str || "").toLowerCase().replace(/[^a-z0-9]/g, "") || "customer";
+
   const customerEmail =
     email?.trim() ||
     invoice.customerSnapshot?.email ||
-    `${invoice.customerSnapshot?.name?.toLowerCase().replace(/\s+/g, "") || "customer"}@tryvendra.ng`;
+    `${sanitizeLocalPart(invoice.customerSnapshot?.name)}@tryvendra.ng`;
 
   const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000")
     .split(",")[0]
@@ -494,7 +497,72 @@ export const initializeInvoicePayment = asyncHandler(async (req, res) => {
     payload.bearer = "subaccount";
   }
 
-  const paystackRes = await initializeTransaction(payload);
+  let paystackRes;
+  try {
+    paystackRes = await initializeTransaction(payload);
+  } catch (paystackErr) {
+    const isSubaccountErr =
+      Boolean(payload.subaccount) &&
+      (paystackErr.message?.toLowerCase().includes("subaccount") ||
+        paystackErr.paystackCode === "invalid_params" ||
+        paystackErr.statusCode === 404 ||
+        paystackErr.statusCode === 400);
+
+    if (isSubaccountErr) {
+      console.warn(
+        `[initializeInvoicePayment] Subaccount ${payload.subaccount} failed (${paystackErr.message}). Attempting self-healing recreation for vendor ${invoice.vendor._id}...`
+      );
+
+      let healedSubaccount = null;
+      if (
+        invoice.vendor.payoutAccount?.accountNumber &&
+        invoice.vendor.payoutAccount?.bankCode
+      ) {
+        try {
+          const newSub = await createSubaccount({
+            businessName: `${invoice.vendor.businessName} (${invoice.vendor.payoutAccount.accountName || "Merchant"})`,
+            settlementBank: invoice.vendor.payoutAccount.bankCode.trim(),
+            accountNumber: invoice.vendor.payoutAccount.accountNumber.trim(),
+            percentageCharge: 0,
+          });
+          if (newSub?.subaccount_code) {
+            healedSubaccount = newSub.subaccount_code;
+            await Vendor.findByIdAndUpdate(invoice.vendor._id, {
+              "payoutAccount.paystackSubaccountCode": healedSubaccount,
+            });
+            console.log(
+              `[initializeInvoicePayment] Successfully healed live subaccount: ${healedSubaccount}`
+            );
+          }
+        } catch (healErr) {
+          console.error(
+            `[initializeInvoicePayment] Could not recreate subaccount:`,
+            healErr.message
+          );
+        }
+      }
+
+      if (healedSubaccount) {
+        payload.subaccount = healedSubaccount;
+        payload.bearer = "subaccount";
+        paystackRes = await initializeTransaction(payload);
+      } else {
+        // Fall back to main account so customer checkout is never blocked
+        delete payload.subaccount;
+        delete payload.bearer;
+        paystackRes = await initializeTransaction(payload);
+
+        createNotification(invoice.vendor._id, {
+          title: "Bank Account Reconnection Needed",
+          message:
+            "An online invoice payment was processed, but direct settlement to your bank account could not be routed. Please reconnect your bank account in Settings > Payouts.",
+          type: "system",
+        }).catch(() => {});
+      }
+    } else {
+      throw paystackErr;
+    }
+  }
 
   return sendSuccess(res, paystackRes, "Payment initialized successfully");
 });
