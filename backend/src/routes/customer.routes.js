@@ -8,6 +8,8 @@ import {
 import { protect } from "../middleware/protect.js";
 import { requireRole } from "../middleware/rbac.middleware.js";
 import { checkIdempotency } from "../middleware/idempotency.middleware.js";
+import { updateCustomerValidators } from "../validators/customer.validators.js";
+import { validate } from "../validators/auth.validators.js";
 
 const customerRouter = Router();
 
@@ -16,7 +18,7 @@ customerRouter.use(protect, requireRole("owner", "manager", "sales"), checkIdemp
 
 customerRouter.get("/", getCustomers);
 customerRouter.get("/:id", getCustomer);
-customerRouter.put("/:id", updateCustomer);
+customerRouter.put("/:id", updateCustomerValidators, validate, updateCustomer);
 customerRouter.delete("/:id", requireRole("owner", "manager"), deleteCustomer);
 
 export default customerRouter;

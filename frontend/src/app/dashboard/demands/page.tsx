@@ -16,6 +16,7 @@ import {
 import Button from "@/components/custom/Button";
 import DemandCard from "@/components/demands/DemandCard";
 import { useCustomRequests, useCustomRequestSummary } from "@/hooks/useCustomRequests";
+import { useDebounce } from "@/hooks/useDebounce";
 import { formatCurrency } from "@/lib/utils";
 import type { CustomRequestStatus } from "@/types";
 
@@ -32,6 +33,7 @@ const STATUS_TABS: { label: string; value: CustomRequestStatus | "all" }[] = [
 export default function DemandsPage() {
   const [selectedStatus, setSelectedStatus] = useState<CustomRequestStatus | "all">("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [page, setPage] = useState(1);
 
   const { data: summaryData, isLoading: isSummaryLoading } = useCustomRequestSummary();
@@ -39,7 +41,7 @@ export default function DemandsPage() {
     page,
     limit: 15,
     status: selectedStatus,
-    search: searchTerm,
+    search: debouncedSearchTerm,
   });
 
   const requests = requestsData?.requests || [];

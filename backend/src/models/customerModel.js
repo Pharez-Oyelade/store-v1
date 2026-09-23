@@ -90,6 +90,9 @@ const customerSchema = new mongoose.Schema(
 customerSchema.index({ vendor: 1, phone: 1 }, { unique: true });
 // Search customers by name
 customerSchema.index({ vendor: 1, name: "text" });
+// Sort customers by ltv and recency
+customerSchema.index({ vendor: 1, ltv: -1 });
+customerSchema.index({ vendor: 1, createdAt: -1 });
 
 const Customer = mongoose.model("Customer", customerSchema);
 

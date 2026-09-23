@@ -17,7 +17,16 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ["low_stock", "order_status", "subscription", "storefront_enquiry", "system"],
+      enum: [
+        "low_stock",
+        "order_status",
+        "subscription",
+        "storefront_enquiry",
+        "system",
+        "order",
+        "payment",
+        "invoice",
+      ],
       default: "system",
     },
     isRead: {

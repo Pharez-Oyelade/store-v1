@@ -162,11 +162,26 @@ export default function OrderForm() {
       depositPaid: Number(depositPaid) || 0,
       source,
       notes,
-      items: items.map((item) => ({
-        ...item,
-        price: Number(item.price) || 0,
-        quantity: Number(item.quantity) || 1,
-      })),
+      items: items.map((item) => {
+        const prod = productList.find((p) => p._id === item.productId);
+        const resolvedVariant =
+          prod?.variants.find((v) => v.label === item.variantLabel) ||
+          prod?.variants?.[0];
+        const resolvedVariantLabel =
+          item.variantLabel || resolvedVariant?.label || "";
+        const maxStock = resolvedVariant?.quantity;
+        const rawQty = Number(item.quantity) || 1;
+        const quantity =
+          maxStock !== undefined && maxStock > 0
+            ? Math.min(rawQty, maxStock)
+            : rawQty;
+        return {
+          ...item,
+          variantLabel: resolvedVariantLabel,
+          price: Number(item.price) || 0,
+          quantity,
+        };
+      }),
     };
 
     if (!navigator.onLine || !isOnline) {
@@ -315,9 +330,9 @@ export default function OrderForm() {
             const product = productList.find(
               (entry) => entry._id === item.productId,
             );
-            const selectedVariant = product?.variants.find(
-              (v) => v.label === item.variantLabel,
-            );
+            const selectedVariant =
+              product?.variants.find((v) => v.label === item.variantLabel) ||
+              product?.variants?.[0];
             const maxStock = selectedVariant?.quantity;
             return (
               <div
@@ -375,7 +390,7 @@ export default function OrderForm() {
                       <FieldLabel>Variant</FieldLabel>
                       {product ? (
                         <NativeSelect
-                          value={item.variantLabel}
+                          value={item.variantLabel || selectedVariant?.label || ""}
                           onChange={(event) =>
                             selectVariant(index, product, event.target.value)
                           }

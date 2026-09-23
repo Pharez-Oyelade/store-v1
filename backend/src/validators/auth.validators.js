@@ -64,7 +64,9 @@ export const registerValidators = [
 
   body("password")
     .isLength({ min: 8 })
-    .withMessage("Password must be at least 8 characters"),
+    .withMessage("Password must be at least 8 characters")
+    .matches(/^(?=.*[a-zA-Z])(?=.*\d)/)
+    .withMessage("Password must contain at least one letter and one number"),
 ];
 
 

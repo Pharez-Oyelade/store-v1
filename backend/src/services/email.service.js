@@ -41,6 +41,9 @@ export const sendEmail = async ({ to, subject, html, text }) => {
   }
 
   // Fallback: local terminal logging when RESEND_API_KEY is not configured
+  if (process.env.NODE_ENV === "production") {
+    console.warn("⚠️ [RESEND_API_KEY Missing] Real email delivery skipped in production. To send live emails, add RESEND_API_KEY in your server environment (Render dashboard).");
+  }
   console.log(`\n📧 [MOCK EMAIL LOG] To: ${to} | Subject: ${subject}`);
   if (text) console.log(`📝 Content: ${text}\n`);
   return { success: true, mocked: true };
@@ -251,5 +254,70 @@ export const sendManualPaymentProofPromptEmail = async (vendorEmail, {
   const text = `Action Required: Customer ${customerName} submitted a payment proof of ${formattedAmount} for Invoice ${invoiceNumber}. Review and confirm at: ${url}`;
   return sendEmail({ to: vendorEmail, subject, html, text });
 };
+
+/**
+ * Notifies the store / merchant when an online payment is received for an invoice.
+ */
+export const sendStorePaymentNotificationEmail = async (vendorEmail, {
+  vendorName = "Merchant",
+  invoiceNumber,
+  customerName = "Customer",
+  amountPaid,
+  balanceRemaining = 0,
+  channel = "Paystack Online",
+  viewUrl,
+}) => {
+  const formattedAmount = `₦${Number(amountPaid || 0).toLocaleString()}`;
+  const formattedBalance = `₦${Number(balanceRemaining || 0).toLocaleString()}`;
+  const subject = `💰 Payment Received: ${formattedAmount} for Invoice #${invoiceNumber}`;
+  const url = viewUrl || `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard/invoices`;
+
+  const html = `
+    <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
+      <div style="border-bottom: 2px solid #0D6B31; padding-bottom: 16px; margin-bottom: 20px;">
+        <h2 style="color: #0D6B31; margin: 0; font-size: 20px;">Payment Received!</h2>
+        <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 13px;">Funds successfully processed & recorded</p>
+      </div>
+      <p style="font-size: 15px; color: #111827;">Hello <strong>${vendorName}</strong>,</p>
+      <p style="font-size: 14px; color: #374151; line-height: 1.5;">
+        You have received a payment of <strong>${formattedAmount}</strong> for Invoice <strong>#${invoiceNumber}</strong> from customer <strong>${customerName}</strong> via ${channel}.
+      </p>
+
+      <div style="background-color: #f0fdf4; border-radius: 8px; padding: 16px; margin: 20px 0; border: 1px solid #bbf7d0;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 6px 0; color: #166534;">Invoice Number:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">#${invoiceNumber}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #166534;">Amount Collected:</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #0D6B31;">${formattedAmount}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #166534;">Remaining Balance:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: ${balanceRemaining > 0 ? '#b91c1c' : '#0D6B31'};">
+              ${balanceRemaining > 0 ? formattedBalance : "₦0 (Fully Settled)"}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #166534;">Payment Channel:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">${channel}</td>
+          </tr>
+        </table>
+      </div>
+
+      <div style="margin: 24px 0; text-align: center;">
+        <a href="${url}" style="background-color: #0D6B31; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">View Invoice in Dashboard</a>
+      </div>
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        Vendra Fashion Commerce OS • Real-Time Financial Management
+      </p>
+    </div>
+  `;
+
+  const text = `Payment Received: ${formattedAmount} received for Invoice #${invoiceNumber} from ${customerName}. Outstanding balance: ${balanceRemaining > 0 ? formattedBalance : "₦0"}. View invoice: ${url}`;
+  return sendEmail({ to: vendorEmail, subject, html, text });
+};
+
 
 

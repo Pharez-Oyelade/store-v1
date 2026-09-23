@@ -95,9 +95,22 @@ export default function InvoiceDetailPage() {
     const custName = invoice.customerSnapshot?.name || "Valued Customer";
     const phone = invoice.customerSnapshot?.phone?.replace(/[^0-9]/g, "") || "";
 
-    const message = `Hi ${custName}, here is your live invoice #${invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(
-      invoice.totalAmount,
-    )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\n View invoice, pay online, or see transfer details here:\n${liveUrl}`;
+    let message = "";
+    if (invoice.status === "paid") {
+      message = `Hi ${custName}, thank you for your payment! Your invoice #${invoice.invoiceNumber} is fully settled.\n\nTotal Paid: ${formatCurrency(
+        invoice.totalPaid,
+      )}\nBalance Remaining: ₦0\n\nYou can access your official receipt here anytime:\n${liveUrl}`;
+    } else if (invoice.status === "partially_paid") {
+      message = `Hi ${custName}, thank you for your payment! We have received ${formatCurrency(
+        invoice.totalPaid,
+      )} for invoice #${invoice.invoiceNumber}.\n\nOutstanding Balance: ${formatCurrency(
+        invoice.balanceDue,
+      )}\n\nYou can view your updated invoice and complete payment here:\n${liveUrl}`;
+    } else {
+      message = `Hi ${custName}, here is your live invoice #${invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(
+        invoice.totalAmount,
+      )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\nView invoice, pay online, or see transfer details here:\n${liveUrl}`;
+    }
 
     const waUrl = phone
       ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
@@ -375,7 +388,13 @@ export default function InvoiceDetailPage() {
                 className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
-                <span>Share on WhatsApp</span>
+                <span>
+                  {invoice.status === "paid"
+                    ? "Send Receipt on WhatsApp"
+                    : invoice.status === "partially_paid"
+                      ? "Send Update on WhatsApp"
+                      : "Share on WhatsApp"}
+                </span>
               </button>
 
               <a

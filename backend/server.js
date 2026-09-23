@@ -9,6 +9,8 @@ import rateLimit from "express-rate-limit";
 import dns from "node:dns";
 
 
+import mongoose from "mongoose";
+import validateEnv from "./src/config/env.js";
 import connectDB from "./src/config/db.js";
 
 /* ── Route Imports ──────────────────────────────────────────────── */
@@ -31,16 +33,19 @@ import invoiceRouter from "./src/routes/invoice.routes.js";
 import whatsappWebhookRouter from "./src/routes/whatsappWebhook.routes.js";
 import { paystackWebhook } from "./src/controllers/subscription.controller.js";
 
-
-
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
-// dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// Validate mandatory environment variables before connecting or starting server
+validateEnv();
 connectDB();
 
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
 
 const app = express();
+
+// Trust reverse proxy (Render, AWS, Cloudflare, etc.) to correctly extract client IP
+app.set("trust proxy", 1);
 
 /* ── Security ───────────────────────────────────────────────────── */
 app.use(helmet());
@@ -79,11 +84,12 @@ app.use(
   }),
 );
 
-// Rate limiters
+// Rate limiters (silence RFC 7239 Forwarded header check behind reverse proxies)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   max: 100,
   message: { success: false, message: "Too many requests, Please slow down." },
+  validate: { forwardedHeader: false },
 });
 
 const authLimiter = rateLimit({
@@ -93,6 +99,7 @@ const authLimiter = rateLimit({
     success: false,
     message: "Too many login attempts. Try again later.",
   },
+  validate: { forwardedHeader: false },
 });
 
 /* Admin limiter: tighter than API, looser than auth (admins make many reads) */
@@ -103,6 +110,7 @@ const adminLimiter = rateLimit({
     success: false,
     message: "Too many admin requests. Please slow down.",
   },
+  validate: { forwardedHeader: false },
 });
 
 /* Storefront limiter: generous for shopping, protects against scraping / spam orders */
@@ -113,6 +121,7 @@ const storefrontLimiter = rateLimit({
     success: false,
     message: "Too many storefront requests. Please try again later.",
   },
+  validate: { forwardedHeader: false },
 });
 
 /* ── Body Parsing ───────────────────────────────────────────────── */
@@ -136,10 +145,15 @@ if (process.env.NODE_ENV !== "production") {
 
 /* ── Health Check ───────────────────────────────────────────────── */
 app.get("/health", (req, res) => {
-  res.json({
-    success: true,
-    message: "Vendra API is running",
+  const isDbConnected = mongoose.connection.readyState === 1;
+  const status = isDbConnected ? 200 : 503;
+  res.status(status).json({
+    success: isDbConnected,
+    status: isDbConnected ? "healthy" : "degraded",
+    message: isDbConnected ? "Vendra API is running" : "Database disconnected",
+    database: isDbConnected ? "connected" : "disconnected",
     env: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
   });
 });
 
