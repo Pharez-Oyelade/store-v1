@@ -132,7 +132,7 @@ export const updatePayoutSettings = asyncHandler(async (req, res) => {
   const vendor = await Vendor.findById(req.vendor._id);
 
   // 2. Create Paystack Subaccount for split settlements
-  let subaccountCode = vendor.payoutAccount?.paystackSubaccountCode;
+  let subaccountCode = "";
   try {
     const subaccount = await createSubaccount({
       businessName: `${vendor.businessName} (${accountName})`,
@@ -143,7 +143,7 @@ export const updatePayoutSettings = asyncHandler(async (req, res) => {
     subaccountCode = subaccount.subaccount_code;
   } catch (err) {
     console.error("[Paystack Subaccount Error]", err.message);
-    // Even if subaccount creation has a sandbox/key limit, still record the verified bank account
+    // If subaccount creation fails (e.g. account is same as primary Paystack account), leave blank so payments settle directly
   }
 
   vendor.payoutAccount = {
