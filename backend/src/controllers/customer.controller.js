@@ -2,6 +2,7 @@ import Customer from "../models/customerModel.js";
 import Order from "../models/orderModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /* ── GET /api/customers ─────────────────────────────────────────── */
 export const getCustomers = asyncHandler(async (req, res) => {
@@ -16,10 +17,12 @@ export const getCustomers = asyncHandler(async (req, res) => {
 
   const filter = { vendor: vendorId };
 
-  if (search) {
+  if (search && search.trim()) {
+    const escaped = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
+      { name: { $regex: escaped, $options: "i" } },
+      { phone: { $regex: escaped, $options: "i" } },
+      { email: { $regex: escaped, $options: "i" } },
     ];
   }
 

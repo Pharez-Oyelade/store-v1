@@ -23,6 +23,7 @@ import {
   useSuppliers,
   useUpdateSupplier,
 } from "@/hooks/useSuppliers";
+import { useDebounce } from "@/hooks/useDebounce";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { generateLocalId } from "@/lib/offline/outbox";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
@@ -43,8 +44,9 @@ import { useAuthStore } from "@/store/authStore";
 export default function SuppliersPage() {
   const [page, setPage] = useState(1);
   const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 400);
   const [selected, setSelected] = useState<Supplier | null>(null);
-  const suppliers = useSuppliers({ page, limit: 10, search });
+  const suppliers = useSuppliers({ page, limit: 10, search: debouncedSearch });
   const summary = useSupplierSummary();
   const deleteSupplier = useDeleteSupplier();
   const vendor = useAuthStore((s) => s.vendor);

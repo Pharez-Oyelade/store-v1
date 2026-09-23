@@ -9,6 +9,8 @@ import rateLimit from "express-rate-limit";
 import dns from "node:dns";
 
 
+import mongoose from "mongoose";
+import validateEnv from "./src/config/env.js";
 import connectDB from "./src/config/db.js";
 
 /* ── Route Imports ──────────────────────────────────────────────── */
@@ -31,11 +33,11 @@ import invoiceRouter from "./src/routes/invoice.routes.js";
 import whatsappWebhookRouter from "./src/routes/whatsappWebhook.routes.js";
 import { paystackWebhook } from "./src/controllers/subscription.controller.js";
 
-
-
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
-// dns.setServers(["8.8.8.8", "8.8.4.4"]);
+
+// Validate mandatory environment variables before connecting or starting server
+validateEnv();
 connectDB();
 
 dns.setServers(["8.8.8.8", "8.8.4.4"]);
@@ -136,10 +138,15 @@ if (process.env.NODE_ENV !== "production") {
 
 /* ── Health Check ───────────────────────────────────────────────── */
 app.get("/health", (req, res) => {
-  res.json({
-    success: true,
-    message: "Vendra API is running",
+  const isDbConnected = mongoose.connection.readyState === 1;
+  const status = isDbConnected ? 200 : 503;
+  res.status(status).json({
+    success: isDbConnected,
+    status: isDbConnected ? "healthy" : "degraded",
+    message: isDbConnected ? "Vendra API is running" : "Database disconnected",
+    database: isDbConnected ? "connected" : "disconnected",
     env: process.env.NODE_ENV,
+    timestamp: new Date().toISOString(),
   });
 });
 

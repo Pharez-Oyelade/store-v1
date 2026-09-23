@@ -176,6 +176,7 @@ customRequestSchema.index({ vendor: 1, createdAt: -1 });
 customRequestSchema.index({ vendor: 1, deadline: 1 });
 customRequestSchema.index({ vendor: 1, "customerSnapshot.phone": 1 });
 customRequestSchema.index({ vendor: 1, assignedTailor: 1 });
+customRequestSchema.index({ vendor: 1, completedAt: -1 });
 
 /* ── Pre-save: compute balanceOwed and completedAt ──────────────── */
 customRequestSchema.pre("save", function () {

@@ -7,6 +7,7 @@ import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImages, uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 import { createNotification } from "../services/notification.service.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /* ── Helper: Normalize measurements object/map safely ───────────── */
 function normalizeMeasurements(raw) {
@@ -104,11 +105,12 @@ export const getCustomRequests = asyncHandler(async (req, res) => {
   if (status && status !== "all") filter.status = status;
   if (category) filter.category = category;
 
-  if (search) {
+  if (search && search.trim()) {
+    const escaped = escapeRegex(search.trim());
     filter.$or = [
-      { title: { $regex: search, $options: "i" } },
-      { "customerSnapshot.name": { $regex: search, $options: "i" } },
-      { "customerSnapshot.phone": { $regex: search, $options: "i" } },
+      { title: { $regex: escaped, $options: "i" } },
+      { "customerSnapshot.name": { $regex: escaped, $options: "i" } },
+      { "customerSnapshot.phone": { $regex: escaped, $options: "i" } },
     ];
   }
 

@@ -11,7 +11,9 @@ import { depleteInventory } from "./order.controller.js";
 import {
   sendOnlinePaymentConfirmationEmail,
   sendManualPaymentProofPromptEmail,
+  sendStorePaymentNotificationEmail,
 } from "../services/email.service.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /**
  * Generate a unique access token for public invoice links
@@ -343,7 +345,7 @@ export const getInvoices = asyncHandler(async (req, res) => {
   }
 
   if (search && search.trim()) {
-    const s = search.trim();
+    const s = escapeRegex(search.trim());
     query.$or = [
       { invoiceNumber: { $regex: s, $options: "i" } },
       { "customerSnapshot.name": { $regex: s, $options: "i" } },
@@ -824,8 +826,13 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     const order = await Order.findById(invoice.order);
     if (order) {
       order.depositPaid += paidNaira;
-      if (order.balanceOwed <= 0 && order.status === "pending") {
+      const remainingBalance = order.totalAmount - order.depositPaid;
+      if (remainingBalance <= 0 && order.status === "pending") {
         order.status = "confirmed";
+        if (!order.stockDepleted) {
+          await depleteInventory(order);
+          order.stockDepleted = true;
+        }
       }
       await order.save();
     }
@@ -833,7 +840,9 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     const demand = await CustomRequest.findById(invoice.customRequest);
     if (demand) {
       demand.depositPaid += paidNaira;
-      if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+      const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+      const remainingBalance = targetPrice - demand.depositPaid;
+      if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
         demand.status = "confirmed";
       }
       await demand.save();
@@ -871,12 +880,13 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     }
 
     if (vendorObj?.email) {
-      await sendOnlinePaymentConfirmationEmail(vendorObj.email, {
-        customerName: `${invoice.customerSnapshot?.name || "Customer"} (Payment Alert for ${vendorObj.businessName || "Store"})`,
+      await sendStorePaymentNotificationEmail(vendorObj.email, {
+        vendorName: vendorObj.businessName || "Merchant",
         invoiceNumber: invoice.invoiceNumber,
+        customerName: invoice.customerSnapshot?.name || "Customer",
         amountPaid: paidNaira,
         balanceRemaining: invoice.balanceDue,
-        storeName: vendorObj?.businessName || "Vendra Store",
+        channel: paymentData.channel || "Paystack Online",
         viewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
       });
     }

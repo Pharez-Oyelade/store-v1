@@ -119,6 +119,8 @@ const productSchema = new mongoose.Schema(
 productSchema.index({ vendor: 1, status: 1 });
 // Filter products by category within a vendor's catalogue
 productSchema.index({ vendor: 1, category: 1 });
+// Sort products by creation date
+productSchema.index({ vendor: 1, createdAt: -1 });
 // Text search on name + description
 productSchema.index({ name: "text", description: "text" });
 

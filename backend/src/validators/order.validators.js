@@ -56,7 +56,7 @@ export const createOrderValidators = [
 
   body("source")
     .optional()
-    .isIn(["dm", "call", "walk_in", "storefront"])
+    .isIn(["dm", "call", "walk_in", "storefront", "whatsapp"])
     .withMessage("Invalid order source"),
 ];
 

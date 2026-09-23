@@ -17,6 +17,10 @@ import {
   processAllSubscriptionExpiries,
 } from "../services/subscription.service.js";
 import { depleteInventory } from "./order.controller.js";
+import {
+  sendOnlinePaymentConfirmationEmail,
+  sendStorePaymentNotificationEmail,
+} from "../services/email.service.js";
 
 
 /**
@@ -219,6 +223,39 @@ export const paystackWebhook = asyncHandler(async (req, res) => {
               type: "order",
               actionUrl: `/dashboard/invoices/${invoice._id}`,
             });
+
+            // L10: Send receipt email to customer and payment alert to store
+            try {
+              const vendor = await Vendor.findById(invoice.vendor);
+              const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
+              const customerEmail = invoice.customerSnapshot?.email;
+              const viewUrl = `${frontendUrl}/i/${invoice.accessToken}`;
+
+              if (customerEmail) {
+                await sendOnlinePaymentConfirmationEmail(customerEmail, {
+                  customerName: invoice.customerSnapshot?.name || "Customer",
+                  invoiceNumber: invoice.invoiceNumber,
+                  amountPaid: paidNaira,
+                  balanceRemaining: invoice.balanceDue,
+                  storeName: vendor?.businessName || "Vendra Store",
+                  viewUrl,
+                });
+              }
+
+              if (vendor?.email) {
+                await sendStorePaymentNotificationEmail(vendor.email, {
+                  vendorName: vendor.businessName || "Merchant",
+                  invoiceNumber: invoice.invoiceNumber,
+                  customerName: invoice.customerSnapshot?.name || "Customer",
+                  amountPaid: paidNaira,
+                  balanceRemaining: invoice.balanceDue,
+                  channel: paymentData.channel || "Paystack Online",
+                  viewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
+                });
+              }
+            } catch (emailErr) {
+              console.error("[Invoice Webhook Email Receipt Error]", emailErr.message);
+            }
           }
         }
       } catch (err) {

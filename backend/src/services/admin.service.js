@@ -4,6 +4,7 @@ import Order from "../models/orderModel.js";
 import Product from "../models/productModel.js";
 import Subscription, { PLAN_LIMITS, PLAN_PRICES } from "../models/subscriptionModel.js";
 import Announcement from "../models/announcementModel.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /* ═══════════════════════════════════════════════════════════════
  *  PLATFORM KPIs
@@ -161,12 +162,13 @@ export async function getVendorList({ page = 1, limit = 20, status, plan, search
 
   if (plan && plan !== "all") filter.subscriptionPlan = plan;
 
-  if (search) {
+  if (search && search.trim()) {
+    const escaped = escapeRegex(search.trim());
     filter.$or = [
-      { businessName: { $regex: search, $options: "i" } },
-      { handle: { $regex: search, $options: "i" } },
-      { phone: { $regex: search, $options: "i" } },
-      { email: { $regex: search, $options: "i" } },
+      { businessName: { $regex: escaped, $options: "i" } },
+      { handle: { $regex: escaped, $options: "i" } },
+      { phone: { $regex: escaped, $options: "i" } },
+      { email: { $regex: escaped, $options: "i" } },
     ];
   }
 
