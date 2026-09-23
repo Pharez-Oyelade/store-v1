@@ -7,6 +7,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { buildDynamicWhatsAppLink, buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 import { createNotification } from "../services/notification.service.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /* ── GET /api/orders ────────────────────────────────────────────── */
 export const getOrders = asyncHandler(async (req, res) => {
@@ -55,7 +56,7 @@ export const getOrders = asyncHandler(async (req, res) => {
 
   // Search Filter
   if (search && search.trim()) {
-    const searchRegex = { $regex: search.trim(), $options: "i" };
+    const searchRegex = { $regex: escapeRegex(search.trim()), $options: "i" };
     orderFilter.$or = [
       { "customerSnapshot.name": searchRegex },
       { "customerSnapshot.phone": searchRegex },

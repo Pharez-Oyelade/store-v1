@@ -105,7 +105,11 @@ export function verifyWebhookSignature(rawBody, signature) {
   const secret = process.env.WHATSAPP_APP_SECRET;
   
   if (!secret) {
-    console.warn("WHATSAPP_APP_SECRET is not set, bypassing webhook signature verification.");
+    if (process.env.NODE_ENV === "production") {
+      console.error("WHATSAPP_APP_SECRET is not set in production. Webhook signature verification rejected.");
+      return false;
+    }
+    console.warn("WHATSAPP_APP_SECRET is not set, bypassing webhook signature verification in non-production.");
     return true;
   }
 

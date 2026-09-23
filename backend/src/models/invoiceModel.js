@@ -255,6 +255,7 @@ invoiceSchema.index({ vendor: 1, invoiceNumber: 1 }, { unique: true });
 invoiceSchema.index({ vendor: 1, status: 1 });
 invoiceSchema.index({ vendor: 1, createdAt: -1 });
 invoiceSchema.index({ vendor: 1, balanceDue: 1 });
+invoiceSchema.index({ vendor: 1, "paymentHistory.paidAt": -1 });
 
 /* ── Pre-save: Auto-compute balanceDue and status ────────────── */
 invoiceSchema.pre("save", function () {

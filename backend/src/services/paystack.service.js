@@ -65,13 +65,20 @@ export const verifyTransaction = async (reference) => {
 export const verifyWebhookSignature = (signature, rawBody) => {
   const secretKey = process.env.PAYSTACK_SECRET_KEY;
   if (!secretKey || !signature || !rawBody) return false;
-  
+
   const hash = crypto
     .createHmac("sha512", secretKey)
     .update(rawBody)
     .digest("hex");
-    
-  return hash === signature;
+
+  const sigBuffer = Buffer.from(String(signature), "utf8");
+  const hashBuffer = Buffer.from(String(hash), "utf8");
+
+  if (sigBuffer.length !== hashBuffer.length) {
+    return false;
+  }
+
+  return crypto.timingSafeEqual(sigBuffer, hashBuffer);
 };
 
 /**

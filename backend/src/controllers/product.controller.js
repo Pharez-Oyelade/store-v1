@@ -2,6 +2,7 @@ import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImages, uploadMultipleImages } from "../services/cloudinary.service.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /* ── GET /api/products ──────────────────────────────────────────── */
 export const getProducts = asyncHandler(async (req, res) => {
@@ -20,11 +21,11 @@ export const getProducts = asyncHandler(async (req, res) => {
 
   if (status) filter.status = status;
   if (category) filter.category = category;
-  if (search) {
-    // Text search if text index exists; fallback to regex
+  if (search && search.trim()) {
+    const escaped = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { description: { $regex: search, $options: "i" } },
+      { name: { $regex: escaped, $options: "i" } },
+      { description: { $regex: escaped, $options: "i" } },
     ];
   }
 

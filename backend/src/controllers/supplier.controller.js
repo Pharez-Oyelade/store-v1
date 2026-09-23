@@ -1,6 +1,7 @@
 import Supplier from "../models/supplierModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 function normalizeList(value) {
   if (Array.isArray(value)) return value.map((item) => String(item).trim()).filter(Boolean);
@@ -48,11 +49,12 @@ export const getSuppliers = asyncHandler(async (req, res) => {
   const filter = { vendor: req.vendor._id };
   if (status) filter.status = status;
   if (category) filter.category = category;
-  if (search) {
+  if (search && search.trim()) {
+    const escaped = escapeRegex(search.trim());
     filter.$or = [
-      { name: { $regex: search, $options: "i" } },
-      { contactName: { $regex: search, $options: "i" } },
-      { materials: { $regex: search, $options: "i" } },
+      { name: { $regex: escaped, $options: "i" } },
+      { contactName: { $regex: escaped, $options: "i" } },
+      { materials: { $regex: escaped, $options: "i" } },
     ];
   }
 

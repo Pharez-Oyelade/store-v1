@@ -22,6 +22,7 @@ import {
   Ban,
 } from "lucide-react";
 import { useInvoices, usePayoutAccount } from "@/hooks/useInvoices";
+import { useDebounce } from "@/hooks/useDebounce";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 import { InvoiceStatus } from "@/types";
@@ -38,13 +39,14 @@ export default function InvoicesListPage() {
   const [page, setPage] = useState(1);
   const [statusFilter, setStatusFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 400);
   const [copiedToken, setCopiedToken] = useState<string | null>(null);
 
   const { data, isLoading } = useInvoices({
     page,
     limit: 20,
     status: statusFilter,
-    search: searchTerm,
+    search: debouncedSearchTerm,
   });
 
   const { data: payoutAccount, isLoading: isLoadingPayout } =

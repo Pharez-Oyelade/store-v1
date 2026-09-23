@@ -11,7 +11,9 @@ import { depleteInventory } from "./order.controller.js";
 import {
   sendOnlinePaymentConfirmationEmail,
   sendManualPaymentProofPromptEmail,
+  sendStorePaymentNotificationEmail,
 } from "../services/email.service.js";
+import { escapeRegex } from "../utils/escapeRegex.js";
 
 /**
  * Generate a unique access token for public invoice links
@@ -343,7 +345,7 @@ export const getInvoices = asyncHandler(async (req, res) => {
   }
 
   if (search && search.trim()) {
-    const s = search.trim();
+    const s = escapeRegex(search.trim());
     query.$or = [
       { invoiceNumber: { $regex: s, $options: "i" } },
       { "customerSnapshot.name": { $regex: s, $options: "i" } },
@@ -519,16 +521,21 @@ export const submitManualPaymentProof = asyncHandler(async (req, res) => {
 
   await invoice.save();
 
-  // L10: Create notification & prompt email for the merchant
+  // L10: Create in-app notification for the merchant
   try {
-    const vendor = await Vendor.findById(invoice.vendor);
     await createNotification(invoice.vendor, {
       title: "New Payment Proof Uploaded",
       message: `Customer ${invoice.customerSnapshot?.name || "Customer"} submitted a payment proof of ₦${Number(amount).toLocaleString()} for Invoice #${invoice.invoiceNumber}. Please verify.`,
-      type: "order",
+      type: "payment",
       actionUrl: `/dashboard/invoices/${invoice._id}`,
     });
+  } catch (notifErr) {
+    console.error("[Payment Proof In-App Notification Error]", notifErr.message);
+  }
 
+  // L10: Send email prompt to merchant to review payment proof
+  try {
+    const vendor = await Vendor.findById(invoice.vendor);
     if (vendor?.email) {
       const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
       await sendManualPaymentProofPromptEmail(vendor.email, {
@@ -541,8 +548,8 @@ export const submitManualPaymentProof = asyncHandler(async (req, res) => {
         reviewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
       });
     }
-  } catch (alertErr) {
-    console.error("[Payment Proof Alert Error]", alertErr.message);
+  } catch (emailErr) {
+    console.error("[Payment Proof Prompt Email Error]", emailErr.message);
   }
 
   return sendSuccess(
@@ -824,8 +831,13 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     const order = await Order.findById(invoice.order);
     if (order) {
       order.depositPaid += paidNaira;
-      if (order.balanceOwed <= 0 && order.status === "pending") {
+      const remainingBalance = order.totalAmount - order.depositPaid;
+      if (remainingBalance <= 0 && order.status === "pending") {
         order.status = "confirmed";
+        if (!order.stockDepleted) {
+          await depleteInventory(order);
+          order.stockDepleted = true;
+        }
       }
       await order.save();
     }
@@ -833,7 +845,9 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     const demand = await CustomRequest.findById(invoice.customRequest);
     if (demand) {
       demand.depositPaid += paidNaira;
-      if (demand.balanceOwed <= 0 && demand.status === "quoted") {
+      const targetPrice = demand.agreedPrice > 0 ? demand.agreedPrice : demand.estimatedPrice;
+      const remainingBalance = targetPrice - demand.depositPaid;
+      if (remainingBalance <= 0 && targetPrice > 0 && demand.status === "quoted") {
         demand.status = "confirmed";
       }
       await demand.save();
@@ -845,7 +859,7 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     await createNotification(invoice.vendor._id || invoice.vendor, {
       title: "Invoice Payment Received",
       message: `Payment of ₦${paidNaira.toLocaleString()} received for Invoice #${invoice.invoiceNumber}.`,
-      type: "order",
+      type: "payment",
       actionUrl: `/dashboard/invoices/${invoice._id}`,
     });
   } catch (notifErr) {
@@ -871,12 +885,13 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     }
 
     if (vendorObj?.email) {
-      await sendOnlinePaymentConfirmationEmail(vendorObj.email, {
-        customerName: `${invoice.customerSnapshot?.name || "Customer"} (Payment Alert for ${vendorObj.businessName || "Store"})`,
+      await sendStorePaymentNotificationEmail(vendorObj.email, {
+        vendorName: vendorObj.businessName || "Merchant",
         invoiceNumber: invoice.invoiceNumber,
+        customerName: invoice.customerSnapshot?.name || "Customer",
         amountPaid: paidNaira,
         balanceRemaining: invoice.balanceDue,
-        storeName: vendorObj?.businessName || "Vendra Store",
+        channel: paymentData.channel || "Paystack Online",
         viewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
       });
     }
