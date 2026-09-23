@@ -24,7 +24,11 @@ export const initializeTransaction = async (data) => {
 
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(result.message || "Failed to initialize Paystack transaction");
+    const err = new Error(result.message || "Failed to initialize Paystack transaction");
+    err.status = response.status;
+    err.statusCode = response.status;
+    err.paystackCode = result.code;
+    throw err;
   }
 
   return result.data;
@@ -50,7 +54,11 @@ export const verifyTransaction = async (reference) => {
 
   const result = await response.json();
   if (!response.ok) {
-    throw new Error(result.message || "Failed to verify Paystack transaction");
+    const err = new Error(result.message || "Failed to verify Paystack transaction");
+    err.status = response.status;
+    err.statusCode = response.status;
+    err.paystackCode = result.code;
+    throw err;
   }
 
   return result.data;
