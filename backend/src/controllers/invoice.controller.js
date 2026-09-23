@@ -231,7 +231,14 @@ export const createInvoice = asyncHandler(async (req, res) => {
   }
   // 3. Custom Line Items from merchant scratch
   else {
-    if (!customerSnapshot || !customerSnapshot.name) {
+    const rawCustomer = customerSnapshot || {
+      name: req.body.customerName,
+      phone: req.body.customerPhone || "",
+      email: req.body.customerEmail || "",
+      address: req.body.customerAddress || "",
+    };
+
+    if (!rawCustomer || !rawCustomer.name || !rawCustomer.name.trim()) {
       return sendError(res, "Customer name is required", 400);
     }
     if (!items || !Array.isArray(items) || items.length === 0) {
@@ -239,10 +246,10 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
 
     invoiceCustomer = {
-      name: customerSnapshot.name.trim(),
-      phone: customerSnapshot.phone?.trim() || "",
-      email: customerSnapshot.email?.toLowerCase().trim() || "",
-      address: customerSnapshot.address?.trim() || "",
+      name: rawCustomer.name.trim(),
+      phone: rawCustomer.phone?.trim() || "",
+      email: rawCustomer.email?.toLowerCase().trim() || "",
+      address: rawCustomer.address?.trim() || "",
     };
 
     invoiceItems = items.map((item) => {

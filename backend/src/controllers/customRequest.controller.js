@@ -486,6 +486,14 @@ export const updateCustomRequest = asyncHandler(async (req, res) => {
   await customRequest.save();
   await customRequest.populate("assignedTailor", "name email phone role");
 
+  // Cancel any active linked invoices if bespoke demand is cancelled
+  if (targetStatus === "cancelled") {
+    await Invoice.updateMany(
+      { customRequest: customRequest._id, status: { $ne: "cancelled" } },
+      { $set: { status: "cancelled" } }
+    );
+  }
+
   // Sync supplier purchases
   await syncSupplierMaterials(customRequest);
 
@@ -531,6 +539,15 @@ export const deleteCustomRequest = asyncHandler(async (req, res) => {
 
   if (customRequest.status === "completed") {
     return sendError(res, "Completed bespoke requests cannot be deleted", 400);
+  }
+
+  const linkedInvoice = await Invoice.findOne({ customRequest: customRequest._id, status: { $ne: "cancelled" } });
+  if (linkedInvoice) {
+    return sendError(
+      res,
+      "Cannot delete bespoke order with active linked invoices. Please cancel or settle the invoices first.",
+      400,
+    );
   }
 
   // Cleanup reference images in Cloudinary

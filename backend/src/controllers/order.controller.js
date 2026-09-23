@@ -538,6 +538,14 @@ export const updateOrder = asyncHandler(async (req, res) => {
 
     await customRequest.save();
 
+    // Cancel any active linked invoices if bespoke demand is cancelled
+    if (targetStatus === "cancelled") {
+      await Invoice.updateMany(
+        { customRequest: customRequest._id, status: { $ne: "cancelled" } },
+        { $set: { status: "cancelled" } }
+      );
+    }
+
     if (status && status !== prevStatus) {
       await createNotification(customRequest.vendor, {
         title: "Bespoke Status Updated",
@@ -679,6 +687,14 @@ export const updateOrder = asyncHandler(async (req, res) => {
     throw saveErr;
   }
 
+  // Cancel any active linked invoices if order is cancelled
+  if (targetStatus === "cancelled") {
+    await Invoice.updateMany(
+      { order: order._id, status: { $ne: "cancelled" } },
+      { $set: { status: "cancelled" } }
+    );
+  }
+
   if (isStatusChanging) {
     await createNotification(order.vendor, {
       title: "Order Status Updated",
@@ -730,11 +746,11 @@ export const deleteOrder = asyncHandler(async (req, res) => {
       return sendError(res, "Completed bespoke requests cannot be deleted", 400);
     }
 
-    const linkedInvoice = await Invoice.findOne({ customRequest: customRequest._id });
+    const linkedInvoice = await Invoice.findOne({ customRequest: customRequest._id, status: { $ne: "cancelled" } });
     if (linkedInvoice) {
       return sendError(
         res,
-        "Cannot delete bespoke order with linked invoices. Please delete or settle the invoices first.",
+        "Cannot delete bespoke order with active linked invoices. Please cancel or settle the invoices first.",
         400,
       );
     }
@@ -747,11 +763,11 @@ export const deleteOrder = asyncHandler(async (req, res) => {
     return sendError(res, "Completed orders cannot be deleted", 400);
   }
 
-  const linkedInvoice = await Invoice.findOne({ order: order._id });
+  const linkedInvoice = await Invoice.findOne({ order: order._id, status: { $ne: "cancelled" } });
   if (linkedInvoice) {
     return sendError(
       res,
-      "Cannot delete an order with linked invoices. Please delete or settle the invoices first.",
+      "Cannot delete an order with active linked invoices. Please cancel or settle the invoices first.",
       400,
     );
   }
