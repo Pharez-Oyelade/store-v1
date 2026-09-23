@@ -1,7 +1,8 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import {
   Edit,
   PackagePlus,
@@ -36,11 +37,16 @@ import { useAuthStore } from "@/store/authStore";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function ProductsPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+function ProductsContent() {
+  const searchParams = useSearchParams();
+  const initialPage = Number(searchParams.get("page")) || 1;
+  const initialSearch = searchParams.get("search") || "";
+  const initialStatus = (searchParams.get("status") as ProductStatus) || "";
+
+  const [page, setPage] = useState(initialPage);
+  const [search, setSearch] = useState(initialSearch);
   const debouncedSearch = useDebounce(search, 400);
-  const [status, setStatus] = useState<ProductStatus | "">("");
+  const [status, setStatus] = useState<ProductStatus | "">(initialStatus);
   const vendor = useAuthStore((s) => s.vendor);
   const params = useMemo(
     () => ({ page, limit: 10, search: debouncedSearch, status: status || undefined }),
@@ -48,6 +54,19 @@ export default function ProductsPage() {
   );
   const products = useProducts(params);
   const deleteProduct = useDeleteProduct();
+
+  // L3: Synchronize pagination and filter state with URL
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams();
+    if (page > 1) p.set("page", String(page));
+    if (status) p.set("status", status);
+    if (debouncedSearch.trim()) p.set("search", debouncedSearch.trim());
+
+    const qs = p.toString();
+    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [page, status, debouncedSearch]);
 
   const productList = products.data?.products ?? [];
   const currentPlan = (vendor?.subscriptionPlan || "free") as SubscriptionPlan;
@@ -101,14 +120,18 @@ export default function ProductsPage() {
         <Input
           placeholder="Search by name or description"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
           leftElement={<Search className="size-4" />}
         />
         <NativeSelect
           value={status}
-          onChange={(event) =>
-            setStatus(event.target.value as ProductStatus | "")
-          }
+          onChange={(event) => {
+            setStatus(event.target.value as ProductStatus | "");
+            setPage(1);
+          }}
         >
           <option value="">All statuses</option>
           {Object.values(ProductStatus).map((value) => (
@@ -183,6 +206,14 @@ export default function ProductsPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function ProductsPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading products...</div>}>
+      <ProductsContent />
+    </Suspense>
   );
 }
 

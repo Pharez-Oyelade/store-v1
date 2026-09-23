@@ -1,7 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, Suspense } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { MessageCircle, Search, Trash2 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import {
@@ -15,12 +16,28 @@ import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { PaginationControls } from "@/components/ui/PaginationControls";
 import { useDebounce } from "@/hooks/useDebounce";
 
-export default function CustomersPage() {
-  const [page, setPage] = useState(1);
-  const [search, setSearch] = useState("");
+function CustomersContent() {
+  const searchParams = useSearchParams();
+  const initialPage = Number(searchParams.get("page")) || 1;
+  const initialSearch = searchParams.get("search") || "";
+
+  const [page, setPage] = useState(initialPage);
+  const [search, setSearch] = useState(initialSearch);
   const debouncedSearch = useDebounce(search, 400);
   const customers = useCustomers({ page, limit: 10, search: debouncedSearch });
   const deleteCustomer = useDeleteCustomer();
+
+  // L3: Sync pagination and search to URL query params
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const p = new URLSearchParams();
+    if (page > 1) p.set("page", String(page));
+    if (debouncedSearch.trim()) p.set("search", debouncedSearch.trim());
+
+    const qs = p.toString();
+    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    window.history.replaceState(null, "", newUrl);
+  }, [page, debouncedSearch]);
 
   return (
     <div className="mx-auto max-w-7xl">
@@ -32,7 +49,10 @@ export default function CustomersPage() {
         <Input
           placeholder="Search by name or phone"
           value={search}
-          onChange={(event) => setSearch(event.target.value)}
+          onChange={(event) => {
+            setSearch(event.target.value);
+            setPage(1);
+          }}
           leftElement={<Search className="size-4" />}
         />
       </div>
@@ -127,6 +147,14 @@ export default function CustomersPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function CustomersPage() {
+  return (
+    <Suspense fallback={<div className="p-6 text-sm text-gray-500">Loading customers...</div>}>
+      <CustomersContent />
+    </Suspense>
   );
 }
 

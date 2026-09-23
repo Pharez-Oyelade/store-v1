@@ -1,3 +1,4 @@
+import crypto from "node:crypto";
 import TeamMember, { TEAM_ROLES } from "../models/teamMemberModel.js";
 import { PLAN_LIMITS } from "../models/subscriptionModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
@@ -55,8 +56,21 @@ export const inviteTeamMember = asyncHandler(async (req, res) => {
     );
   }
 
-  // Use provided password or generate a random 8-character temporary password
-  const memberPassword = password || `Vendra_${Math.random().toString(36).slice(-6)}!`;
+  // Validate custom password if provided
+  if (password) {
+    if (typeof password !== "string" || password.length < 8) {
+      return sendError(res, "Password must be at least 8 characters long", 400);
+    }
+    const hasLetter = /[a-zA-Z]/.test(password);
+    const hasNumber = /[0-9]/.test(password);
+    if (!hasLetter || !hasNumber) {
+      return sendError(res, "Password must contain at least one letter and one number", 400);
+    }
+  }
+
+  // Use provided password or generate a cryptographically secure 12-character temporary password
+  const memberPassword =
+    password || `Vendra#${crypto.randomBytes(4).toString("hex")}!`;
 
   const member = await TeamMember.create({
     vendor: vendorId,

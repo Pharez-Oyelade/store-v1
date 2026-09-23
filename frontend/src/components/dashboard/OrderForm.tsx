@@ -104,11 +104,15 @@ export default function OrderForm() {
       return;
     }
     const variant = product.variants[0];
+    const maxQty = variant?.quantity;
+    const currentQty = Number(items[index]?.quantity) || 1;
+    const newQty = maxQty !== undefined && maxQty > 0 && currentQty > maxQty ? maxQty : currentQty;
     updateItem(index, {
       productId: product._id,
       productName: product.name,
       variantLabel: variant?.label ?? "",
       price: variant?.price ?? product.basePrice,
+      quantity: newQty,
     });
   }
 
@@ -120,7 +124,10 @@ export default function OrderForm() {
     const variant = product?.variants.find(
       (item) => item.label === variantLabel,
     );
-    updateItem(index, { variantLabel, price: variant?.price ?? 0 });
+    const maxQty = variant?.quantity;
+    const currentQty = Number(items[index]?.quantity) || 1;
+    const newQty = maxQty !== undefined && maxQty > 0 && currentQty > maxQty ? maxQty : currentQty;
+    updateItem(index, { variantLabel, price: variant?.price ?? 0, quantity: newQty });
   }
 
   const { handleOfflineSave, isOnline } = useOfflineMutation({
@@ -308,6 +315,10 @@ export default function OrderForm() {
             const product = productList.find(
               (entry) => entry._id === item.productId,
             );
+            const selectedVariant = product?.variants.find(
+              (v) => v.label === item.variantLabel,
+            );
+            const maxStock = selectedVariant?.quantity;
             return (
               <div
                 key={index}
@@ -404,19 +415,34 @@ export default function OrderForm() {
                       required
                     />
                     <Input
-                      label="Qty"
+                      label={
+                        maxStock !== undefined
+                          ? `Qty (max ${maxStock})`
+                          : "Qty"
+                      }
                       type="number"
                       min={1}
+                      max={maxStock !== undefined ? Math.max(1, maxStock) : undefined}
                       placeholder="1"
                       value={item.quantity}
-                      onChange={(event) =>
-                        updateItem(index, {
-                          quantity:
-                            event.target.value === ""
-                              ? ""
-                              : Number(event.target.value),
-                        })
-                      }
+                      onChange={(event) => {
+                        const val =
+                          event.target.value === ""
+                            ? ""
+                            : Number(event.target.value);
+                        if (
+                          val !== "" &&
+                          maxStock !== undefined &&
+                          maxStock > 0 &&
+                          val > maxStock
+                        ) {
+                          updateItem(index, { quantity: maxStock });
+                        } else {
+                          updateItem(index, {
+                            quantity: val,
+                          });
+                        }
+                      }}
                       required
                     />
                   </div>

@@ -61,6 +61,12 @@ export function useInvoice(id: string) {
     queryKey: INVOICE_KEYS.detail(id),
     queryFn: () => apiGet<Invoice>(`/invoices/${id}`),
     enabled: !!id,
+    refetchInterval: (query) => {
+      const data = query.state.data;
+      if (!data) return 5000;
+      // Stop polling when invoice is paid in full or cancelled
+      return data.status === "paid" || data.status === "cancelled" ? false : 8000;
+    },
   });
 }
 
@@ -81,6 +87,7 @@ export function useCreateInvoice() {
     mutationFn: (payload: CreateInvoicePayload) => apiPost<Invoice>("/invoices", payload),
     onSuccess: (newInvoice) => {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success(`Invoice #${newInvoice.invoiceNumber} created!`);
     },
@@ -105,9 +112,14 @@ export function useRecordManualPayment() {
       channel: string;
       notes?: string;
     }) => apiPatch<Invoice>(`/invoices/${id}/manual-payment`, { amount, channel, notes }),
-    onSuccess: (updated) => {
-      qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(updated._id) });
+    onSuccess: (updated, vars) => {
+      const invId = updated?._id || vars.id;
+      if (updated) {
+        qc.setQueryData(INVOICE_KEYS.detail(invId), updated);
+      }
+      qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(invId) });
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success("Payment recorded successfully!");
     },
@@ -131,8 +143,13 @@ export function useVerifyPaymentProof() {
       action: "approve" | "reject";
     }) => apiPatch<Invoice>(`/invoices/${invoiceId}/verify-proof`, { proofId, action }),
     onSuccess: (updated, vars) => {
-      qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(updated._id) });
+      const invId = updated?._id || vars.invoiceId;
+      if (updated) {
+        qc.setQueryData(INVOICE_KEYS.detail(invId), updated);
+      }
+      qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(invId) });
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
       toast.success(
         vars.action === "approve"

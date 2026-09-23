@@ -8,6 +8,10 @@ import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { initializeTransaction, verifyTransaction } from "../services/paystack.service.js";
 import { createNotification } from "../services/notification.service.js";
 import { depleteInventory } from "./order.controller.js";
+import {
+  sendOnlinePaymentConfirmationEmail,
+  sendManualPaymentProofPromptEmail,
+} from "../services/email.service.js";
 
 /**
  * Generate a unique access token for public invoice links
@@ -515,6 +519,32 @@ export const submitManualPaymentProof = asyncHandler(async (req, res) => {
 
   await invoice.save();
 
+  // L10: Create notification & prompt email for the merchant
+  try {
+    const vendor = await Vendor.findById(invoice.vendor);
+    await createNotification(invoice.vendor, {
+      title: "New Payment Proof Uploaded",
+      message: `Customer ${invoice.customerSnapshot?.name || "Customer"} submitted a payment proof of ₦${Number(amount).toLocaleString()} for Invoice #${invoice.invoiceNumber}. Please verify.`,
+      type: "order",
+      actionUrl: `/dashboard/invoices/${invoice._id}`,
+    });
+
+    if (vendor?.email) {
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
+      await sendManualPaymentProofPromptEmail(vendor.email, {
+        vendorName: vendor.businessName || "Merchant",
+        invoiceNumber: invoice.invoiceNumber,
+        customerName: invoice.customerSnapshot?.name || "Customer",
+        amount: Number(amount),
+        senderName: bankSenderName?.trim() || "",
+        reference: reference?.trim() || "",
+        reviewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
+      });
+    }
+  } catch (alertErr) {
+    console.error("[Payment Proof Alert Error]", alertErr.message);
+  }
+
   return sendSuccess(
     res,
     invoice.manualPaymentProofs[invoice.manualPaymentProofs.length - 1],
@@ -585,6 +615,27 @@ export const recordManualPayment = asyncHandler(async (req, res) => {
       }
       await demand.save();
     }
+  }
+
+  // L7: Populate order and customRequest so returned payload matches getInvoiceById structure
+  await invoice.populate("order");
+  await invoice.populate("customRequest");
+
+  // L10: Send receipt email to customer if email is available
+  try {
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
+    if (invoice.customerSnapshot?.email) {
+      await sendOnlinePaymentConfirmationEmail(invoice.customerSnapshot.email, {
+        customerName: invoice.customerSnapshot?.name || "Customer",
+        invoiceNumber: invoice.invoiceNumber,
+        amountPaid: payAmount,
+        balanceRemaining: invoice.balanceDue,
+        storeName: req.vendor.businessName || "Vendra Store",
+        viewUrl: `${frontendUrl}/i/${invoice.accessToken}`,
+      });
+    }
+  } catch (receiptErr) {
+    console.error("[Manual Payment Receipt Error]", receiptErr.message);
   }
 
   return sendSuccess(res, invoice, `Recorded ₦${payAmount.toLocaleString()} payment successfully`);
@@ -667,6 +718,27 @@ export const verifyManualPaymentProof = asyncHandler(async (req, res) => {
   }
 
   await invoice.save();
+
+  // L7: Populate order and customRequest so returned payload matches getInvoiceById structure
+  await invoice.populate("order");
+  await invoice.populate("customRequest");
+
+  // L10: Send receipt email to customer if approved and email is available
+  if (action === "approve" && invoice.customerSnapshot?.email) {
+    try {
+      const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
+      await sendOnlinePaymentConfirmationEmail(invoice.customerSnapshot.email, {
+        customerName: invoice.customerSnapshot?.name || "Customer",
+        invoiceNumber: invoice.invoiceNumber,
+        amountPaid: proof.amount,
+        balanceRemaining: invoice.balanceDue,
+        storeName: req.vendor.businessName || "Vendra Store",
+        viewUrl: `${frontendUrl}/i/${invoice.accessToken}`,
+      });
+    } catch (receiptErr) {
+      console.error("[Proof Approval Receipt Error]", receiptErr.message);
+    }
+  }
 
   return sendSuccess(
     res,
@@ -778,6 +850,38 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
     });
   } catch (notifErr) {
     console.error("[Notification Error]", notifErr.message);
+  }
+
+  // L10: Send payment confirmation receipt email to customer and vendor
+  try {
+    const frontendUrl = (process.env.FRONTEND_URL || "http://localhost:3000").split(",")[0].trim().replace(/\/$/, "");
+    const vendorObj = invoice.vendor;
+    const customerEmail = invoice.customerSnapshot?.email;
+    const viewUrl = `${frontendUrl}/i/${invoice.accessToken}`;
+
+    if (customerEmail) {
+      await sendOnlinePaymentConfirmationEmail(customerEmail, {
+        customerName: invoice.customerSnapshot?.name || "Customer",
+        invoiceNumber: invoice.invoiceNumber,
+        amountPaid: paidNaira,
+        balanceRemaining: invoice.balanceDue,
+        storeName: vendorObj?.businessName || "Vendra Store",
+        viewUrl,
+      });
+    }
+
+    if (vendorObj?.email) {
+      await sendOnlinePaymentConfirmationEmail(vendorObj.email, {
+        customerName: `${invoice.customerSnapshot?.name || "Customer"} (Payment Alert for ${vendorObj.businessName || "Store"})`,
+        invoiceNumber: invoice.invoiceNumber,
+        amountPaid: paidNaira,
+        balanceRemaining: invoice.balanceDue,
+        storeName: vendorObj?.businessName || "Vendra Store",
+        viewUrl: `${frontendUrl}/dashboard/invoices/${invoice._id}`,
+      });
+    }
+  } catch (emailErr) {
+    console.error("[Email Receipt Error]", emailErr.message);
   }
 
   return sendSuccess(res, invoice, "Payment verified and invoice updated successfully");

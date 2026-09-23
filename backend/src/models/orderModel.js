@@ -144,6 +144,11 @@ const orderSchema = new mongoose.Schema(
       type: Boolean,
       default: false,
     },
+
+    completedAt: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true, optimisticConcurrency: true },
 );
@@ -153,6 +158,8 @@ const orderSchema = new mongoose.Schema(
 orderSchema.index({ vendor: 1, status: 1 });
 // Sort orders by newest first (most used query pattern)
 orderSchema.index({ vendor: 1, createdAt: -1 });
+// Completed orders collection date index
+orderSchema.index({ vendor: 1, completedAt: -1 });
 // Debt summary query: vendor + status filter + balanceOwed aggregation
 orderSchema.index({ vendor: 1, balanceOwed: 1, status: 1 });
 // Platform-wide GMV aggregation and status breakdown index
