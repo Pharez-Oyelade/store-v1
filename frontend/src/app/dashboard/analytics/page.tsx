@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl pb-16 space-y-8">
+    <div className="mx-auto max-w-7xl pb-16 space-y-8 min-w-0 w-full overflow-x-hidden">
       {/* Page Header with Period Switcher & CSV Export */}
       <PageHeader
         title={
@@ -339,43 +339,43 @@ export default function AnalyticsPage() {
 
       {/* ── ATELIER FULL BI COMMAND CENTER (Atelier Exclusive) ──────── */}
       {isAtelierOrHigher && (
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-brand-100 text-brand-800">
+        <div className="space-y-6 min-w-0">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+            <div className="flex items-center gap-2 min-w-0">
+              <span className="p-1.5 rounded-lg bg-brand-100 text-brand-800 shrink-0">
                 <Sparkles size={16} />
               </span>
-              <h2 className="text-lg font-bold text-gray-900">
+              <h2 className="text-base sm:text-lg font-bold text-gray-900 break-words">
                 Atelier Workshop Intelligence & Margins
               </h2>
             </div>
-            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200">
+            <span className="text-xs font-bold px-2.5 py-1 rounded-full bg-brand-50 text-brand-700 border border-brand-200 self-start sm:self-auto shrink-0">
               The Atelier Plan
             </span>
           </div>
 
           <div className="grid gap-6 xl:grid-cols-3">
             {/* 1. Bespoke vs Ready-to-Wear Breakdown */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between min-w-0">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Scissors size={18} className="text-brand-700" />
-                    <h3 className="text-sm font-bold text-gray-900">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Scissors size={18} className="text-brand-700 shrink-0" />
+                    <h3 className="text-sm font-bold text-gray-900 truncate">
                       Bespoke vs RTW Split
                     </h3>
                   </div>
-                  <span className="text-xs text-gray-400">All-time</span>
+                  <span className="text-xs text-gray-400 shrink-0">All-time</span>
                 </div>
 
                 <div className="mt-4 space-y-3">
                   <div>
-                    <div className="flex justify-between text-xs font-medium text-gray-600 mb-1">
-                      <span>
+                    <div className="flex justify-between items-center text-xs font-medium text-gray-600 mb-1 gap-2">
+                      <span className="truncate">
                         Bespoke Tailoring (
                         {bespokeRtw.data?.bespoke.percent ?? 0}%)
                       </span>
-                      <span className="font-bold text-gray-900">
+                      <span className="font-bold text-gray-900 shrink-0">
                         {formatCurrency(bespokeRtw.data?.bespoke.revenue ?? 0)}
                       </span>
                     </div>
@@ -387,18 +387,18 @@ export default function AnalyticsPage() {
                         }}
                       />
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-1">
+                    <p className="text-[11px] text-gray-500 mt-1 truncate">
                       {bespokeRtw.data?.bespoke.count ?? 0} demands · AOV:{" "}
                       {formatCurrency(bespokeRtw.data?.bespoke.aov ?? 0)}
                     </p>
                   </div>
 
                   <div className="pt-2">
-                    <div className="flex justify-between text-xs font-medium text-gray-600 mb-1">
-                      <span>
+                    <div className="flex justify-between items-center text-xs font-medium text-gray-600 mb-1 gap-2">
+                      <span className="truncate">
                         Ready-to-Wear RTW ({bespokeRtw.data?.rtw.percent ?? 0}%)
                       </span>
-                      <span className="font-bold text-gray-900">
+                      <span className="font-bold text-gray-900 shrink-0">
                         {formatCurrency(bespokeRtw.data?.rtw.revenue ?? 0)}
                       </span>
                     </div>
@@ -410,7 +410,7 @@ export default function AnalyticsPage() {
                         }}
                       />
                     </div>
-                    <p className="text-[11px] text-gray-500 mt-1">
+                    <p className="text-[11px] text-gray-500 mt-1 truncate">
                       {bespokeRtw.data?.rtw.count ?? 0} orders · AOV:{" "}
                       {formatCurrency(bespokeRtw.data?.rtw.aov ?? 0)}
                     </p>
@@ -418,94 +418,94 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t border-gray-100 mt-4 flex items-center justify-between text-xs text-gray-500">
-                <span>Total Channel Volume</span>
-                <span className="font-bold text-gray-900">
+              <div className="pt-4 border-t border-gray-100 mt-4 flex items-center justify-between text-xs text-gray-500 gap-2">
+                <span className="truncate">Total Channel Volume</span>
+                <span className="font-bold text-gray-900 shrink-0">
                   {formatCurrency(bespokeRtw.data?.combinedTotal ?? 0)}
                 </span>
               </div>
             </div>
 
             {/* 2. Unit Economics & Profit Margin Estimator */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between min-w-0">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <Percent size={18} className="text-emerald-700" />
-                    <h3 className="text-sm font-bold text-gray-900">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Percent size={18} className="text-emerald-700 shrink-0" />
+                    <h3 className="text-sm font-bold text-gray-900 truncate">
                       Unit Economics & Margins
                     </h3>
                   </div>
-                  <span className="text-xs text-gray-400">Estimated</span>
+                  <span className="text-xs text-gray-400 shrink-0">Estimated</span>
                 </div>
 
                 <div className="mt-4 grid grid-cols-2 gap-3">
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <p className="text-[11px] font-medium text-gray-500">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 min-w-0">
+                    <p className="text-[11px] font-medium text-gray-500 truncate">
                       Gross Margin
                     </p>
-                    <p className="text-lg font-bold text-emerald-700 mt-0.5">
+                    <p className="text-lg font-bold text-emerald-700 mt-0.5 truncate">
                       {margins.data?.profitMarginPercent ?? 0}%
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
-                      Revenue - Material cost
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
+                      Revenue - Material
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <p className="text-[11px] font-medium text-gray-500">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 min-w-0">
+                    <p className="text-[11px] font-medium text-gray-500 truncate">
                       Average Order (AOV)
                     </p>
-                    <p className="text-lg font-bold text-gray-900 mt-0.5">
+                    <p className="text-lg font-bold text-gray-900 mt-0.5 truncate">
                       {formatCurrency(margins.data?.aov ?? 0)}
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
                       Across all channels
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <p className="text-[11px] font-medium text-gray-500">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 min-w-0">
+                    <p className="text-[11px] font-medium text-gray-500 truncate">
                       Supplier Purchases
                     </p>
-                    <p className="text-sm font-bold text-rose-700 mt-0.5">
+                    <p className="text-sm font-bold text-rose-700 mt-0.5 truncate">
                       {formatCurrency(margins.data?.supplierExpenses ?? 0)}
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
                       Fabric & trims spend
                     </p>
                   </div>
-                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100">
-                    <p className="text-[11px] font-medium text-gray-500">
+                  <div className="p-3 rounded-xl bg-gray-50 border border-gray-100 min-w-0">
+                    <p className="text-[11px] font-medium text-gray-500 truncate">
                       Repeat Buyer Rate
                     </p>
-                    <p className="text-sm font-bold text-blue-700 mt-0.5">
+                    <p className="text-sm font-bold text-blue-700 mt-0.5 truncate">
                       {margins.data?.repeatRatePercent ?? 0}%
                     </p>
-                    <p className="text-[10px] text-gray-400 mt-0.5">
+                    <p className="text-[10px] text-gray-400 mt-0.5 truncate">
                       {margins.data?.repeatCustomers ?? 0} repeat clients
                     </p>
                   </div>
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-100 mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Est. Gross Profit</span>
-                <span className="font-bold text-emerald-700">
+              <div className="pt-3 border-t border-gray-100 mt-3 flex items-center justify-between text-xs text-gray-500 gap-2">
+                <span className="truncate">Est. Gross Profit</span>
+                <span className="font-bold text-emerald-700 shrink-0">
                   {formatCurrency(margins.data?.estimatedGrossProfit ?? 0)}
                 </span>
               </div>
             </div>
 
             {/* 3. Workshop & Tailor Productivity */}
-            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between">
+            <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between min-w-0">
               <div>
-                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
-                  <div className="flex items-center gap-2">
-                    <UserCheck size={18} className="text-purple-700" />
-                    <h3 className="text-sm font-bold text-gray-900">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <UserCheck size={18} className="text-purple-700 shrink-0" />
+                    <h3 className="text-sm font-bold text-gray-900 truncate">
                       Tailor Turnaround Times
                     </h3>
                   </div>
-                  <span className="text-xs text-gray-400">
+                  <span className="text-xs text-gray-400 shrink-0">
                     {workshop.data?.summary.totalTailors ?? 0} tailors
                   </span>
                 </div>
@@ -515,19 +515,19 @@ export default function AnalyticsPage() {
                     workshop.data.tailorStats.map((t) => (
                       <div
                         key={t.tailorId}
-                        className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs"
+                        className="flex items-center justify-between p-2.5 rounded-xl bg-gray-50 border border-gray-100 text-xs min-w-0 gap-2"
                       >
-                        <div>
-                          <p className="font-bold text-gray-900">{t.name}</p>
-                          <p className="text-[11px] text-gray-500">
+                        <div className="min-w-0">
+                          <p className="font-bold text-gray-900 truncate">{t.name}</p>
+                          <p className="text-[11px] text-gray-500 truncate">
                             {t.activeCount} active · {t.completedCount} finished
                           </p>
                         </div>
-                        <div className="text-right">
-                          <span className="font-bold text-purple-700">
+                        <div className="text-right shrink-0">
+                          <span className="font-bold text-purple-700 whitespace-nowrap">
                             ~{t.avgTurnaroundDays} days
                           </span>
-                          <p className="text-[10px] text-gray-400">
+                          <p className="text-[10px] text-gray-400 whitespace-nowrap">
                             turnaround
                           </p>
                         </div>
@@ -542,9 +542,9 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              <div className="pt-3 border-t border-gray-100 mt-3 flex items-center justify-between text-xs text-gray-500">
-                <span>Avg Workshop Delivery</span>
-                <span className="font-bold text-purple-800">
+              <div className="pt-3 border-t border-gray-100 mt-3 flex items-center justify-between text-xs text-gray-500 gap-2">
+                <span className="truncate">Avg Workshop Delivery</span>
+                <span className="font-bold text-purple-800 shrink-0">
                   {workshop.data?.summary.avgOverallTurnaroundDays ?? 0} days
                 </span>
               </div>
@@ -554,8 +554,8 @@ export default function AnalyticsPage() {
       )}
 
       {/* Revenue Chart & Top Products */}
-      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
+      <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr] min-w-0">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold text-gray-950">
@@ -571,7 +571,7 @@ export default function AnalyticsPage() {
           <RevenueChart data={revenue.data ?? []} />
         </section>
 
-        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs">
+        <section className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs min-w-0 overflow-hidden">
           <div className="flex items-center justify-between mb-4">
             <div>
               <h2 className="text-base font-bold text-gray-950">
