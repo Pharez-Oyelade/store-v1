@@ -121,9 +121,20 @@ export function EmptyState({
   );
 }
 
-export function TableShell({ children }: { children: React.ReactNode }) {
+export function TableShell({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-card">
+    <div
+      className={cn(
+        "overflow-hidden rounded-lg border border-gray-100 bg-white shadow-card",
+        className,
+      )}
+    >
       <div className="overflow-x-auto">{children}</div>
     </div>
   );

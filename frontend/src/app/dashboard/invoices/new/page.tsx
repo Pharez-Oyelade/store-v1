@@ -1075,7 +1075,7 @@ export default function NewInvoicePage() {
           <div className="flex items-center gap-3 w-full sm:w-auto justify-end flex-wrap">
             <Link
               href="/dashboard/invoices"
-              className="px-5 py-2.5 rounded-xl text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
+              className="px-5 py-2.5 rounded-md text-xs font-bold text-gray-600 hover:bg-gray-100 transition-colors"
             >
               Cancel
             </Link>
@@ -1083,7 +1083,7 @@ export default function NewInvoicePage() {
             {activeExistingInvoice ? (
               <Link
                 href={`/dashboard/invoices/${activeExistingInvoice._id}`}
-                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2"
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-md shadow-xs transition-colors flex items-center gap-2"
               >
                 <FileText className="w-4 h-4" />
                 <span>
@@ -1094,7 +1094,7 @@ export default function NewInvoicePage() {
               <button
                 type="submit"
                 disabled={createInvoice.isPending}
-                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-xl shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-md shadow-xs transition-colors flex items-center gap-2 cursor-pointer disabled:opacity-50"
               >
                 {createInvoice.isPending ? (
                   <>

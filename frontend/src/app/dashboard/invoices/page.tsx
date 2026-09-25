@@ -124,7 +124,7 @@ export default function InvoicesListPage() {
         <Link
           href="/dashboard/invoices/new"
           prefetch={true}
-          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-xl shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2.5 bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold rounded-md shadow-xs transition-colors self-start sm:self-auto cursor-pointer"
         >
           <Plus className="w-4 h-4 text-white" />
           <span className="text-white">New Invoice</span>
@@ -151,7 +151,7 @@ export default function InvoicesListPage() {
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <Link
                 href="/dashboard/settings?tab=payouts"
-                className="inline-flex items-center gap-2 rounded-xl bg-white px-4 py-2.5 text-xs font-bold text-brand-950 hover:bg-brand-50 transition-colors shadow-xs cursor-pointer"
+                className="inline-flex items-center gap-2 rounded-md bg-white px-4 py-2.5 text-xs font-bold text-brand-950 hover:bg-brand-50 transition-colors shadow-xs cursor-pointer"
               >
                 <Landmark className="size-4 text-brand-700" />
                 <span className="text-brand-950">
