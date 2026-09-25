@@ -144,7 +144,7 @@ export default function AnalyticsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-7xl pb-16 space-y-8 min-w-0 w-full overflow-x-hidden">
+    <div className="mx-auto max-w-7xl pb-16 space-y-8">
       {/* Page Header with Period Switcher & CSV Export */}
       <PageHeader
         title={
@@ -308,7 +308,7 @@ export default function AnalyticsPage() {
       )}
 
       {/* Overview Stat Cards */}
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4 min-w-0">
         <StatCard
           label={isStitch ? "7-Day revenue" : "Month revenue"}
           value={formatCurrency(overview.data?.revenueThisMonth ?? 0)}
@@ -354,7 +354,7 @@ export default function AnalyticsPage() {
             </span>
           </div>
 
-          <div className="grid gap-6 xl:grid-cols-3">
+          <div className="grid gap-6 xl:grid-cols-3 min-w-0">
             {/* 1. Bespoke vs Ready-to-Wear Breakdown */}
             <div className="rounded-2xl border border-gray-200 bg-white p-5 shadow-xs flex flex-col justify-between min-w-0">
               <div>
@@ -635,19 +635,19 @@ export default function AnalyticsPage() {
           <div />
         </PlanGate>
       ) : (
-        <div className="grid gap-6 xl:grid-cols-2">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-2 min-w-0">
           {/* Top Customers Leaderboard */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-gray-950">
+          <section className="min-w-0">
+            <div className="mb-3 flex items-center justify-between gap-2 min-w-0">
+              <h2 className="text-base font-semibold text-gray-950 truncate">
                 Top Customers by Lifetime Value
               </h2>
-              <span className="text-xs text-gray-400">Ranked by LTV</span>
+              <span className="text-xs text-gray-400 shrink-0">Ranked by LTV</span>
             </div>
 
             {topCustomers.data?.length ? (
               <TableShell>
-                <table className="min-w-full text-left text-sm">
+                <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
                       <th className="px-4 py-3">Customer</th>
@@ -658,14 +658,14 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {topCustomers.data.map((customer) => (
-                      <tr key={customer._id} className="hover:bg-gray-50/50">
+                      <tr key={customer._id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium text-gray-950">
                           {customer.name}
                         </td>
                         <td className="px-4 py-3 text-gray-600">
                           {customer.orderCount}
                         </td>
-                        <td className="px-4 py-3 font-bold text-brand-700">
+                        <td className="px-4 py-3 font-semibold text-brand-700">
                           {formatCurrency(customer.ltv)}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
@@ -687,19 +687,19 @@ export default function AnalyticsPage() {
           </section>
 
           {/* Slow-Moving Inventory */}
-          <section className="space-y-3">
-            <div className="flex items-center justify-between">
-              <h2 className="text-base font-bold text-gray-950">
+          <section className="min-w-0">
+            <div className="mb-3 flex items-center justify-between gap-2 min-w-0">
+              <h2 className="text-base font-semibold text-gray-950 truncate">
                 Slow-Moving Inventory
               </h2>
-              <span className="text-xs text-gray-400">
+              <span className="text-xs text-gray-400 shrink-0">
                 30+ days without sales
               </span>
             </div>
 
             {slowMovers.data?.length ? (
               <TableShell>
-                <table className="min-w-full text-left text-sm">
+                <table className="w-full text-left text-sm">
                   <thead className="bg-gray-50 text-xs uppercase text-gray-500">
                     <tr>
                       <th className="px-4 py-3">Product / Style</th>
@@ -709,11 +709,11 @@ export default function AnalyticsPage() {
                   </thead>
                   <tbody className="divide-y divide-gray-100">
                     {slowMovers.data.map((product) => (
-                      <tr key={product._id} className="hover:bg-gray-50/50">
+                      <tr key={product._id} className="hover:bg-gray-50">
                         <td className="px-4 py-3 font-medium text-gray-950">
                           {product.name}
                         </td>
-                        <td className="px-4 py-3">
+                        <td className="px-4 py-3 font-semibold text-gray-900">
                           {formatCurrency(product.basePrice)}
                         </td>
                         <td className="px-4 py-3 text-gray-500">
