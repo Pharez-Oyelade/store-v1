@@ -15,8 +15,6 @@ import {
   LogOut,
   ChevronLeft,
   ChevronRight,
-  Menu,
-  X,
   Scissors,
   ArrowRight,
   Download,
@@ -34,7 +32,7 @@ import { useLogout } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
 import Logo from "../brand/Logo";
 
-const NAV_ITEMS = [
+export const NAV_ITEMS = [
   { label: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { label: "Products", href: "/dashboard/products", icon: Package },
   { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
@@ -61,7 +59,6 @@ export default function DashboardSidebar() {
   const { mutate: logout } = useLogout();
   const { isInstallable, isInstalled, promptInstall } = usePWAInstall();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
   const [accountMenuOpen, setAccountMenuOpen] = useState(false);
 
   const [mounted, setMounted] = useState(false);
@@ -82,10 +79,9 @@ export default function DashboardSidebar() {
     return () => document.removeEventListener("keydown", handleKeyDown);
   }, [accountMenuOpen]);
 
-  // Close account menu and mobile sidebar on route changes
+  // Close account menu on route changes
   useEffect(() => {
     setAccountMenuOpen(false);
-    setMobileOpen(false);
   }, [pathname]);
 
   // Pre-warm dashboard workstations, creation forms, and RSC streams when online
@@ -276,7 +272,6 @@ export default function DashboardSidebar() {
               key={item.href}
               href={item.href}
               prefetch={true}
-              onClick={() => setMobileOpen(false)}
               className={cn(
                 "flex items-center justify-between px-3 py-2.5 rounded-lg text-sm font-medium transition-all duration-150",
                 active
@@ -450,7 +445,6 @@ export default function DashboardSidebar() {
                     href="/dashboard/settings?tab=billing"
                     onClick={() => {
                       setAccountMenuOpen(false);
-                      setMobileOpen(false);
                     }}
                     className="text-[11px] text-brand-400 hover:text-brand-300 font-medium transition-colors"
                   >
@@ -466,7 +460,6 @@ export default function DashboardSidebar() {
                 type="button"
                 onClick={() => {
                   setAccountMenuOpen(false);
-                  setMobileOpen(false);
                   setDrawerOpen(true);
                 }}
                 className={cn(
@@ -519,7 +512,6 @@ export default function DashboardSidebar() {
                   type="button"
                   onClick={() => {
                     setAccountMenuOpen(false);
-                    setMobileOpen(false);
                     promptInstall();
                   }}
                   className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-emerald-400 hover:text-emerald-300 hover:bg-emerald-500/15 transition-colors cursor-pointer text-left"
@@ -540,7 +532,6 @@ export default function DashboardSidebar() {
                 href="/dashboard/settings"
                 onClick={() => {
                   setAccountMenuOpen(false);
-                  setMobileOpen(false);
                 }}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-gray-300 hover:text-white hover:bg-white/5 transition-colors text-left group"
                 role="menuitem"
@@ -557,7 +548,6 @@ export default function DashboardSidebar() {
                   href="/admin"
                   onClick={() => {
                     setAccountMenuOpen(false);
-                    setMobileOpen(false);
                   }}
                   className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-indigo-300 hover:text-indigo-200 hover:bg-indigo-500/15 transition-colors text-left"
                   role="menuitem"
@@ -577,7 +567,6 @@ export default function DashboardSidebar() {
                 type="button"
                 onClick={() => {
                   setAccountMenuOpen(false);
-                  setMobileOpen(false);
                   logout();
                 }}
                 className="flex items-center gap-2.5 w-full px-3 py-2 rounded-lg text-xs font-medium text-red-400 hover:text-red-300 hover:bg-red-500/15 transition-colors cursor-pointer text-left"
@@ -607,50 +596,13 @@ export default function DashboardSidebar() {
   );
 
   return (
-    <>
-      {/* Mobile hamburger */}
-      <button
-        onClick={() => setMobileOpen(true)}
-        className="lg:hidden fixed top-4 left-4 z-50 p-2 rounded-lg bg-surface-sidebar text-white shadow-lg"
-        aria-label="Open menu"
-      >
-        <Menu className="w-5 h-5" />
-      </button>
-
-      {/* Mobile overlay */}
-      {mobileOpen && (
-        <div
-          className="lg:hidden fixed inset-0 bg-black/50 z-40"
-          onClick={() => setMobileOpen(false)}
-        />
+    <aside
+      className={cn(
+        "hidden lg:block h-screen bg-surface-sidebar shrink-0 transition-all duration-300 sticky top-0 z-40",
+        collapsed ? "w-[72px]" : "w-64",
       )}
-
-      {/* Mobile sidebar */}
-      <aside
-        className={cn(
-          "lg:hidden fixed inset-y-0 left-0 z-50 w-64 bg-surface-sidebar transform transition-transform duration-300",
-          mobileOpen ? "translate-x-0" : "-translate-x-full",
-        )}
-      >
-        <button
-          onClick={() => setMobileOpen(false)}
-          className="absolute top-4 right-4 text-gray-400 hover:text-white"
-          aria-label="Close menu"
-        >
-          <X className="w-5 h-5" />
-        </button>
-        {sidebarContent}
-      </aside>
-
-      {/* Desktop sidebar */}
-      <aside
-        className={cn(
-          "hidden lg:block h-screen bg-surface-sidebar shrink-0 transition-all duration-300 sticky top-0 z-40",
-          collapsed ? "w-[72px]" : "w-64",
-        )}
-      >
-        {sidebarContent}
-      </aside>
-    </>
+    >
+      {sidebarContent}
+    </aside>
   );
 }
