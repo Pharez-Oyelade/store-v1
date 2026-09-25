@@ -13,16 +13,16 @@ export function PageHeader({
   action?: React.ReactNode;
 }) {
   return (
-    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight text-gray-950">
+    <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-end sm:justify-between min-w-0">
+      <div className="min-w-0 flex-1">
+        <h1 className="text-xl sm:text-2xl font-semibold tracking-tight text-gray-950 break-words">
           {title}
         </h1>
         {description && (
-          <p className="mt-1 text-sm text-gray-500">{description}</p>
+          <p className="mt-1 text-sm text-gray-500 break-words">{description}</p>
         )}
       </div>
-      {action}
+      {action && <div className="min-w-0 max-w-full">{action}</div>}
     </div>
   );
 }
@@ -121,9 +121,20 @@ export function EmptyState({
   );
 }
 
-export function TableShell({ children }: { children: React.ReactNode }) {
+export function TableShell({
+  children,
+  className,
+}: {
+  children: React.ReactNode;
+  className?: string;
+}) {
   return (
-    <div className="overflow-hidden rounded-lg border border-gray-100 bg-white shadow-card">
+    <div
+      className={cn(
+        "overflow-hidden rounded-lg border border-gray-100 bg-white shadow-card",
+        className,
+      )}
+    >
       <div className="overflow-x-auto">{children}</div>
     </div>
   );

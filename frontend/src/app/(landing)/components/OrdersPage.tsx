@@ -2,7 +2,13 @@
 
 import { useSearchParams } from "next/navigation";
 import Link from "next/link";
-import { MessageCircle, Plus, Trash2, Scissors, ShoppingBag } from "lucide-react";
+import {
+  MessageCircle,
+  Plus,
+  Trash2,
+  Scissors,
+  ShoppingBag,
+} from "lucide-react";
 import {
   EmptyState,
   NativeSelect,
@@ -35,11 +41,14 @@ export default function OrdersPage() {
   const initialStatus = searchParams.get("status") || "all";
   const initialPayment = searchParams.get("payment") || "all";
   const initialSearch = searchParams.get("search") || "";
-  const initialType = (searchParams.get("type") as "all" | "ready_to_wear" | "bespoke") || "all";
+  const initialType =
+    (searchParams.get("type") as "all" | "ready_to_wear" | "bespoke") || "all";
   const initialPage = Number(searchParams.get("page")) || 1;
 
   const [page, setPage] = useState(initialPage);
-  const [orderType, setOrderType] = useState<"all" | "ready_to_wear" | "bespoke">(initialType);
+  const [orderType, setOrderType] = useState<
+    "all" | "ready_to_wear" | "bespoke"
+  >(initialType);
   const [status, setStatus] = useState<string>(initialStatus);
   const [payment, setPayment] = useState<string>(initialPayment);
   const [searchTerm, setSearchTerm] = useState<string>(initialSearch);
@@ -53,10 +62,13 @@ export default function OrdersPage() {
     if (orderType !== "all") params.set("type", orderType);
     if (status !== "all") params.set("status", status);
     if (payment !== "all") params.set("payment", payment);
-    if (debouncedSearchTerm.trim()) params.set("search", debouncedSearchTerm.trim());
+    if (debouncedSearchTerm.trim())
+      params.set("search", debouncedSearchTerm.trim());
 
     const qs = params.toString();
-    const newUrl = qs ? `${window.location.pathname}?${qs}` : window.location.pathname;
+    const newUrl = qs
+      ? `${window.location.pathname}?${qs}`
+      : window.location.pathname;
     window.history.replaceState(null, "", newUrl);
   }, [page, orderType, status, payment, debouncedSearchTerm]);
 
@@ -80,7 +92,7 @@ export default function OrdersPage() {
             <Link
               href="/dashboard/demands/new"
               prefetch={true}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
             >
               <Scissors className="size-3.5" />
               <span>New Bespoke</span>
@@ -88,7 +100,7 @@ export default function OrdersPage() {
             <Link
               href="/dashboard/orders/new"
               prefetch={true}
-              className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
+              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
             >
               <Plus className="size-3.5 text-white" />
               <span className="text-white">New Order</span>
@@ -100,7 +112,7 @@ export default function OrdersPage() {
       {/* Filter Tabs & Search Bar */}
       <div className="space-y-4 mb-6">
         <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 border-b border-gray-100 pb-3">
-          <div className="flex gap-2 overflow-x-auto">
+          <div className="flex gap-2 overflow-x-auto scrollbar-none no-scrollbar">
             <button
               type="button"
               onClick={() => {
@@ -195,7 +207,6 @@ export default function OrdersPage() {
         </div>
       </div>
 
-
       {orders.data?.orders.length ? (
         <>
           {/* Mobile Card View */}
@@ -205,7 +216,9 @@ export default function OrdersPage() {
                 key={order._id}
                 order={order}
                 onDelete={() => {
-                  if (confirm(`Delete order for ${order.customerSnapshot.name}?`))
+                  if (
+                    confirm(`Delete order for ${order.customerSnapshot.name}?`)
+                  )
                     deleteOrder.mutate(order._id);
                 }}
               />
@@ -233,7 +246,11 @@ export default function OrdersPage() {
                       key={order._id}
                       order={order}
                       onDelete={() => {
-                        if (confirm(`Delete order for ${order.customerSnapshot.name}?`))
+                        if (
+                          confirm(
+                            `Delete order for ${order.customerSnapshot.name}?`,
+                          )
+                        )
                           deleteOrder.mutate(order._id);
                       }}
                     />
@@ -265,15 +282,28 @@ export default function OrdersPage() {
   );
 }
 
-function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) {
+function OrderCard({
+  order,
+  onDelete,
+}: {
+  order: Order;
+  onDelete: () => void;
+}) {
   const updateOrder = useUpdateOrder(order._id);
   const vendor = useAuthStore((s) => s.vendor);
-  const isPremium = vendor?.subscriptionPlan === "atelier" || vendor?.subscriptionPlan === "maison";
+  const isPremium =
+    vendor?.subscriptionPlan === "atelier" ||
+    vendor?.subscriptionPlan === "maison";
 
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = event.target.value as any;
-    if ((newStatus === "completed" || newStatus === OrderStatus.Completed) && order.balanceOwed > 0) {
-      toast.error(`Cannot complete order while balance of ${formatCurrency(order.balanceOwed)} is outstanding. Record full payment first.`);
+    if (
+      (newStatus === "completed" || newStatus === OrderStatus.Completed) &&
+      order.balanceOwed > 0
+    ) {
+      toast.error(
+        `Cannot complete order while balance of ${formatCurrency(order.balanceOwed)} is outstanding. Record full payment first.`,
+      );
       event.target.value = order.status;
       return;
     }
@@ -281,35 +311,65 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
 
     if (isPremium) {
       let link = "";
-      if (newStatus === "confirmed" || newStatus === OrderStatus.Confirmed) link = order.whatsappLinks?.confirmed || "";
-      else if (newStatus === "fitting" || newStatus === OrderStatus.Dispatched) link = order.whatsappLinks?.dispatched || "";
-      else if (newStatus === "completed" || newStatus === OrderStatus.Completed) link = order.whatsappLinks?.completed || "";
+      if (newStatus === "confirmed" || newStatus === OrderStatus.Confirmed)
+        link = order.whatsappLinks?.confirmed || "";
+      else if (newStatus === "fitting" || newStatus === OrderStatus.Dispatched)
+        link = order.whatsappLinks?.dispatched || "";
+      else if (newStatus === "completed" || newStatus === OrderStatus.Completed)
+        link = order.whatsappLinks?.completed || "";
 
       if (link) {
-        toast((t) => (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-gray-900">Status changed to {newStatus}. Send update?</p>
-            <div className="flex gap-2">
-              <button onClick={() => toast.dismiss(t.id)} className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded">Skip</button>
-              <a href={link} target="_blank" rel="noreferrer" onClick={() => { toast.dismiss(t.id); updateOrder.mutate({ whatsappSent: true }); }} className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded">
-                <MessageCircle className="size-3" /> WhatsApp
-              </a>
+        toast(
+          (t) => (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium text-gray-900">
+                Status changed to {newStatus}. Send update?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded"
+                >
+                  Skip
+                </button>
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    updateOrder.mutate({ whatsappSent: true });
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded"
+                >
+                  <MessageCircle className="size-3" /> WhatsApp
+                </a>
+              </div>
             </div>
-          </div>
-        ), { duration: 6000, id: `status-toast-mobile-${newStatus}-${order._id}` });
+          ),
+          {
+            duration: 6000,
+            id: `status-toast-mobile-${newStatus}-${order._id}`,
+          },
+        );
       }
     }
   };
 
   const message = buildOrderMessage(order);
-  const detailLink = order.isBespoke ? `/dashboard/demands/${order._id}` : `/dashboard/orders/${order._id}`;
+  const detailLink = order.isBespoke
+    ? `/dashboard/demands/${order._id}`
+    : `/dashboard/orders/${order._id}`;
 
   return (
     <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-4">
       <div className="flex justify-between items-start mb-3">
         <div>
           <div className="flex items-center gap-2">
-            <Link href={detailLink} className="font-semibold text-gray-900 text-base block hover:underline">
+            <Link
+              href={detailLink}
+              className="font-semibold text-gray-900 text-base block hover:underline"
+            >
               {order.customerSnapshot.name}
             </Link>
             {order.isBespoke && (
@@ -318,7 +378,9 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
               </span>
             )}
           </div>
-          <p className="text-xs text-gray-500 mt-0.5">{order.customerSnapshot.phone} • {formatDate(order.createdAt)}</p>
+          <p className="text-xs text-gray-500 mt-0.5">
+            {order.customerSnapshot.phone} • {formatDate(order.createdAt)}
+          </p>
         </div>
         {order.isPendingSync || (order._id && order._id.startsWith("temp_")) ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
@@ -332,20 +394,30 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
       <div className="flex justify-between items-center py-3 border-y border-gray-50 mb-3">
         <div>
           <p className="text-xs text-gray-500 mb-0.5">Total</p>
-          <p className="font-medium text-gray-900">{formatCurrency(order.totalAmount)}</p>
+          <p className="font-medium text-gray-900">
+            {formatCurrency(order.totalAmount)}
+          </p>
         </div>
         <div>
           <p className="text-xs text-gray-500 mb-0.5 text-right">Balance</p>
-          <p className="font-medium text-gray-900 text-right">{formatCurrency(order.balanceOwed)}</p>
+          <p className="font-medium text-gray-900 text-right">
+            {formatCurrency(order.balanceOwed)}
+          </p>
         </div>
         <div>
           <p className="text-xs text-gray-500 mb-0.5 text-right">Items</p>
-          <p className="font-medium text-gray-900 text-right">{order.items.length}</p>
+          <p className="font-medium text-gray-900 text-right">
+            {order.items.length}
+          </p>
         </div>
       </div>
 
       <div className="flex gap-2 items-center">
-        <NativeSelect className="flex-1 h-10" value={order.status} onChange={handleStatusChange}>
+        <NativeSelect
+          className="flex-1 h-10"
+          value={order.status}
+          onChange={handleStatusChange}
+        >
           {order.isBespoke
             ? BESPOKE_STATUS_OPTIONS.map((opt) => (
                 <option
@@ -353,16 +425,24 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
                   value={opt.value}
                   disabled={opt.value === "completed" && order.balanceOwed > 0}
                 >
-                  {opt.label}{opt.value === "completed" && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
+                  {opt.label}
+                  {opt.value === "completed" && order.balanceOwed > 0
+                    ? " (Pending Balance)"
+                    : ""}
                 </option>
               ))
             : Object.values(OrderStatus).map((value) => (
                 <option
                   key={value}
                   value={value}
-                  disabled={value === OrderStatus.Completed && order.balanceOwed > 0}
+                  disabled={
+                    value === OrderStatus.Completed && order.balanceOwed > 0
+                  }
                 >
-                  {value}{value === OrderStatus.Completed && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
+                  {value}
+                  {value === OrderStatus.Completed && order.balanceOwed > 0
+                    ? " (Pending Balance)"
+                    : ""}
                 </option>
               ))}
         </NativeSelect>
@@ -390,12 +470,19 @@ function OrderCard({ order, onDelete }: { order: Order; onDelete: () => void }) 
 function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
   const updateOrder = useUpdateOrder(order._id);
   const vendor = useAuthStore((s) => s.vendor);
-  const isPremium = vendor?.subscriptionPlan === "atelier" || vendor?.subscriptionPlan === "maison";
+  const isPremium =
+    vendor?.subscriptionPlan === "atelier" ||
+    vendor?.subscriptionPlan === "maison";
 
   const handleStatusChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
     const newStatus = event.target.value as any;
-    if ((newStatus === "completed" || newStatus === OrderStatus.Completed) && order.balanceOwed > 0) {
-      toast.error(`Cannot complete order while balance of ${formatCurrency(order.balanceOwed)} is outstanding. Record full payment first.`);
+    if (
+      (newStatus === "completed" || newStatus === OrderStatus.Completed) &&
+      order.balanceOwed > 0
+    ) {
+      toast.error(
+        `Cannot complete order while balance of ${formatCurrency(order.balanceOwed)} is outstanding. Record full payment first.`,
+      );
       event.target.value = order.status;
       return;
     }
@@ -404,43 +491,53 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
     if (isPremium) {
       let link = "";
 
-      if (newStatus === "confirmed" || newStatus === OrderStatus.Confirmed) link = order.whatsappLinks?.confirmed || "";
-      else if (newStatus === "fitting" || newStatus === OrderStatus.Dispatched) link = order.whatsappLinks?.dispatched || "";
-      else if (newStatus === "completed" || newStatus === OrderStatus.Completed) link = order.whatsappLinks?.completed || "";
+      if (newStatus === "confirmed" || newStatus === OrderStatus.Confirmed)
+        link = order.whatsappLinks?.confirmed || "";
+      else if (newStatus === "fitting" || newStatus === OrderStatus.Dispatched)
+        link = order.whatsappLinks?.dispatched || "";
+      else if (newStatus === "completed" || newStatus === OrderStatus.Completed)
+        link = order.whatsappLinks?.completed || "";
 
       if (link) {
-        toast((t) => (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm font-medium text-gray-900">Status changed to {newStatus}. Send update to customer?</p>
-            <div className="flex gap-2">
-              <button 
-                onClick={() => toast.dismiss(t.id)} 
-                className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
-              >
-                Skip
-              </button>
-              <a 
-                href={link} 
-                target="_blank" 
-                rel="noreferrer"
-                onClick={() => {
-                  toast.dismiss(t.id);
-                  updateOrder.mutate({ whatsappSent: true });
-                }}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded transition-colors"
-              >
-                <MessageCircle className="size-3" />
-                Send WhatsApp
-              </a>
+        toast(
+          (t) => (
+            <div className="flex flex-col gap-3">
+              <p className="text-sm font-medium text-gray-900">
+                Status changed to {newStatus}. Send update to customer?
+              </p>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => toast.dismiss(t.id)}
+                  className="px-3 py-1.5 text-xs font-medium text-gray-600 bg-gray-100 hover:bg-gray-200 rounded transition-colors"
+                >
+                  Skip
+                </button>
+                <a
+                  href={link}
+                  target="_blank"
+                  rel="noreferrer"
+                  onClick={() => {
+                    toast.dismiss(t.id);
+                    updateOrder.mutate({ whatsappSent: true });
+                  }}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-medium text-white bg-[#25D366] hover:bg-[#20bd5a] rounded transition-colors"
+                >
+                  <MessageCircle className="size-3" />
+                  Send WhatsApp
+                </a>
+              </div>
             </div>
-          </div>
-        ), { duration: 6000, id: `status-toast-${newStatus}-${order._id}` });
+          ),
+          { duration: 6000, id: `status-toast-${newStatus}-${order._id}` },
+        );
       }
     }
   };
 
   const message = buildOrderMessage(order);
-  const detailLink = order.isBespoke ? `/dashboard/demands/${order._id}` : `/dashboard/orders/${order._id}`;
+  const detailLink = order.isBespoke
+    ? `/dashboard/demands/${order._id}`
+    : `/dashboard/orders/${order._id}`;
 
   return (
     <tr className="hover:bg-gray-50">
@@ -463,22 +560,37 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
       <td className="px-4 py-3 text-gray-600">
         {order.isBespoke ? (
           <div>
-            <p className="font-medium text-gray-900 truncate max-w-xs">{order.items[0]?.productName}</p>
-            <p className="text-xs text-gray-400">{order.items[0]?.variantLabel}</p>
+            <p className="font-medium text-gray-900 truncate max-w-xs">
+              {order.items[0]?.productName}
+            </p>
+            <p className="text-xs text-gray-400">
+              {order.items[0]?.variantLabel}
+            </p>
           </div>
         ) : (
-          <span>{order.items.length} item{order.items.length !== 1 ? "s" : ""}</span>
+          <span>
+            {order.items.length} item{order.items.length !== 1 ? "s" : ""}
+          </span>
         )}
       </td>
-      <td className="px-4 py-3 font-semibold text-gray-900">{formatCurrency(order.totalAmount)}</td>
+      <td className="px-4 py-3 font-semibold text-gray-900">
+        {formatCurrency(order.totalAmount)}
+      </td>
       <td className="px-4 py-3">
-        <span className={order.balanceOwed > 0 ? "font-semibold text-amber-700" : "text-gray-600"}>
+        <span
+          className={
+            order.balanceOwed > 0
+              ? "font-semibold text-amber-700"
+              : "text-gray-600"
+          }
+        >
           {formatCurrency(order.balanceOwed)}
         </span>
       </td>
       <td className="px-4 py-3">
         <div className="flex items-center gap-2">
-          {order.isPendingSync || (order._id && order._id.startsWith("temp_")) ? (
+          {order.isPendingSync ||
+          (order._id && order._id.startsWith("temp_")) ? (
             <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
               <span>⏳</span> Pending Sync
             </span>
@@ -495,18 +607,28 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
                   <option
                     key={opt.value}
                     value={opt.value}
-                    disabled={opt.value === "completed" && order.balanceOwed > 0}
+                    disabled={
+                      opt.value === "completed" && order.balanceOwed > 0
+                    }
                   >
-                    {opt.label}{opt.value === "completed" && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
+                    {opt.label}
+                    {opt.value === "completed" && order.balanceOwed > 0
+                      ? " (Pending Balance)"
+                      : ""}
                   </option>
                 ))
               : Object.values(OrderStatus).map((value) => (
                   <option
                     key={value}
                     value={value}
-                    disabled={value === OrderStatus.Completed && order.balanceOwed > 0}
+                    disabled={
+                      value === OrderStatus.Completed && order.balanceOwed > 0
+                    }
                   >
-                    {value}{value === OrderStatus.Completed && order.balanceOwed > 0 ? " (Pending Balance)" : ""}
+                    {value}
+                    {value === OrderStatus.Completed && order.balanceOwed > 0
+                      ? " (Pending Balance)"
+                      : ""}
                   </option>
                 ))}
           </NativeSelect>
