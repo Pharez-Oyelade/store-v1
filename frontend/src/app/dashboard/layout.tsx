@@ -1,5 +1,6 @@
 import { Suspense } from "react";
 import DashboardSidebar from "@/components/dashboard/DashboardSidebar";
+import MobileBottomNav from "@/components/dashboard/MobileBottomNav";
 import NotificationCenter from "@/components/dashboard/NotificationCenter";
 import AnnouncementBanner from "@/components/dashboard/AnnouncementBanner";
 import DashboardRoleGuard from "@/components/auth/DashboardRoleGuard";
@@ -19,13 +20,14 @@ export default function DashboardLayout({
         <NotificationCenter />
       </div>
 
-      <section className="min-w-0 flex-1 px-4 pb-10 pt-20 lg:px-8 lg:pt-20">
+      <section className="min-w-0 flex-1 px-4 pb-32 pt-20 lg:px-8 lg:pt-20 lg:pb-10">
         <OfflineStatusBar />
         <AnnouncementBanner />
         <Suspense fallback={null}>
           <DashboardRoleGuard>{children}</DashboardRoleGuard>
         </Suspense>
       </section>
+      <MobileBottomNav />
     </main>
   );
 }

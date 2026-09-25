@@ -77,14 +77,14 @@ export default function PWAInstallBanner() {
                       className="inline-flex items-center gap-1.5 px-3.5 py-1.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs cursor-pointer"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      {isIOS ? "How to Install" : "Install Now"}
+                      {isIOS ? "How to Install" : "Install"}
                     </button>
                     <button
                       type="button"
                       onClick={handleDismiss}
                       className="px-2.5 py-1.5 text-xs font-medium text-gray-500 hover:text-gray-800 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer"
                     >
-                      Maybe later
+                      Later
                     </button>
                   </div>
                 </div>
