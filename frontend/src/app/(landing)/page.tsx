@@ -17,7 +17,7 @@ const page = () => {
       <Problem />
       <Features />
       <Process />
-      <Testimonials />
+      {/* <Testimonials /> */}
       <FAQ />
       {/* <Newsletter /> */}
       <CTA />
