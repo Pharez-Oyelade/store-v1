@@ -35,6 +35,7 @@ import { paystackWebhook } from "./src/controllers/subscription.controller.js";
 
 /* ── Error Handling ─────────────────────────────────────────────── */
 import { notFound, errorHandler } from "./src/middleware/errorHandler.js";
+import { initCronJobs } from "./src/jobs/cron.js";
 
 // Validate mandatory environment variables before connecting or starting server
 validateEnv();
@@ -193,6 +194,7 @@ const PORT = parseInt(process.env.PORT || "5000", 10);
 
 const server = app.listen(PORT, () => {
   console.log(`✅ Vendra API running on http://localhost:${PORT}`);
+  initCronJobs();
 });
 
 const gracefulShutdown = (signal) => {

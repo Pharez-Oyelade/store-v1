@@ -63,6 +63,20 @@ export const validateAnnouncement = [
 export const validateVendorListQuery = [
   query("page").optional().isInt({ min: 1 }).withMessage("Page must be a positive integer"),
   query("limit").optional().isInt({ min: 1, max: 100 }).withMessage("Limit must be between 1 and 100"),
-  query("status").optional().isIn(["active", "suspended", "all"]).withMessage("Invalid status filter"),
+  query("status").optional().isIn(["active", "inactive", "suspended", "all"]).withMessage("Invalid status filter"),
   query("plan").optional().isIn(["free", "stitch", "drape", "atelier", "maison", "all"]).withMessage("Invalid plan filter"),
+];
+
+/* ── Admin Email Messaging ─────────────────────────────────── */
+export const validateDirectEmail = [
+  param("id").isMongoId().withMessage("Invalid vendor ID"),
+  body("subject").trim().notEmpty().withMessage("Subject is required").isLength({ max: 200 }),
+  body("message").trim().notEmpty().withMessage("Message is required").isLength({ max: 5000 }),
+];
+
+export const validateSegmentEmail = [
+  body("segment").optional().isIn(["active", "inactive", "suspended", "all"]).withMessage("Invalid segment"),
+  body("plan").optional().isIn(["free", "stitch", "drape", "atelier", "maison", "all"]).withMessage("Invalid plan filter"),
+  body("subject").trim().notEmpty().withMessage("Subject is required").isLength({ max: 200 }),
+  body("message").trim().notEmpty().withMessage("Message is required").isLength({ max: 5000 }),
 ];

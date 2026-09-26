@@ -1,6 +1,6 @@
 "use client";
 
-import { CreditCard, Users, AlertTriangle, TrendingDown } from "lucide-react";
+import { CreditCard, Users, TrendingDown } from "lucide-react";
 import {
   AdminPageHeader,
   AdminCard,
@@ -33,7 +33,7 @@ export default function AdminSubscriptionsPage() {
       />
 
       {/* MRR Summary */}
-      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-3">
+      <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2">
         <AdminCard>
           <div className="flex items-center gap-2 text-sm text-white/50">
             <CreditCard className="size-4" />
@@ -42,23 +42,12 @@ export default function AdminSubscriptionsPage() {
           {healthLoading ? (
             <div className="mt-2 h-8 w-24 animate-pulse rounded bg-white/5" />
           ) : (
-            <p className="mt-2 text-2xl font-semibold text-white">
-              {formatNaira(health?.totalMrr ?? 0)}
-            </p>
-          )}
-        </AdminCard>
-
-        <AdminCard>
-          <div className="flex items-center gap-2 text-sm text-white/50">
-            <AlertTriangle className="size-4 text-amber-400" />
-            Past Due Accounts
-          </div>
-          {healthLoading ? (
-            <div className="mt-2 h-8 w-16 animate-pulse rounded bg-white/5" />
-          ) : (
-            <p className="mt-2 text-2xl font-semibold text-amber-400">
-              {health?.pastDueVendors.length ?? 0}
-            </p>
+            <>
+              <p className="mt-2 text-2xl font-semibold text-white">
+                {formatNaira(health?.totalMrr ?? 0)}
+              </p>
+              <p className="mt-1 text-xs text-white/30">From active paying subscribers</p>
+            </>
           )}
         </AdminCard>
 
@@ -70,9 +59,12 @@ export default function AdminSubscriptionsPage() {
           {healthLoading ? (
             <div className="mt-2 h-8 w-16 animate-pulse rounded bg-white/5" />
           ) : (
-            <p className="mt-2 text-2xl font-semibold text-rose-400">
-              {health?.inactiveCount ?? 0}
-            </p>
+            <>
+              <p className="mt-2 text-2xl font-semibold text-rose-400">
+                {health?.inactiveCount ?? 0}
+              </p>
+              <p className="mt-1 text-xs text-white/30">Vendors not active in &gt;30 days</p>
+            </>
           )}
         </AdminCard>
       </div>
@@ -137,21 +129,24 @@ export default function AdminSubscriptionsPage() {
 
         {/* Per-tier subscriber breakdown */}
         <AdminCard>
-          <h2 className="mb-4 text-sm font-semibold text-white/70">
-            Subscribers by Tier
-          </h2>
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="text-sm font-semibold text-white/70">
+              Subscribers by Tier
+            </h2>
+            <span className="text-xs text-white/30">Active (≤30d) vs Inactive</span>
+          </div>
           {healthLoading ? (
             <AdminSkeleton rows={5} />
           ) : health?.tiers ? (
             <div className="space-y-3">
               {Object.entries(health.tiers).map(
-                ([plan, { active, pastDue, inactive, mrr }]) => (
+                ([plan, { active, inactive, mrr }]) => (
                   <div key={plan}>
                     <div className="mb-1.5 flex items-center justify-between">
                       <div className="flex items-center gap-2">
                         <PlanBadge plan={plan} />
                         <span className="text-xs text-white/40">
-                          {active + pastDue + inactive} vendors
+                          {active + inactive} vendors
                         </span>
                       </div>
                       <span className="text-xs font-medium text-white/60">
@@ -162,25 +157,18 @@ export default function AdminSubscriptionsPage() {
                       <div
                         className="h-full bg-emerald-500"
                         style={{
-                          width: `${(active / (active + pastDue + inactive || 1)) * 100}%`,
-                        }}
-                      />
-                      <div
-                        className="h-full bg-amber-500"
-                        style={{
-                          width: `${(pastDue / (active + pastDue + inactive || 1)) * 100}%`,
+                          width: `${(active / (active + inactive || 1)) * 100}%`,
                         }}
                       />
                       <div
                         className="h-full bg-white/10"
                         style={{
-                          width: `${(inactive / (active + pastDue + inactive || 1)) * 100}%`,
+                          width: `${(inactive / (active + inactive || 1)) * 100}%`,
                         }}
                       />
                     </div>
                     <div className="mt-1 flex gap-4 text-[10px] text-white/30">
                       <span className="text-emerald-400/70">{active} active</span>
-                      <span className="text-amber-400/70">{pastDue} past due</span>
                       <span>{inactive} inactive</span>
                     </div>
                   </div>
@@ -192,53 +180,6 @@ export default function AdminSubscriptionsPage() {
           )}
         </AdminCard>
       </div>
-
-      {/* Past Due Vendors */}
-      {health && health.pastDueVendors.length > 0 && (
-        <AdminCard>
-          <h2 className="mb-4 flex items-center gap-2 text-sm font-semibold text-amber-400/80">
-            <AlertTriangle className="size-4" />
-            Past Due Accounts ({health.pastDueVendors.length})
-          </h2>
-          <AdminTableShell>
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-white/[0.07]">
-                  {["Vendor", "Phone", "Plan", ""].map((h) => (
-                    <th
-                      key={h}
-                      className="px-4 py-2.5 text-left text-xs font-medium uppercase tracking-wider text-white/30"
-                    >
-                      {h}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-white/[0.04]">
-                {health.pastDueVendors.map((v) => (
-                  <tr key={v._id as string}>
-                    <td className="px-4 py-3 font-medium text-white/80">
-                      {v.businessName}
-                    </td>
-                    <td className="px-4 py-3 text-white/50">{v.phone}</td>
-                    <td className="px-4 py-3">
-                      <PlanBadge plan={v.subscriptionPlan ?? "free"} />
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      <Link
-                        href={`/admin/vendors/${v._id}`}
-                        className="text-xs text-indigo-400 hover:underline"
-                      >
-                        View →
-                      </Link>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </AdminTableShell>
-        </AdminCard>
-      )}
     </div>
   );
 }

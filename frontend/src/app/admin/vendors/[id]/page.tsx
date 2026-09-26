@@ -31,6 +31,7 @@ import {
   useToggleVendorStatus,
   useOverrideSubscription,
   useVendorAuditLog,
+  useSendVendorEmail,
 } from "@/hooks/useAdmin";
 import { format } from "date-fns";
 
@@ -44,6 +45,7 @@ export default function AdminVendorProfilePage() {
   const { data: auditLog } = useVendorAuditLog(id);
   const toggleStatus = useToggleVendorStatus();
   const overrideSub = useOverrideSubscription();
+  const sendEmail = useSendVendorEmail();
 
   const [activeTab, setActiveTab] = useState<"overview" | "audit">("overview");
   const [suspendModal, setSuspendModal] = useState(false);
@@ -52,6 +54,9 @@ export default function AdminVendorProfilePage() {
   const [subModal, setSubModal] = useState(false);
   const [newPlan, setNewPlan] = useState("");
   const [subReason, setSubReason] = useState("");
+  const [emailModal, setEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
 
   if (isLoading) {
     return (
@@ -112,7 +117,12 @@ export default function AdminVendorProfilePage() {
             </h1>
             <p className="text-sm text-white/40">@{vendor.handle}</p>
             <div className="mt-2 flex items-center gap-2">
-              <VendorStatusBadge isActive={vendor.isActive} />
+              <VendorStatusBadge
+                isActive={vendor.isActive}
+                lastLogin={vendor.lastLogin}
+                lastActiveAt={vendor.lastActiveAt}
+                activityStatus={vendor.activityStatus}
+              />
               <PlanBadge plan={vendor.subscriptionPlan ?? "free"} />
             </div>
           </div>
@@ -143,6 +153,12 @@ export default function AdminVendorProfilePage() {
             className="rounded-lg bg-indigo-500/10 px-4 py-2 text-sm font-medium text-indigo-400 ring-1 ring-indigo-500/20 transition-colors hover:bg-indigo-500/20"
           >
             Change Plan
+          </button>
+          <button
+            onClick={() => setEmailModal(true)}
+            className="rounded-lg bg-white/5 px-4 py-2 text-sm font-medium text-white/80 ring-1 border border-white/10 transition-colors hover:bg-white/10"
+          >
+            Send Email
           </button>
         </div>
       </div>
@@ -226,6 +242,16 @@ export default function AdminVendorProfilePage() {
                   icon: Clock,
                   label: "Sub Status",
                   value: vendor.subscriptionStatus ?? "—",
+                },
+                {
+                  icon: Clock,
+                  label: "Last Active",
+                  value: vendor.lastActiveAt || vendor.lastLogin
+                    ? format(
+                        new Date(vendor.lastActiveAt || vendor.lastLogin!),
+                        "MMM d, yyyy HH:mm",
+                      )
+                    : "Never active",
                 },
               ].map(({ icon: Icon, label, value }) => (
                 <div key={label} className="flex items-center gap-3">
@@ -425,6 +451,60 @@ export default function AdminVendorProfilePage() {
               value={subReason}
               onChange={(e) => setSubReason(e.target.value)}
               placeholder="e.g. Complimentary upgrade"
+              className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50"
+            />
+          </div>
+        </div>
+      </ConfirmModal>
+
+      {/* Send Email Modal */}
+      <ConfirmModal
+        open={emailModal}
+        title={`Send Email to ${vendor.businessName}`}
+        confirmLabel="Send Email"
+        onCancel={() => {
+          setEmailModal(false);
+          setEmailSubject("");
+          setEmailMessage("");
+        }}
+        onConfirm={() => {
+          if (!emailSubject || !emailMessage) return;
+          sendEmail.mutate(
+            { id, subject: emailSubject, message: emailMessage },
+            {
+              onSettled: () => {
+                setEmailModal(false);
+                setEmailSubject("");
+                setEmailMessage("");
+              },
+            },
+          );
+        }}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm text-white/50">Recipient Email</label>
+            <p className="mt-1 text-sm font-medium text-white/80">
+              {vendor.email || "No email on file"}
+            </p>
+          </div>
+          <div>
+            <label className="text-sm text-white/50">Subject</label>
+            <input
+              type="text"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="e.g. Account update from Vendra Admin"
+              className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50"
+            />
+          </div>
+          <div>
+            <label className="text-sm text-white/50">Message</label>
+            <textarea
+              value={emailMessage}
+              onChange={(e) => setEmailMessage(e.target.value)}
+              placeholder="Write your email message to this vendor…"
+              rows={4}
               className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50"
             />
           </div>
