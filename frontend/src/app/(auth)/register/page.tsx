@@ -5,7 +5,6 @@ import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import Image from "next/image";
 import {
   ArrowLeft,
   ArrowRight,
@@ -184,38 +183,38 @@ export default function RegisterPage() {
   };
 
   return (
-    <div className="flex gap-20 items-center h-full overflow-hidden">
+    <div className="w-full">
       {/* progress bar + step title */}
-      <div className="w-full">
-        <div className="flex flex-col items-center justify-center mb-1">
-          <div className="text-center">
-            <h1 className="text-2xl font-bold text-gray-900">
-              {stepTitles[currentStep - 1].title}
-            </h1>
-            <p className="text-sm text-gray-500">
-              {stepTitles[currentStep - 1].subtitle}
-            </p>
+      <div className="flex flex-col items-center justify-center mb-2">
+        <div className="text-center">
+          <h1 className="text-2xl font-bold text-gray-900">
+            {stepTitles[currentStep - 1].title}
+          </h1>
+          <p className="text-sm text-gray-500">
+            {stepTitles[currentStep - 1].subtitle}
+          </p>
+        </div>
+        <span className="text-xs text-gray-400 font-medium mt-1">
+          Step {currentStep} of {TOTAL_STEPS}
+        </span>
+        <div className="w-48 py-2">
+          {/* progress bar */}
+          <div className="flex gap-1.5">
+            {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
+              <div
+                key={i}
+                className={`h-1.5 rounded-full flex-1 transition-all duration-300 ${i < currentStep ? "bg-brand-600" : "bg-gray-200"}`}
+              />
+            ))}
           </div>
-          <span className="text-sm text-gray-400 font-medium">
-            {currentStep} / {TOTAL_STEPS}
-          </span>
-          <div className="w-1/2 py-2">
-            {/* progress bar */}
-            <div className="flex gap-1.5">
-              {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
-                <div
-                  key={i}
-                  className={`h-1.5 rounded-full flex-1 transition-all duration-300 ${i < currentStep ? "bg-brand-600" : "bg-gray-200"}`}
-                />
-              ))}
-            </div>
-          </div>
+        </div>
+      </div>
 
-          <form
-            onSubmit={handleSubmit(onSubmit)}
-            noValidate
-            className="py-2 w-full md:w-2/3 px-10"
-          >
+      <form
+        onSubmit={handleSubmit(onSubmit)}
+        noValidate
+        className="space-y-4 w-full"
+      >
             {/* STEP 1 - Business Info */}
             {currentStep === 1 && (
               <div className="space-y-4">
@@ -407,23 +406,6 @@ export default function RegisterPage() {
               Sign in →
             </Link>
           </p>
-        </div>
-      </div>
-
-      {/* IMAGE */}
-      <div className="relative hidden md:block w-full h-full overflow-hidden">
-        <div className="absolute w-full h-full bg-black/80" />
-        <Image
-          src="/storefront.jpg"
-          width={500}
-          height={500}
-          className="w-full"
-          alt="login_image"
-        />
-        <p className="absolute w-full bottom-10 text-xl font-semibold text-white left-100">
-          <span className="text-4xl">"</span>Precision is the new Aesthetic
-        </p>
-      </div>
     </div>
   );
 }
