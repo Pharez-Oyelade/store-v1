@@ -273,3 +273,60 @@ export function useExportData() {
     onError: () => toast.error("Export failed"),
   });
 }
+
+/* ─── Admin Email Messaging ──────────────────────────────────── */
+export function useSendVendorEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      id,
+      subject,
+      message,
+    }: {
+      id: string;
+      subject: string;
+      message: string;
+    }) => {
+      return apiPost<{ recipient: string }>(`/admin/vendors/${id}/email`, {
+        subject,
+        message,
+      });
+    },
+    onSuccess: (_, { id }) => {
+      qc.invalidateQueries({ queryKey: adminKeys.vendorAuditLog(id) });
+      toast.success("Email sent to vendor");
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message || "Failed to send email"),
+  });
+}
+
+export function useSendSegmentEmail() {
+  return useMutation({
+    mutationFn: async ({
+      segment,
+      plan,
+      subject,
+      message,
+    }: {
+      segment: "active" | "inactive" | "suspended" | "all";
+      plan?: string;
+      subject: string;
+      message: string;
+    }) => {
+      return apiPost<{ recipientCount: number }>("/admin/vendors/email-segment", {
+        segment,
+        plan,
+        subject,
+        message,
+      });
+    },
+    onSuccess: (data: any) => {
+      toast.success(
+        data?.message || `Email sent to ${data?.recipientCount ?? 0} vendors`,
+      );
+    },
+    onError: (err: any) =>
+      toast.error(err?.response?.data?.message || "Failed to send broadcast email"),
+  });
+}

@@ -18,12 +18,16 @@ import {
   updateAnnouncement,
   deleteAnnouncement,
   getActiveAnnouncementsForVendor,
+  sendDirectVendorEmail,
+  sendSegmentVendorEmail,
 } from "../controllers/admin.controller.js";
 import {
   validateVendorStatusToggle,
   validateSubscriptionOverride,
   validateAnnouncement,
   validateVendorListQuery,
+  validateDirectEmail,
+  validateSegmentEmail,
 } from "../validators/admin.validator.js";
 
 const router = Router();
@@ -51,6 +55,8 @@ router.get("/vendors/:id", getVendorProfile);
 router.get("/vendors/:id/audit-log", getVendorAuditLog);
 router.put("/vendors/:id/status", validateVendorStatusToggle, toggleVendorStatus);
 router.put("/vendors/:id/subscription", validateSubscriptionOverride, overrideVendorSubscription);
+router.post("/vendors/:id/email", validateDirectEmail, sendDirectVendorEmail);
+router.post("/vendors/email-segment", validateSegmentEmail, sendSegmentVendorEmail);
 
 /* ── Subscription Tiers & Billing ───────────────────────── */
 router.get("/subscriptions/tiers", getSubscriptionTiers);

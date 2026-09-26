@@ -91,6 +91,8 @@ const buildAuthUserResponse = (vendor, user = null) => {
     },
     subscriptionPlan: vendor.subscriptionPlan,
     subscriptionStatus: vendor.subscriptionStatus,
+    lastLogin: vendor.lastLogin,
+    lastActiveAt: vendor.lastActiveAt,
   };
 };
 
@@ -144,6 +146,8 @@ export const register = asyncHandler(async (req, res) => {
     phone: phone.trim(),
     email: email ? email.toLowerCase().trim() : undefined,
     password,
+    lastLogin: new Date(),
+    lastActiveAt: new Date(),
     subscriptionPlan: "stitch",
     subscriptionStatus: "active",
   });
@@ -232,6 +236,9 @@ export const login = asyncHandler(async (req, res) => {
 
     // Real-time subscription sync on login
     await syncVendorSubscription(vendor._id);
+    vendor.lastLogin = new Date();
+    vendor.lastActiveAt = new Date();
+    await vendor.save();
     const updatedVendor = await Vendor.findById(vendor._id);
 
     signTokenAndSetCookie(res, updatedVendor || vendor);

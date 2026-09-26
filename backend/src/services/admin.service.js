@@ -20,6 +20,7 @@ export async function getPlatformKPIs() {
   const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
   const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
   const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const [
     vendorStats,
@@ -36,7 +37,54 @@ export async function getPlatformKPIs() {
         $group: {
           _id: null,
           total: { $sum: 1 },
-          active: { $sum: { $cond: ["$isActive", 1, 0] } },
+          active: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$isActive", true] },
+                    {
+                      $gte: [
+                        { $ifNull: ["$lastActiveAt", "$lastLogin"] },
+                        thirtyDaysAgo,
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
+          inactive: {
+            $sum: {
+              $cond: [
+                {
+                  $and: [
+                    { $eq: ["$isActive", true] },
+                    {
+                      $or: [
+                        {
+                          $eq: [
+                            { $ifNull: ["$lastActiveAt", "$lastLogin"] },
+                            null,
+                          ],
+                        },
+                        {
+                          $lt: [
+                            { $ifNull: ["$lastActiveAt", "$lastLogin"] },
+                            thirtyDaysAgo,
+                          ],
+                        },
+                      ],
+                    },
+                  ],
+                },
+                1,
+                0,
+              ],
+            },
+          },
           suspended: { $sum: { $cond: ["$isActive", 0, 1] } },
         },
       },
@@ -81,9 +129,17 @@ export async function getPlatformKPIs() {
       createdAt: { $gte: startOfLastMonth, $lte: endOfLastMonth },
     }),
 
-    /* Subscription MRR breakdown */
+    /* Subscription MRR breakdown for active paying vendors */
     Vendor.aggregate([
-      { $match: { role: "vendor", isActive: true } },
+      {
+        $match: {
+          role: "vendor",
+          isActive: true,
+          $expr: {
+            $gte: [{ $ifNull: ["$lastActiveAt", "$lastLogin"] }, thirtyDaysAgo],
+          },
+        },
+      },
       {
         $group: {
           _id: "$subscriptionPlan",
@@ -104,7 +160,7 @@ export async function getPlatformKPIs() {
     tierBreakdown[plan] = { count: tier.count, revenue };
   }
 
-  const vendors = vendorStats[0] || { total: 0, active: 0, suspended: 0 };
+  const vendors = vendorStats[0] || { total: 0, active: 0, inactive: 0, suspended: 0 };
   const orders = orderStats[0] || { gmv: 0, totalOrders: 0, pendingOrders: 0, completedOrders: 0 };
 
   const avgOrderValue = orders.totalOrders > 0
@@ -123,6 +179,7 @@ export async function getPlatformKPIs() {
     vendors: {
       total: vendors.total,
       active: vendors.active,
+      inactive: vendors.inactive,
       suspended: vendors.suspended,
     },
     signups: {
@@ -157,8 +214,24 @@ export async function getVendorList({ page = 1, limit = 20, status, plan, search
 
   const filter = { role: "vendor" };
 
-  if (status === "active") filter.isActive = true;
-  if (status === "suspended") filter.isActive = false;
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  if (status === "active") {
+    filter.isActive = true;
+    filter.$expr = {
+      $gte: [{ $ifNull: ["$lastActiveAt", "$lastLogin"] }, thirtyDaysAgo],
+    };
+  } else if (status === "inactive") {
+    filter.isActive = true;
+    filter.$expr = {
+      $or: [
+        { $eq: [{ $ifNull: ["$lastActiveAt", "$lastLogin"] }, null] },
+        { $lt: [{ $ifNull: ["$lastActiveAt", "$lastLogin"] }, thirtyDaysAgo] },
+      ],
+    };
+  } else if (status === "suspended") {
+    filter.isActive = false;
+  }
 
   if (plan && plan !== "all") filter.subscriptionPlan = plan;
 
@@ -214,10 +287,18 @@ export async function getVendorList({ page = 1, limit = 20, status, plan, search
   const productMap = Object.fromEntries(productCounts.map((p) => [p._id.toString(), p.count]));
   const orderMap = Object.fromEntries(orderCounts.map((o) => [o._id.toString(), { count: o.count, revenue: o.revenue }]));
 
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
   const enriched = vendors.map((v) => {
     const id = v._id.toString();
+    const isSuspended = !v.isActive;
+    const effectiveActivity = v.lastActiveAt || v.lastLogin;
+    const isRecentlyActive = Boolean(
+      effectiveActivity && Date.now() - new Date(effectiveActivity).getTime() <= thirtyDaysMs
+    );
+    const computedStatus = isSuspended ? "suspended" : (isRecentlyActive ? "active" : "inactive");
     return {
       ...v.toJSON(),
+      activityStatus: computedStatus,
       productCount: productMap[id] || 0,
       orderCount: orderMap[id]?.count || 0,
       totalRevenue: orderMap[id]?.revenue || 0,
@@ -269,9 +350,17 @@ export async function getVendorById(vendorId) {
   if (!vendor) return null;
 
   const stats = orderStats[0] || { totalOrders: 0, totalRevenue: 0, avgOrderValue: 0 };
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  const isSuspended = !vendor.isActive;
+  const effectiveActivity = vendor.lastActiveAt || vendor.lastLogin;
+  const isRecentlyActive = Boolean(
+    effectiveActivity && Date.now() - new Date(effectiveActivity).getTime() <= thirtyDaysMs
+  );
+  const computedStatus = isSuspended ? "suspended" : (isRecentlyActive ? "active" : "inactive");
 
   return {
     ...vendor.toJSON(),
+    activityStatus: computedStatus,
     productCount,
     orderStats: stats,
     subscription,
@@ -374,6 +463,7 @@ export async function getTopPerformers(metric = "revenue", limit = 10) {
 export async function getVendorCohorts(months = 6) {
   const since = new Date();
   since.setMonth(since.getMonth() - months);
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
 
   const cohorts = await Vendor.aggregate([
     { $match: { role: "vendor", createdAt: { $gte: since } } },
@@ -384,7 +474,25 @@ export async function getVendorCohorts(months = 6) {
           month: { $month: "$createdAt" },
         },
         total: { $sum: 1 },
-        active: { $sum: { $cond: ["$isActive", 1, 0] } },
+        active: {
+          $sum: {
+            $cond: [
+              {
+                $and: [
+                  { $eq: ["$isActive", true] },
+                  {
+                    $gte: [
+                      { $ifNull: ["$lastActiveAt", "$lastLogin"] },
+                      thirtyDaysAgo,
+                    ],
+                  },
+                ],
+              },
+              1,
+              0,
+            ],
+          },
+        },
         paidSubscribers: {
           $sum: {
             $cond: [
@@ -420,43 +528,64 @@ export async function getVendorCohorts(months = 6) {
  * ═══════════════════════════════════════════════════════════════ */
 
 export async function getBillingHealth() {
-  const [planBreakdown, pastDue, inactive] = await Promise.all([
-    Vendor.aggregate([
-      { $match: { role: "vendor" } },
-      {
-        $group: {
-          _id: { plan: "$subscriptionPlan", status: "$subscriptionStatus" },
-          count: { $sum: 1 },
+  const thirtyDaysAgo = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000);
+
+  const planBreakdown = await Vendor.aggregate([
+    { $match: { role: "vendor" } },
+    {
+      $project: {
+        subscriptionPlan: 1,
+        isActiveVendor: {
+          $and: [
+            { $eq: ["$isActive", true] },
+            {
+              $gte: [
+                { $ifNull: ["$lastActiveAt", "$lastLogin"] },
+                thirtyDaysAgo,
+              ],
+            },
+          ],
         },
       },
-    ]),
-    Vendor.find({ role: "vendor", subscriptionStatus: "past_due" })
-      .select("businessName handle phone subscriptionPlan createdAt")
-      .limit(50),
-    Vendor.countDocuments({ role: "vendor", subscriptionStatus: "inactive" }),
+    },
+    {
+      $group: {
+        _id: { plan: "$subscriptionPlan", isActive: "$isActiveVendor" },
+        count: { $sum: 1 },
+      },
+    },
   ]);
 
   /* Build MRR and tier counts */
-  const tiers = {};
+  const tiers = {
+    free: { active: 0, inactive: 0, mrr: 0 },
+    stitch: { active: 0, inactive: 0, mrr: 0 },
+    drape: { active: 0, inactive: 0, mrr: 0 },
+    atelier: { active: 0, inactive: 0, mrr: 0 },
+    maison: { active: 0, inactive: 0, mrr: 0 },
+  };
   let totalMrr = 0;
+  let totalInactive = 0;
 
   for (const row of planBreakdown) {
-    const plan = row._id.plan;
-    const status = row._id.status;
-    if (!tiers[plan]) tiers[plan] = { active: 0, pastDue: 0, inactive: 0, mrr: 0 };
-    tiers[plan][status === "past_due" ? "pastDue" : status] += row.count;
-    if (status === "active") {
+    const plan = row._id.plan || "free";
+    const isActive = Boolean(row._id.isActive);
+    if (!tiers[plan]) tiers[plan] = { active: 0, inactive: 0, mrr: 0 };
+    if (isActive) {
+      tiers[plan].active += row.count;
       const planRevenue = (PLAN_PRICES[plan] || 0) * row.count;
       tiers[plan].mrr += planRevenue;
       totalMrr += planRevenue;
+    } else {
+      tiers[plan].inactive += row.count;
+      totalInactive += row.count;
     }
   }
 
   return {
     totalMrr,
     tiers,
-    pastDueVendors: pastDue,
-    inactiveCount: inactive,
+    inactiveCount: totalInactive,
   };
 }
 

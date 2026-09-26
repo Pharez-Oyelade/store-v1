@@ -53,6 +53,13 @@ export const protect = asyncHandler(async (req, res, next) => {
 
     await syncVendorSubscription(vendor._id);
 
+    // Throttled activity touch (at most once every 15 minutes)
+    const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+    if (!vendor.lastActiveAt || Date.now() - new Date(vendor.lastActiveAt).getTime() > FIFTEEN_MINUTES_MS) {
+      Vendor.updateOne({ _id: vendor._id }, { $set: { lastActiveAt: new Date() } }).exec().catch(() => {});
+      vendor.lastActiveAt = new Date();
+    }
+
     req.vendor = vendor;
     req.teamMember = member;
     req.user = {
@@ -83,6 +90,13 @@ export const protect = asyncHandler(async (req, res, next) => {
   }
 
   await syncVendorSubscription(vendor._id);
+
+  // Throttled activity touch (at most once every 15 minutes)
+  const FIFTEEN_MINUTES_MS = 15 * 60 * 1000;
+  if (!vendor.lastActiveAt || Date.now() - new Date(vendor.lastActiveAt).getTime() > FIFTEEN_MINUTES_MS) {
+    Vendor.updateOne({ _id: vendor._id }, { $set: { lastActiveAt: new Date() } }).exec().catch(() => {});
+    vendor.lastActiveAt = new Date();
+  }
 
   req.vendor = vendor;
   req.user = {

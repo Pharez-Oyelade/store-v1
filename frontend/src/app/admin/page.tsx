@@ -55,7 +55,7 @@ export default function AdminOverviewPage() {
             <KpiCard
               label="Active Vendors"
               value={kpis.vendors.active.toLocaleString()}
-              sub={`${kpis.vendors.suspended} suspended`}
+              sub={`${kpis.vendors.inactive ?? 0} inactive · ${kpis.vendors.suspended} suspended`}
               icon={Users}
               tone="indigo"
             />
