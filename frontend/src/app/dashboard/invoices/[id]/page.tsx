@@ -158,7 +158,7 @@ export default function InvoiceDetailPage() {
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-16">
       {/* Top Navigation */}
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <div className="flex items-center gap-3">
           <Link
             href="/dashboard/invoices"
@@ -193,12 +193,13 @@ export default function InvoiceDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
-          {pendingProofs.length > 0 && (
+          {/* {pendingProofs.length > 0 && (
             <span className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-amber-100 text-amber-800 border border-amber-200 text-xs font-bold animate-pulse">
               <Clock className="w-3.5 h-3.5 text-amber-600" />
-              {pendingProofs.length} Proof{pendingProofs.length > 1 ? "s" : ""} Pending Review
+              {pendingProofs.length} Proof{pendingProofs.length > 1 ? "s" : ""}{" "}
+              Pending Review
             </span>
-          )}
+          )} */}
           <button
             type="button"
             onClick={() => window.print()}
@@ -228,16 +229,17 @@ export default function InvoiceDetailPage() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2 text-amber-900 font-bold text-xs uppercase tracking-wider">
               <Clock className="w-4 h-4 text-amber-600" />
-              <span>Customer Bank Transfer Proofs Requiring Review ({pendingProofs.length})</span>
+              <span>
+                Customer Bank Transfer Proofs Requiring Review (
+                {pendingProofs.length})
+              </span>
             </div>
-            <span className="text-[11px] font-semibold text-amber-700 bg-amber-100/80 px-2 py-0.5 rounded-full border border-amber-200">
-              Action Required
-            </span>
           </div>
 
           <div className="space-y-3">
             {pendingProofs.map((proof) => {
-              const isBusy = verifyingProofId === proof._id && verifyProof.isPending;
+              const isBusy =
+                verifyingProofId === proof._id && verifyProof.isPending;
               return (
                 <div
                   key={proof._id}
@@ -259,7 +261,10 @@ export default function InvoiceDetailPage() {
                       </span>
                       {proof.reference && (
                         <span className="text-gray-400 ml-2">
-                          Ref: <code className="text-gray-600 font-mono text-[11px]">{proof.reference}</code>
+                          Ref:{" "}
+                          <code className="text-gray-600 font-mono text-[11px]">
+                            {proof.reference}
+                          </code>
                         </span>
                       )}
                     </p>
@@ -286,7 +291,7 @@ export default function InvoiceDetailPage() {
                           },
                           {
                             onSettled: () => setVerifyingProofId(null),
-                          }
+                          },
                         );
                       }}
                       disabled={verifyProof.isPending}
@@ -306,7 +311,7 @@ export default function InvoiceDetailPage() {
                           },
                           {
                             onSettled: () => setVerifyingProofId(null),
-                          }
+                          },
                         );
                       }}
                       disabled={verifyProof.isPending}
@@ -317,7 +322,9 @@ export default function InvoiceDetailPage() {
                       ) : (
                         <CheckCircle2 className="w-3.5 h-3.5" />
                       )}
-                      <span>{isBusy ? "Approving..." : "Approve & Credit"}</span>
+                      <span>
+                        {isBusy ? "Approving..." : "Approve & Credit"}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -412,7 +419,7 @@ export default function InvoiceDetailPage() {
       )}
 
       {/* Financial Overview Strip */}
-      <div className="grid grid-cols-3 gap-4">
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
         <div className="bg-white rounded-2xl p-4.5 border border-gray-100 shadow-xs">
           <p className="text-xs font-semibold text-gray-400">Total Invoiced</p>
           <p

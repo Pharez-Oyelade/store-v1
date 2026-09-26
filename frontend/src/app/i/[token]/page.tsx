@@ -34,11 +34,15 @@ export default function PublicInvoicePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const token = params?.token as string;
-  const redirectRef = searchParams.get("reference") || searchParams.get("trxref");
+  const redirectRef =
+    searchParams.get("reference") || searchParams.get("trxref");
 
   const [isVerifying, setIsVerifying] = useState(false);
   const verifyPayment = useVerifyInvoicePayment();
-  const { initializePayment: initializePaystackPopup, isLoaded: isPaystackLoaded } = usePaystackInline();
+  const {
+    initializePayment: initializePaystackPopup,
+    isLoaded: isPaystackLoaded,
+  } = usePaystackInline();
 
   const [activeTab, setActiveTab] = useState<"card" | "transfer">("card");
   const [copiedAccount, setCopiedAccount] = useState(false);
@@ -87,7 +91,9 @@ export default function PublicInvoicePage() {
       }
 
       setIsVerifying(true);
-      const loadingToast = toast.loading("Verifying your payment with Paystack...");
+      const loadingToast = toast.loading(
+        "Verifying your payment with Paystack...",
+      );
       verifyPayment.mutate(
         { token, reference: redirectRef },
         {
@@ -138,9 +144,12 @@ export default function PublicInvoicePage() {
 
   const vendor = typeof invoice.vendor === "object" ? invoice.vendor : null;
   const isCancelled = invoice.status === "cancelled";
-  const isPaid = !isCancelled && (invoice.status === "paid" || invoice.balanceDue <= 0);
+  const isPaid =
+    !isCancelled && (invoice.status === "paid" || invoice.balanceDue <= 0);
   const isPartiallyPaid =
-    !isCancelled && invoice.status === "partially_paid" && invoice.balanceDue > 0;
+    !isCancelled &&
+    invoice.status === "partially_paid" &&
+    invoice.balanceDue > 0;
   const hasPendingProof =
     !isCancelled &&
     invoice.manualPaymentProofs?.some((p) => p.status === "pending");
@@ -266,7 +275,8 @@ export default function PublicInvoicePage() {
           <div className="bg-brand-50 border border-brand-200 rounded-3xl p-4 flex items-center justify-center gap-3 text-brand-900 shadow-sm animate-pulse">
             <Loader2 className="w-5 h-5 text-brand-600 animate-spin" />
             <span className="text-xs font-bold">
-              Confirming payment with Paystack... Please do not close this window.
+              Confirming payment with Paystack... Please do not close this
+              window.
             </span>
           </div>
         )}
@@ -350,7 +360,8 @@ export default function PublicInvoicePage() {
               >
                 {isCancelled ? (
                   <>
-                    <Ban className="w-3.5 h-3.5 text-rose-300" /> Cancelled & Voided
+                    <Ban className="w-3.5 h-3.5 text-rose-300" /> Cancelled &
+                    Voided
                   </>
                 ) : isPaid ? (
                   <>
@@ -381,7 +392,8 @@ export default function PublicInvoicePage() {
 
               {isCancelled ? (
                 <p className="text-xs text-rose-200 mt-1 max-w-md">
-                  This invoice has been cancelled by the merchant and is no longer active or payable.
+                  This invoice has been cancelled by the merchant and is no
+                  longer active or payable.
                 </p>
               ) : invoice.totalPaid > 0 ? (
                 <p className="text-xs text-white/80 mt-1">
@@ -547,7 +559,9 @@ export default function PublicInvoicePage() {
               Invoice Cancelled
             </h3>
             <p className="text-xs text-gray-600 max-w-md mx-auto leading-relaxed">
-              This invoice has been voided by the merchant. Online checkout and bank transfer payments are deactivated. If you have any inquiries, please contact the merchant directly.
+              This invoice has been voided by the merchant. Online checkout and
+              bank transfer payments are deactivated. If you have any inquiries,
+              please contact the merchant directly.
             </p>
           </div>
         )}
@@ -592,7 +606,7 @@ export default function PublicInvoicePage() {
               <label className="block text-xs font-semibold text-gray-700 mb-1.5">
                 Amount to Pay (₦)
               </label>
-              <div className="flex gap-2">
+              <div className="flex gap-2 flex-wrap">
                 <input
                   type="number"
                   value={customPayAmount}
@@ -638,13 +652,23 @@ export default function PublicInvoicePage() {
                 <button
                   type="button"
                   onClick={handlePayOnline}
-                  disabled={initPayment.isPending || isVerifying || verifyPayment.isPending}
+                  disabled={
+                    initPayment.isPending ||
+                    isVerifying ||
+                    verifyPayment.isPending
+                  }
                   className="w-full py-3.5 px-4 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white font-bold text-sm rounded-2xl shadow-sm transition-all flex items-center justify-center gap-2 cursor-pointer disabled:opacity-50"
                 >
-                  {initPayment.isPending || isVerifying || verifyPayment.isPending ? (
+                  {initPayment.isPending ||
+                  isVerifying ||
+                  verifyPayment.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>{isVerifying || verifyPayment.isPending ? "Confirming Payment..." : "Opening Secure Checkout..."}</span>
+                      <span>
+                        {isVerifying || verifyPayment.isPending
+                          ? "Confirming Payment..."
+                          : "Opening Secure Checkout..."}
+                      </span>
                     </>
                   ) : (
                     <>
