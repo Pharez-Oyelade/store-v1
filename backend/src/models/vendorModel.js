@@ -96,6 +96,16 @@ const vendorSchema = new mongoose.Schema(
       default: true,
     },
 
+    lastLogin: {
+      type: Date,
+      default: null,
+    },
+
+    lastActiveAt: {
+      type: Date,
+      default: null,
+    },
+
     /* ── Subscription (populated later) ──────────────── */
     subscriptionPlan: {
       type: String,
@@ -105,7 +115,7 @@ const vendorSchema = new mongoose.Schema(
 
     subscriptionStatus: {
       type: String,
-      enum: ["active", "inactive", "past_due"],
+      enum: ["active", "inactive"],
       default: "active",
     },
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Search, ChevronLeft, ChevronRight, ExternalLink } from "lucide-react";
+import { Search, ChevronLeft, ChevronRight, ExternalLink, Mail } from "lucide-react";
 import Link from "next/link";
 import {
   AdminPageHeader,
@@ -10,11 +10,12 @@ import {
   PlanBadge,
   AdminEmptyState,
   AdminSkeleton,
+  ConfirmModal,
   formatNaira,
 } from "@/components/admin/AdminPrimitives";
-import { useAdminVendors } from "@/hooks/useAdmin";
+import { useAdminVendors, useSendSegmentEmail } from "@/hooks/useAdmin";
 import type { AdminVendorQueryParams, SubscriptionPlan } from "@/types";
-import { format } from "date-fns";
+import { format, formatDistanceToNow } from "date-fns";
 
 const PLAN_FILTERS = [
   "all",
@@ -26,7 +27,8 @@ const PLAN_FILTERS = [
 ] as const;
 const STATUS_FILTERS = [
   { value: "all", label: "All" },
-  { value: "active", label: "Active" },
+  { value: "active", label: "Active (≤30d)" },
+  { value: "inactive", label: "Inactive (>30d)" },
   { value: "suspended", label: "Suspended" },
 ] as const;
 
@@ -54,6 +56,12 @@ export default function AdminVendorsPage() {
   }, [searchInput]);
 
   const { data, isLoading } = useAdminVendors(params);
+  const sendSegmentEmail = useSendSegmentEmail();
+
+  const [emailModal, setEmailModal] = useState(false);
+  const [emailSubject, setEmailSubject] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailSegment, setEmailSegment] = useState<"active" | "inactive" | "suspended" | "all">("all");
 
   const vendors = data?.vendors ?? [];
   const pagination = data?.pagination;
@@ -63,6 +71,18 @@ export default function AdminVendorsPage() {
       <AdminPageHeader
         title="Vendor Directory"
         description="Manage all vendors on the Vendra platform"
+        action={
+          <button
+            onClick={() => {
+              setEmailSegment(params.status === "all" ? "all" : (params.status as any));
+              setEmailModal(true);
+            }}
+            className="flex items-center gap-2 rounded-lg bg-indigo-500/15 px-3.5 py-2 text-xs font-medium text-indigo-300 ring-1 ring-indigo-500/30 transition-colors hover:bg-indigo-500/25"
+          >
+            <Mail className="size-3.5" />
+            Email Vendors
+          </button>
+        }
       />
 
       {/* Filters */}
@@ -137,6 +157,7 @@ export default function AdminVendorsPage() {
                 "Products",
                 "Orders",
                 "Revenue",
+                "Last Active",
                 "Joined",
                 "",
               ].map((h) => (
@@ -152,13 +173,13 @@ export default function AdminVendorsPage() {
           <tbody className="divide-y divide-white/[0.04]">
             {isLoading ? (
               <tr>
-                <td colSpan={9} className="px-4 py-8">
+                <td colSpan={10} className="px-4 py-8">
                   <AdminSkeleton rows={5} />
                 </td>
               </tr>
             ) : vendors.length === 0 ? (
               <tr>
-                <td colSpan={9} className="px-4 py-12">
+                <td colSpan={10} className="px-4 py-12">
                   <AdminEmptyState
                     title="No vendors found"
                     description="Try adjusting your search or filters"
@@ -203,7 +224,12 @@ export default function AdminVendorsPage() {
                     <PlanBadge plan={vendor.subscriptionPlan ?? "free"} />
                   </td>
                   <td className="px-4 py-3">
-                    <VendorStatusBadge isActive={vendor.isActive} />
+                    <VendorStatusBadge
+                      isActive={vendor.isActive}
+                      lastLogin={vendor.lastLogin}
+                      lastActiveAt={vendor.lastActiveAt}
+                      activityStatus={vendor.activityStatus}
+                    />
                   </td>
                   <td className="px-4 py-3 text-right text-white/50">
                     {vendor.productCount ?? 0}
@@ -213,6 +239,14 @@ export default function AdminVendorsPage() {
                   </td>
                   <td className="px-4 py-3 text-right font-medium text-white/70">
                     {formatNaira(vendor.totalRevenue ?? 0)}
+                  </td>
+                  <td className="px-4 py-3 text-xs text-white/40">
+                    {vendor.lastActiveAt || vendor.lastLogin
+                      ? formatDistanceToNow(
+                          new Date(vendor.lastActiveAt || vendor.lastLogin!),
+                          { addSuffix: true },
+                        )
+                      : "Never"}
                   </td>
                   <td className="px-4 py-3 text-xs text-white/30">
                     {format(new Date(vendor.createdAt), "MMM d, yyyy")}
@@ -262,6 +296,74 @@ export default function AdminVendorsPage() {
           </div>
         </div>
       )}
+
+      {/* Broadcast Email Modal */}
+      <ConfirmModal
+        open={emailModal}
+        title="Email Vendor Audience"
+        confirmLabel="Send Email"
+        onCancel={() => {
+          setEmailModal(false);
+          setEmailSubject("");
+          setEmailMessage("");
+        }}
+        onConfirm={() => {
+          if (!emailSubject || !emailMessage) return;
+          sendSegmentEmail.mutate(
+            {
+              segment: emailSegment,
+              plan: params.plan !== "all" ? params.plan : undefined,
+              subject: emailSubject,
+              message: emailMessage,
+            },
+            {
+              onSettled: () => {
+                setEmailModal(false);
+                setEmailSubject("");
+                setEmailMessage("");
+              },
+            },
+          );
+        }}
+      >
+        <div className="space-y-3">
+          <div>
+            <label className="text-sm text-white/50">Target Audience</label>
+            <select
+              value={emailSegment}
+              onChange={(e) => setEmailSegment(e.target.value as any)}
+              className="mt-1.5 w-full rounded-lg border border-white/10 bg-[#161B22] px-3 py-2 text-sm text-white outline-none focus:border-indigo-500/50"
+            >
+              <option value="all">All Vendors</option>
+              <option value="active">Active Vendors (Logged in within 30 days)</option>
+              <option value="inactive">Inactive Vendors (Not logged in within 30 days)</option>
+              <option value="suspended">Suspended Vendors</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm text-white/50">Subject</label>
+            <input
+              type="text"
+              value={emailSubject}
+              onChange={(e) => setEmailSubject(e.target.value)}
+              placeholder="e.g. Action Required / Exclusive Offer"
+              className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50"
+            />
+          </div>
+
+          <div>
+            <label className="text-sm text-white/50">Message</label>
+            <textarea
+              value={emailMessage}
+              onChange={(e) => setEmailMessage(e.target.value)}
+              placeholder="Write your email announcement or re-engagement message here…"
+              rows={4}
+              className="mt-1.5 w-full rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder:text-white/20 outline-none focus:border-indigo-500/50"
+            />
+          </div>
+        </div>
+      </ConfirmModal>
     </div>
   );
 }

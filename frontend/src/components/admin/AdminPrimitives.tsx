@@ -104,23 +104,53 @@ export function AdminPageHeader({
 }
 
 /* ─── Vendor Status Badge ─────────────────────────────────────── */
-export function VendorStatusBadge({ isActive }: { isActive: boolean }) {
+export function VendorStatusBadge({
+  isActive = true,
+  lastLogin,
+  lastActiveAt,
+  activityStatus,
+}: {
+  isActive?: boolean;
+  lastLogin?: string | Date | null;
+  lastActiveAt?: string | Date | null;
+  activityStatus?: "active" | "inactive" | "suspended";
+}) {
+  const thirtyDaysMs = 30 * 24 * 60 * 60 * 1000;
+  const effectiveActivity = lastActiveAt || lastLogin;
+
+  let status: "active" | "inactive" | "suspended" = "active";
+  if (!isActive) {
+    status = "suspended";
+  } else if (activityStatus) {
+    status = activityStatus;
+  } else if (!effectiveActivity || Date.now() - new Date(effectiveActivity).getTime() > thirtyDaysMs) {
+    status = "inactive";
+  } else {
+    status = "active";
+  }
+
+  if (status === "suspended") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/20">
+        <span className="size-1.5 rounded-full bg-rose-400" />
+        Suspended
+      </span>
+    );
+  }
+
+  if (status === "inactive") {
+    return (
+      <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-white/10 text-white/50 ring-1 ring-white/15">
+        <span className="size-1.5 rounded-full bg-white/40" />
+        Inactive
+      </span>
+    );
+  }
+
   return (
-    <span
-      className={cn(
-        "inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium",
-        isActive
-          ? "bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20"
-          : "bg-rose-500/10 text-rose-400 ring-1 ring-rose-500/20",
-      )}
-    >
-      <span
-        className={cn(
-          "size-1.5 rounded-full",
-          isActive ? "bg-emerald-400" : "bg-rose-400",
-        )}
-      />
-      {isActive ? "Active" : "Suspended"}
+    <span className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium bg-emerald-500/10 text-emerald-400 ring-1 ring-emerald-500/20">
+      <span className="size-1.5 rounded-full bg-emerald-400" />
+      Active
     </span>
   );
 }

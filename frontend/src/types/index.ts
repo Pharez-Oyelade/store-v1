@@ -232,6 +232,8 @@ export interface Vendor {
     orderCompletedTemplate?: string;
   };
   isActive: boolean;
+  lastLogin?: string;
+  lastActiveAt?: string;
   subscription?: Subscription;
   subscriptionPlan?: SubscriptionPlan;
   subscriptionStatus?: SubscriptionStatus;
@@ -654,6 +656,7 @@ export interface AuditLog {
 
 /** Full vendor profile as returned by the admin API, enriched with stats */
 export interface AdminVendor extends Vendor {
+  activityStatus?: "active" | "inactive" | "suspended";
   productCount: number;
   orderCount: number;
   totalRevenue: number;
@@ -670,6 +673,7 @@ export interface PlatformKPIs {
   vendors: {
     total: number;
     active: number;
+    inactive?: number;
     suspended: number;
   };
   signups: {
@@ -735,9 +739,9 @@ export interface BillingHealth {
   totalMrr: number;
   tiers: Record<
     string,
-    { active: number; pastDue: number; inactive: number; mrr: number }
+    { active: number; pastDue?: number; inactive: number; mrr: number }
   >;
-  pastDueVendors: Pick<
+  pastDueVendors?: Pick<
     Vendor,
     "_id" | "businessName" | "handle" | "phone" | "subscriptionPlan"
   >[];
@@ -748,7 +752,7 @@ export interface BillingHealth {
 export interface AdminVendorQueryParams {
   page?: number;
   limit?: number;
-  status?: "active" | "suspended" | "all";
+  status?: "active" | "inactive" | "suspended" | "all";
   plan?: SubscriptionPlan | "all";
   search?: string;
   sort?: "newest" | "oldest" | "name";
