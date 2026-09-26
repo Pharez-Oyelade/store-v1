@@ -10,6 +10,7 @@ const PRECACHE_ASSETS = [
   "/vendra-logo.svg",
   "/vendra-icon.svg",
   "/storefront.jpg",
+  "/auth-image.webp",
 ];
 
 // Fallback branded HTML page in case no cached page or /offline route exists
@@ -104,7 +105,7 @@ self.addEventListener("fetch", (event) => {
       caches.open(CACHE_NAME).then(async (cache) => {
         const cachedResponse = await cache.match(request);
         if (cachedResponse) {
-          // Next.js static chunks are immutable (hashed filenames). 
+          // Next.js static chunks are immutable (hashed filenames).
           // Never revalidate them in the background to prevent network spam.
           return cachedResponse;
         }
