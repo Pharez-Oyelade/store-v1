@@ -73,6 +73,7 @@ export function useCreateOrder() {
       queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success("Order created successfully");
     },
     onError: (error: Error) => {
@@ -91,6 +92,7 @@ export function useUpdateOrder(id: string) {
       queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       queryClient.setQueryData(ORDER_KEYS.detail(id), updated);
       toast.success("Order updated");
     },
@@ -110,6 +112,7 @@ export function useDeleteOrder() {
       queryClient.invalidateQueries({ queryKey: ORDER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: CUSTOMER_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success("Order deleted");
     },
     onError: (error: Error) => {

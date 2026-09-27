@@ -30,6 +30,7 @@ import { useNetworkStore } from "@/store/networkStore";
 import { getInitials } from "@/lib/utils";
 import { useLogout } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useBadgeCounts } from "@/hooks/useBadgeCounts";
 import Logo from "../brand/Logo";
 
 export const NAV_ITEMS = [
@@ -239,6 +240,21 @@ export default function DashboardSidebar() {
     isPathAllowedForRole(item.href, userRole),
   );
 
+  const { badgeCounts } = useBadgeCounts();
+
+  const getBadgeForItem = (href: string) => {
+    if (href === "/dashboard/orders" && badgeCounts.orders > 0) {
+      return { count: badgeCounts.orders, variant: "warning" as const };
+    }
+    if (href === "/dashboard/invoices" && badgeCounts.invoices > 0) {
+      return { count: badgeCounts.invoices, variant: "warning" as const };
+    }
+    if (href === "/dashboard/demands" && badgeCounts.demands > 0) {
+      return { count: badgeCounts.demands, variant: "urgent" as const };
+    }
+    return null;
+  };
+
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
@@ -267,6 +283,8 @@ export default function DashboardSidebar() {
         {visibleNavItems.map((item) => {
           const Icon = item.icon;
           const active = isActive(item.href);
+          const actionBadge = getBadgeForItem(item.href);
+
           return (
             <Link
               key={item.href}
@@ -281,13 +299,37 @@ export default function DashboardSidebar() {
               )}
             >
               <div className="flex items-center gap-3">
-                <Icon className="w-5 h-5 shrink-0 text-white" />
+                <div className="relative shrink-0 flex items-center justify-center">
+                  <Icon className="w-5 h-5 shrink-0 text-white" />
+                  {collapsed && actionBadge && (
+                    <span
+                      className={cn(
+                        "absolute -top-1.5 -right-2 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-sm ring-2 ring-[#0f1117]",
+                        actionBadge.variant === "urgent" ? "bg-rose-600" : "bg-amber-500",
+                      )}
+                      title={`${actionBadge.count} actionable item${actionBadge.count > 1 ? "s" : ""}`}
+                    >
+                      {actionBadge.count > 9 ? "9+" : actionBadge.count}
+                    </span>
+                  )}
+                </div>
                 {!collapsed && <span className="text-white">{item.label}</span>}
               </div>
-              {!collapsed && item.badge && (
-                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                  {item.badge}
-                </span>
+              {!collapsed && (
+                actionBadge ? (
+                  <span
+                    className={cn(
+                      "text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-xs min-w-[20px] text-center",
+                      actionBadge.variant === "urgent" ? "bg-rose-600" : "bg-amber-500",
+                    )}
+                  >
+                    {actionBadge.count > 99 ? "99+" : actionBadge.count}
+                  </span>
+                ) : item.badge ? (
+                  <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-amber-500/20 text-amber-300 border border-amber-500/30">
+                    {item.badge}
+                  </span>
+                ) : null
               )}
             </Link>
           );
