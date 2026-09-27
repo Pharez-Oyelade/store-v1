@@ -37,9 +37,17 @@ export async function generateMetadata({
     return { title: "Store Not Found" };
   }
 
+  const description = vendor.bio || `Shop products and request bespoke designs from ${vendor.businessName} on Vendra.`;
+
   return {
     title: vendor.businessName,
-    description: vendor.bio || `Shop products and request bespoke designs from ${vendor.businessName} on Vendra.`,
+    description,
+    openGraph: {
+      title: vendor.businessName,
+      description,
+      images: vendor.logo ? [{ url: vendor.logo, width: 400, height: 400, alt: vendor.businessName }] : [{ url: "/og-image.png" }],
+      type: "website",
+    },
   };
 }
 
