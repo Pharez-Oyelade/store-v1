@@ -89,6 +89,7 @@ export function useCreateInvoice() {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
+      qc.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success(`Invoice #${newInvoice.invoiceNumber} created!`);
     },
     onError: (err: any) => {
@@ -121,6 +122,7 @@ export function useRecordManualPayment() {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
+      qc.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success("Payment recorded successfully!");
     },
     onError: (err: any) => {
@@ -151,6 +153,7 @@ export function useVerifyPaymentProof() {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
       qc.invalidateQueries({ queryKey: ["orders"] });
       qc.invalidateQueries({ queryKey: ["analytics"] });
+      qc.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success(
         vars.action === "approve"
           ? "Payment approved and credited to balance!"
@@ -171,6 +174,7 @@ export function useCancelInvoice() {
     onSuccess: (updated) => {
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.detail(updated._id) });
       qc.invalidateQueries({ queryKey: INVOICE_KEYS.all });
+      qc.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success("Invoice marked as cancelled");
     },
     onError: (err: any) => {
