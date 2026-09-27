@@ -77,6 +77,8 @@ export const createProduct = asyncHandler(async (req, res) => {
     description,
     category,
     tags,
+    hasVariants,
+    variantOptions,
     variants,
     status,
     lowStockThreshold,
@@ -92,6 +94,19 @@ export const createProduct = asyncHandler(async (req, res) => {
     }
   }
 
+  let parsedVariantOptions = [];
+  if (variantOptions) {
+    if (typeof variantOptions === "string") {
+      try {
+        parsedVariantOptions = JSON.parse(variantOptions);
+      } catch {
+        parsedVariantOptions = [];
+      }
+    } else if (Array.isArray(variantOptions)) {
+      parsedVariantOptions = variantOptions;
+    }
+  }
+
   // Upload files to Cloudinary with automatic cleanup on partial failure
   const images = await uploadMultipleImages(req.files || []);
 
@@ -103,6 +118,8 @@ export const createProduct = asyncHandler(async (req, res) => {
     tags:
       typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags,
     images,
+    hasVariants: hasVariants === true || hasVariants === "true",
+    variantOptions: parsedVariantOptions,
     variants: parsedVariants,
     status: status || "draft",
     lowStockThreshold: lowStockThreshold ?? 5,
@@ -127,6 +144,8 @@ export const updateProduct = asyncHandler(async (req, res) => {
     description,
     category,
     tags,
+    hasVariants,
+    variantOptions,
     variants,
     status,
     lowStockThreshold,
@@ -147,6 +166,19 @@ export const updateProduct = asyncHandler(async (req, res) => {
     }
     if (!Array.isArray(parsedVariants) || parsedVariants.length === 0) {
       return sendError(res, "Variants must be a non-empty array", 400);
+    }
+  }
+
+  let parsedVariantOptions = undefined;
+  if (variantOptions !== undefined) {
+    if (typeof variantOptions === "string") {
+      try {
+        parsedVariantOptions = JSON.parse(variantOptions);
+      } catch {
+        parsedVariantOptions = [];
+      }
+    } else if (Array.isArray(variantOptions)) {
+      parsedVariantOptions = variantOptions;
     }
   }
 
@@ -173,6 +205,12 @@ export const updateProduct = asyncHandler(async (req, res) => {
   if (name !== undefined) product.name = name;
   if (description !== undefined) product.description = description;
   if (category !== undefined) product.category = category;
+  if (hasVariants !== undefined) {
+    product.hasVariants = hasVariants === true || hasVariants === "true";
+  }
+  if (parsedVariantOptions !== undefined) {
+    product.variantOptions = parsedVariantOptions;
+  }
   if (tags !== undefined) {
     product.tags =
       typeof tags === "string" ? tags.split(",").map((t) => t.trim()) : tags;

@@ -174,6 +174,12 @@ export interface CloudinaryImage {
   publicId: string;
 }
 
+// variant option dimension configured for a product (e.g., Size, Length, Color)
+export interface VariantOptionDimension {
+  name: string;
+  values: string[];
+}
+
 // product variant
 export interface ProductVariant {
   _id?: string; // optional for new variants that haven't been saved yet
@@ -181,6 +187,10 @@ export interface ProductVariant {
   price: number;
   size?: string;
   color?: string;
+  length?: string; // Mini, Midi, Maxi, Regular, Tall, Petite
+  fit?: string; // Slim, Regular, Oversized, Bodycon
+  sleeve?: string; // Sleeveless, Short Sleeve, Long Sleeve, Puff Sleeve
+  options?: Record<string, string>; // Dynamic / custom dimensions
   custom?: string; // for any additional variant-specific info
   sku?: string; // optional SKU for inventory tracking
   quantity: number;
@@ -195,6 +205,8 @@ export interface Product {
   category?: string;
   tags?: string[];
   images: CloudinaryImage[];
+  hasVariants?: boolean;
+  variantOptions?: VariantOptionDimension[];
   variants: ProductVariant[];
   basePrice: number; // price of the cheapest variant, for sorting
   status: ProductStatus;

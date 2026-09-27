@@ -83,11 +83,122 @@ export const DEFAULT_COLORS = [
   "Multi-color / Print",
 ];
 
+export const DEFAULT_LENGTHS = [
+  "Mini",
+  "Midi",
+  "Maxi",
+  "Floor Length",
+  "Knee Length",
+  "Ankle Length",
+  "Regular",
+  "Tall",
+  "Petite",
+  "Cropped",
+];
+
+export const DEFAULT_FITS = [
+  "Regular Fit",
+  "Slim Fit",
+  "Relaxed Fit",
+  "Oversized",
+  "Bodycon",
+  "Tailored",
+  "Loose",
+  "Boxy",
+  "A-Line",
+];
+
+export const DEFAULT_SLEEVES = [
+  "Sleeveless",
+  "Short Sleeve",
+  "Long Sleeve",
+  "Puff Sleeve",
+  "Cap Sleeve",
+  "3/4 Sleeve",
+  "Off-Shoulder",
+  "Strapless",
+  "Bell Sleeve",
+];
+
+export const CATEGORY_OPTION_PRESETS: Record<
+  string,
+  { dimensions: string[]; recommendedValues?: Record<string, string[]> }
+> = {
+  "Dresses": {
+    dimensions: ["Size", "Length", "Color"],
+    recommendedValues: {
+      Length: ["Mini", "Midi", "Maxi"],
+    },
+  },
+  "Gowns": {
+    dimensions: ["Size", "Length", "Sleeve"],
+    recommendedValues: {
+      Length: ["Maxi", "Floor Length"],
+      Sleeve: ["Sleeveless", "Long Sleeve", "Puff Sleeve"],
+    },
+  },
+  "Two-Piece Sets": {
+    dimensions: ["Size", "Color", "Length"],
+    recommendedValues: {
+      Length: ["Regular", "Tall", "Petite"],
+    },
+  },
+  "Tops & Blouses": {
+    dimensions: ["Size", "Sleeve", "Fit"],
+    recommendedValues: {
+      Sleeve: ["Sleeveless", "Short Sleeve", "Long Sleeve"],
+      Fit: ["Regular Fit", "Slim Fit", "Relaxed Fit"],
+    },
+  },
+  "Skirts": {
+    dimensions: ["Size", "Length", "Color"],
+    recommendedValues: {
+      Length: ["Mini", "Midi", "Maxi"],
+    },
+  },
+  "Trousers & Pants": {
+    dimensions: ["Size", "Length", "Fit"],
+    recommendedValues: {
+      Length: ["Regular", "Tall", "Petite", "Cropped"],
+      Fit: ["Regular Fit", "Slim Fit", "Relaxed Fit", "Tailored"],
+    },
+  },
+  "Kaftan & Boubou": {
+    dimensions: ["Size", "Length", "Sleeve"],
+    recommendedValues: {
+      Size: ["Free Size", "M", "L", "XL", "XXL"],
+      Length: ["Maxi", "Floor Length"],
+    },
+  },
+  "Agbada": {
+    dimensions: ["Size", "Fit"],
+    recommendedValues: {
+      Size: ["M", "L", "XL", "XXL", "Custom Fit"],
+      Fit: ["Regular Fit", "Tailored"],
+    },
+  },
+  "Jumpsuits": {
+    dimensions: ["Size", "Length", "Sleeve"],
+    recommendedValues: {
+      Length: ["Regular", "Tall", "Petite"],
+    },
+  },
+  "Corsets & Bralettes": {
+    dimensions: ["Size", "Color"],
+    recommendedValues: {
+      Size: ["XS", "S", "M", "L", "XL"],
+    },
+  },
+};
+
 interface StoredOptions {
   categories: string[];
   tags: string[];
   sizes: string[];
   colors: string[];
+  lengths: string[];
+  fits: string[];
+  sleeves: string[];
 }
 
 export function useProductOptions() {
@@ -101,7 +212,15 @@ export function useProductOptions() {
   // Local storage state for user-added custom options
   const [customOptions, setCustomOptions] = useState<StoredOptions>(() => {
     if (typeof window === "undefined") {
-      return { categories: [], tags: [], sizes: [], colors: [] };
+      return {
+        categories: [],
+        tags: [],
+        sizes: [],
+        colors: [],
+        lengths: [],
+        fits: [],
+        sleeves: [],
+      };
     }
     try {
       const stored = localStorage.getItem(storageKey);
@@ -112,12 +231,23 @@ export function useProductOptions() {
           tags: Array.isArray(parsed.tags) ? parsed.tags : [],
           sizes: Array.isArray(parsed.sizes) ? parsed.sizes : [],
           colors: Array.isArray(parsed.colors) ? parsed.colors : [],
+          lengths: Array.isArray(parsed.lengths) ? parsed.lengths : [],
+          fits: Array.isArray(parsed.fits) ? parsed.fits : [],
+          sleeves: Array.isArray(parsed.sleeves) ? parsed.sleeves : [],
         };
       }
     } catch (e) {
       console.error("Failed to load product options from localStorage", e);
     }
-    return { categories: [], tags: [], sizes: [], colors: [] };
+    return {
+      categories: [],
+      tags: [],
+      sizes: [],
+      colors: [],
+      lengths: [],
+      fits: [],
+      sleeves: [],
+    };
   });
 
   // Persist custom options to localStorage
@@ -139,6 +269,9 @@ export function useProductOptions() {
     const tagsSet = new Set<string>();
     const sizesSet = new Set<string>();
     const colorsSet = new Set<string>();
+    const lengthsSet = new Set<string>();
+    const fitsSet = new Set<string>();
+    const sleevesSet = new Set<string>();
 
     const products = productsData?.products || [];
     products.forEach((p) => {
@@ -152,6 +285,9 @@ export function useProductOptions() {
         p.variants.forEach((v) => {
           if (v.size?.trim()) sizesSet.add(v.size.trim());
           if (v.color?.trim()) colorsSet.add(v.color.trim());
+          if (v.length?.trim()) lengthsSet.add(v.length.trim());
+          if (v.fit?.trim()) fitsSet.add(v.fit.trim());
+          if (v.sleeve?.trim()) sleevesSet.add(v.sleeve.trim());
         });
       }
     });
@@ -161,6 +297,9 @@ export function useProductOptions() {
       tags: Array.from(tagsSet),
       sizes: Array.from(sizesSet),
       colors: Array.from(colorsSet),
+      lengths: Array.from(lengthsSet),
+      fits: Array.from(fitsSet),
+      sleeves: Array.from(sleevesSet),
     };
   }, [productsData]);
 
@@ -218,6 +357,45 @@ export function useProductOptions() {
     );
     return Array.from(map.values());
   }, [harvested.colors, customOptions.colors]);
+
+  const lengths = useMemo(() => {
+    const map = new Map<string, string>();
+    [...DEFAULT_LENGTHS, ...harvested.lengths, ...customOptions.lengths].forEach(
+      (item) => {
+        const trimmed = item.trim();
+        if (trimmed && !map.has(trimmed.toLowerCase())) {
+          map.set(trimmed.toLowerCase(), trimmed);
+        }
+      },
+    );
+    return Array.from(map.values());
+  }, [harvested.lengths, customOptions.lengths]);
+
+  const fits = useMemo(() => {
+    const map = new Map<string, string>();
+    [...DEFAULT_FITS, ...harvested.fits, ...customOptions.fits].forEach(
+      (item) => {
+        const trimmed = item.trim();
+        if (trimmed && !map.has(trimmed.toLowerCase())) {
+          map.set(trimmed.toLowerCase(), trimmed);
+        }
+      },
+    );
+    return Array.from(map.values());
+  }, [harvested.fits, customOptions.fits]);
+
+  const sleeves = useMemo(() => {
+    const map = new Map<string, string>();
+    [...DEFAULT_SLEEVES, ...harvested.sleeves, ...customOptions.sleeves].forEach(
+      (item) => {
+        const trimmed = item.trim();
+        if (trimmed && !map.has(trimmed.toLowerCase())) {
+          map.set(trimmed.toLowerCase(), trimmed);
+        }
+      },
+    );
+    return Array.from(map.values());
+  }, [harvested.sleeves, customOptions.sleeves]);
 
   // Add individual handlers
   const addCategory = useCallback(
@@ -280,14 +458,65 @@ export function useProductOptions() {
     [colors, customOptions, saveCustomOptions],
   );
 
+  const addLength = useCallback(
+    (newVal: string) => {
+      const trimmed = newVal.trim();
+      if (!trimmed) return;
+      if (!lengths.some((l) => l.toLowerCase() === trimmed.toLowerCase())) {
+        const next = {
+          ...customOptions,
+          lengths: [...customOptions.lengths, trimmed],
+        };
+        saveCustomOptions(next);
+      }
+    },
+    [lengths, customOptions, saveCustomOptions],
+  );
+
+  const addFit = useCallback(
+    (newVal: string) => {
+      const trimmed = newVal.trim();
+      if (!trimmed) return;
+      if (!fits.some((f) => f.toLowerCase() === trimmed.toLowerCase())) {
+        const next = {
+          ...customOptions,
+          fits: [...customOptions.fits, trimmed],
+        };
+        saveCustomOptions(next);
+      }
+    },
+    [fits, customOptions, saveCustomOptions],
+  );
+
+  const addSleeve = useCallback(
+    (newVal: string) => {
+      const trimmed = newVal.trim();
+      if (!trimmed) return;
+      if (!sleeves.some((s) => s.toLowerCase() === trimmed.toLowerCase())) {
+        const next = {
+          ...customOptions,
+          sleeves: [...customOptions.sleeves, trimmed],
+        };
+        saveCustomOptions(next);
+      }
+    },
+    [sleeves, customOptions, saveCustomOptions],
+  );
+
   return {
     categories,
     tags,
     sizes,
     colors,
+    lengths,
+    fits,
+    sleeves,
     addCategory,
     addTag,
     addSize,
     addColor,
+    addLength,
+    addFit,
+    addSleeve,
   };
 }
