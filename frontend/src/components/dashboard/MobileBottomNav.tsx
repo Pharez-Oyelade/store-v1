@@ -32,6 +32,7 @@ import { useAuthStore } from "@/store/authStore";
 import { useNetworkStore } from "@/store/networkStore";
 import { useLogout } from "@/hooks/useAuth";
 import { usePWAInstall } from "@/hooks/usePWAInstall";
+import { useBadgeCounts } from "@/hooks/useBadgeCounts";
 import { isPathAllowedForRole } from "@/lib/rbac";
 import { NAV_ITEMS } from "./DashboardSidebar";
 import {
@@ -61,6 +62,25 @@ export default function MobileBottomNav() {
   const visibleNavItems = NAV_ITEMS.filter((item) =>
     isPathAllowedForRole(item.href, userRole),
   );
+
+  const { badgeCounts } = useBadgeCounts();
+
+  const getBadgeForItem = (href: string) => {
+    if (href === "/dashboard/orders" && badgeCounts.orders > 0) {
+      return { count: badgeCounts.orders, variant: "warning" as const };
+    }
+    if (href === "/dashboard/invoices" && badgeCounts.invoices > 0) {
+      return { count: badgeCounts.invoices, variant: "warning" as const };
+    }
+    if (href === "/dashboard/demands" && badgeCounts.demands > 0) {
+      return { count: badgeCounts.demands, variant: "urgent" as const };
+    }
+    return null;
+  };
+
+  // Aggregated counts for actionable items inside the "More" Drawer
+  const moreBadgeTotal = (badgeCounts.invoices || 0) + (badgeCounts.demands || 0);
+  const hasUrgentMore = badgeCounts.demands > 0;
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -166,6 +186,8 @@ export default function MobileBottomNav() {
           {leftTabs.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
+            const actionBadge = getBadgeForItem(item.href);
+
             return (
               <Link
                 key={item.href}
@@ -178,7 +200,7 @@ export default function MobileBottomNav() {
               >
                 <div
                   className={cn(
-                    "flex items-center justify-center w-12 h-7 rounded-xl transition-all",
+                    "flex items-center justify-center w-12 h-7 rounded-xl transition-all relative",
                     active && "bg-brand-50 text-brand-600 font-semibold",
                   )}
                 >
@@ -188,6 +210,16 @@ export default function MobileBottomNav() {
                       active ? "text-brand-600 scale-105" : "text-gray-500 group-hover:text-gray-900",
                     )}
                   />
+                  {actionBadge && (
+                    <span
+                      className={cn(
+                        "absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-xs",
+                        actionBadge.variant === "urgent" ? "bg-rose-600" : "bg-amber-500",
+                      )}
+                    >
+                      {actionBadge.count > 9 ? "9+" : actionBadge.count}
+                    </span>
+                  )}
                 </div>
                 <span
                   className={cn(
@@ -376,9 +408,18 @@ export default function MobileBottomNav() {
                         : "text-gray-500 group-hover:text-gray-900",
                     )}
                   />
-                  {pendingCount > 0 && (
+                  {moreBadgeTotal > 0 ? (
+                    <span
+                      className={cn(
+                        "absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-xs",
+                        hasUrgentMore ? "bg-rose-600" : "bg-amber-500",
+                      )}
+                    >
+                      {moreBadgeTotal > 9 ? "9+" : moreBadgeTotal}
+                    </span>
+                  ) : pendingCount > 0 ? (
                     <span className="absolute -top-1 -right-1 w-2.5 h-2.5 rounded-full bg-orange-500 ring-2 ring-white" />
-                  )}
+                  ) : null}
                 </div>
                 <span
                   className={cn(
@@ -530,6 +571,8 @@ export default function MobileBottomNav() {
                       const Icon = item.icon;
                       const active = isActive(item.href);
                       const subtitle = getItemSubtitle(item.label);
+                      const actionBadge = getBadgeForItem(item.href);
+
                       return (
                         <Link
                           key={item.href}
@@ -571,11 +614,22 @@ export default function MobileBottomNav() {
                           </div>
 
                           <div className="flex items-center gap-2 shrink-0 ml-3">
-                            {item.badge && (
+                            {actionBadge ? (
+                              <span
+                                className={cn(
+                                  "text-[10px] font-bold px-2 py-0.5 rounded-full text-white shadow-xs",
+                                  actionBadge.variant === "urgent"
+                                    ? "bg-rose-600"
+                                    : "bg-amber-500",
+                                )}
+                              >
+                                {actionBadge.count > 99 ? "99+" : actionBadge.count}
+                              </span>
+                            ) : item.badge ? (
                               <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-amber-50 text-amber-700 border border-amber-200">
                                 {item.badge}
                               </span>
-                            )}
+                            ) : null}
                             <ChevronRight
                               className={cn(
                                 "w-4 h-4 text-gray-400 group-hover:text-gray-600 transition-transform group-hover:translate-x-0.5",

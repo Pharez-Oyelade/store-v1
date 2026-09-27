@@ -82,6 +82,7 @@ export function useCreateCustomRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success("Bespoke request recorded successfully");
     },
     onError: (error: Error) => {
@@ -104,6 +105,7 @@ export function useUpdateCustomRequest(id: string) {
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       queryClient.setQueryData(CUSTOM_REQUEST_KEYS.detail(id), updated);
       toast.success("Request updated");
     },
@@ -123,6 +125,7 @@ export function useDeleteCustomRequest() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
       queryClient.invalidateQueries({ queryKey: ANALYTICS_KEYS.all });
+      queryClient.invalidateQueries({ queryKey: ["vendor-badge-counts"] });
       toast.success("Request deleted");
     },
     onError: (error: Error) => {

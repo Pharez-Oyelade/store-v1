@@ -30,6 +30,10 @@ export async function generateMetadata({
 }: {
   params: Promise<{ handle: string }>;
 }): Promise<Metadata> {
+  if (process.env.NODE_ENV === "production") {
+    return { title: "Coming Soon" };
+  }
+
   const { handle } = await params;
   const vendor = await getVendorStorefront(handle);
 
@@ -60,6 +64,12 @@ export default async function StorefrontLayout({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
+  
+  // Block storefront access in production until the feature is fully released
+  if (process.env.NODE_ENV === "production") {
+    notFound();
+  }
+
   const vendor = await getVendorStorefront(handle);
 
   if (!vendor) {
