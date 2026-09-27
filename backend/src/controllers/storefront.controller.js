@@ -53,7 +53,7 @@ export const getStorefrontProducts = asyncHandler(async (req, res) => {
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(Number(limit))
-      .select("name description category images variants basePrice status createdAt updatedAt")
+      .select("name description category images hasVariants variantOptions variants basePrice status createdAt updatedAt")
       .lean(),
     Product.countDocuments(filter),
   ]);
@@ -101,7 +101,7 @@ export const getStorefrontProduct = asyncHandler(async (req, res) => {
     vendor: vendor._id,
     status: "active",
   })
-    .select("name description category images variants basePrice status createdAt updatedAt")
+    .select("name description category images hasVariants variantOptions variants basePrice status createdAt updatedAt")
     .lean();
 
   if (!product) {

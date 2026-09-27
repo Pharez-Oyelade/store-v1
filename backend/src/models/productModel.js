@@ -46,10 +46,25 @@ const productSchema = new mongoose.Schema(
       default: [],
     },
 
+    hasVariants: {
+      type: Boolean,
+      default: false,
+    },
+
+    variantOptions: {
+      type: [
+        {
+          name: { type: String, required: true, trim: true },
+          values: [{ type: String, trim: true }],
+        },
+      ],
+      default: [],
+    },
+
     /*
-     * Variants capture each distinct size/colour/price combination.
+     * Variants capture each distinct size/colour/length/price combination.
      * Every product must have at least one variant.
-     * e.g. { label: "S / Red", size: "S", color: "Red", price: 15000, quantity: 8 }
+     * e.g. { label: "S / Red / Maxi", size: "S", color: "Red", length: "Maxi", price: 15000, quantity: 8 }
      */
     variants: {
       type: [
@@ -61,6 +76,10 @@ const productSchema = new mongoose.Schema(
           },
           size: { type: String, trim: true, default: "" },
           color: { type: String, trim: true, default: "" },
+          length: { type: String, trim: true, default: "" },
+          fit: { type: String, trim: true, default: "" },
+          sleeve: { type: String, trim: true, default: "" },
+          options: { type: Map, of: String, default: {} },
           custom: { type: String, trim: true, default: "" },
           sku: { type: String, trim: true, default: "" },
           price: {
