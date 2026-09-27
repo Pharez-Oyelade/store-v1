@@ -33,6 +33,16 @@ export const createProductValidators = [
     .isLength({ max: 100 })
     .withMessage("Category cannot exceed 100 characters"),
 
+  body("hasVariants")
+    .optional()
+    .toBoolean(),
+
+  body("variantOptions")
+    .optional()
+    .customSanitizer(parseJsonArray)
+    .isArray()
+    .withMessage("variantOptions must be an array"),
+
   body("variants")
     .customSanitizer(parseJsonArray)
     .isArray({ min: 1 })
@@ -51,6 +61,18 @@ export const createProductValidators = [
     .optional()
     .isInt({ min: 0 })
     .withMessage("Variant quantity must be a non-negative integer"),
+
+  body("variants.*.length")
+    .optional()
+    .trim(),
+
+  body("variants.*.fit")
+    .optional()
+    .trim(),
+
+  body("variants.*.sleeve")
+    .optional()
+    .trim(),
 
   body("status")
     .optional()
@@ -71,6 +93,16 @@ export const updateProductValidators = [
     .withMessage("Product name cannot be empty")
     .isLength({ max: 200 })
     .withMessage("Product name cannot exceed 200 characters"),
+
+  body("hasVariants")
+    .optional()
+    .toBoolean(),
+
+  body("variantOptions")
+    .optional()
+    .customSanitizer(parseJsonArray)
+    .isArray()
+    .withMessage("variantOptions must be an array"),
 
   body("variants")
     .optional()

@@ -182,7 +182,7 @@ async function searchCatalog(vendorId, query, category) {
     const searchText = [
       p.name,
       p.category,
-      ...p.variants.map((v) => `${v.label} ${v.color} ${v.size}`),
+      ...p.variants.map((v) => `${v.label} ${v.color || ""} ${v.size || ""} ${v.length || ""} ${v.fit || ""} ${v.sleeve || ""}`),
     ]
       .join(" ")
       .toLowerCase();
@@ -214,6 +214,9 @@ async function searchCatalog(vendorId, query, category) {
       label: v.label,
       color: v.color,
       size: v.size,
+      length: v.length,
+      fit: v.fit,
+      sleeve: v.sleeve,
       price: v.price,
       stock: v.quantity,
     })),
