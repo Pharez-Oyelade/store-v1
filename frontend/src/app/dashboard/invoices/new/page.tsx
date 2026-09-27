@@ -675,7 +675,7 @@ export default function NewInvoicePage() {
                     className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition-colors shadow-2xs"
                   >
                     <MessageCircle className="w-4 h-4 text-white" />
-                    <span>Resend via WhatsApp</span>
+                    <span className="text-white">Resend via WhatsApp</span>
                   </a>
                 )}
               </div>
@@ -1085,8 +1085,8 @@ export default function NewInvoicePage() {
                 href={`/dashboard/invoices/${activeExistingInvoice._id}`}
                 className="px-6 py-2.5 bg-brand-600 hover:bg-brand-700 active:bg-brand-800 text-white text-xs font-bold rounded-md shadow-xs transition-colors flex items-center gap-2"
               >
-                <FileText className="w-4 h-4" />
-                <span>
+                <FileText className="w-4 h-4 text-white" />
+                <span className="text-white">
                   View Issued Invoice (#{activeExistingInvoice.invoiceNumber})
                 </span>
               </Link>
