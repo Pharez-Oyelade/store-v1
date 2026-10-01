@@ -2,12 +2,13 @@
 
 // ZOD + React Hook Form
 
-import { useState, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
+import { useSearchParams } from "next/navigation";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import Link from "next/link";
-import { Eye, EyeOff, Lock, Mail } from "lucide-react";
+import { Eye, EyeOff, Lock, Mail, ClockAlert } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/custom/Button";
 import toast from "react-hot-toast";
@@ -25,9 +26,20 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 
 function LoginContent() {
   const [showPassword, setShowPassword] = useState(false);
+  const searchParams = useSearchParams();
+  const isExpired = searchParams.get("expired") === "1";
 
   // Hook called at the top level of the component (Rules of Hooks)
   const loginMutation = useLogin();
+
+  useEffect(() => {
+    if (isExpired) {
+      toast.error("Your session has expired. Please sign in again.", {
+        id: "session-expired",
+        duration: 5000,
+      });
+    }
+  }, [isExpired]);
 
   const {
     register,
@@ -51,12 +63,15 @@ function LoginContent() {
         </p>
       </div>
 
+      {/* {isExpired && (
+        <div className="mb-4 p-3 rounded-xl bg-amber-50 border border-amber-200/80 text-amber-800 text-xs font-medium flex items-center gap-2.5 animate-in fade-in duration-300">
+          <ClockAlert size={16} className="shrink-0 text-amber-600" />
+          <span>Your 7-day session has expired. Please sign in to continue.</span>
+        </div>
+      )} */}
+
       {/* LOGIN FORM */}
-      <form
-        onSubmit={handleSubmit(onSubmit)}
-        className="space-y-4"
-        noValidate
-      >
+      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4" noValidate>
         {/* Email */}
         <Input
           label="Email or phone number"

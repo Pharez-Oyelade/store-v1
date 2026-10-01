@@ -28,26 +28,17 @@ const NAV_ITEMS = [
   { label: "Announcements", href: "/admin/announcements", icon: Megaphone },
 ];
 
+import { useLogout } from "@/hooks/useAuth";
+
 export default function AdminSidebar() {
   const pathname = usePathname();
   const router = useRouter();
   const vendor = useCurrentVendor();
-  const clearVendor = useAuthStore((s) => s.clearVendor);
+  const { mutate: logout } = useLogout();
   const [mobileOpen, setMobileOpen] = useState(false);
 
   const isActive = (href: string, exact?: boolean) =>
     exact ? pathname === href : pathname.startsWith(href);
-
-  async function handleLogout() {
-    try {
-      await api.post("/auth/logout");
-    } catch {
-      /* ignore errors — clear state regardless */
-    }
-    clearVendor();
-    router.replace("/login");
-    toast.success("Logged out");
-  }
 
   const sidebarContent = (
     <div className="flex h-full w-64 flex-col bg-[#0D1117] text-white">
@@ -115,7 +106,7 @@ export default function AdminSidebar() {
           <span>Vendor Dashboard</span>
         </Link>
         <button
-          onClick={handleLogout}
+          onClick={() => logout()}
           className="flex w-full items-center gap-2.5 rounded-lg px-3 py-2 text-sm font-medium text-white/50 transition-colors hover:bg-red-500/10 hover:text-red-400"
         >
           <LogOut className="size-4" />

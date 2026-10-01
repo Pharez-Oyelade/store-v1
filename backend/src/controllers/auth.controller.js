@@ -225,15 +225,6 @@ export const login = asyncHandler(async (req, res) => {
       );
     }
 
-    // Auto-promote configured admin credentials to "admin" role if needed
-    const matchesAdminPhone = process.env.ADMIN_PHONE && vendor.phone === process.env.ADMIN_PHONE;
-    const matchesAdminEmail = process.env.ADMIN_EMAIL && vendor.email && vendor.email.toLowerCase() === process.env.ADMIN_EMAIL.toLowerCase();
-
-    if ((matchesAdminPhone || matchesAdminEmail) && vendor.role !== "admin") {
-      vendor.role = "admin";
-      await vendor.save();
-    }
-
     // Real-time subscription sync on login
     await syncVendorSubscription(vendor._id);
     vendor.lastLogin = new Date();
