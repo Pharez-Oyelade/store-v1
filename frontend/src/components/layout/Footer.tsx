@@ -84,7 +84,7 @@ export default function Footer() {
                 className="w-9 h-9 rounded-lg bg-gray-800 flex items-center justify-center hover:bg-brand-700 hover:text-white transition-colors"
                 aria-label="Email"
               >
-                <Mail size={16} />
+                <Mail size={16} className="text-white" />
               </a>
             </div>
           </div>
