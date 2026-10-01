@@ -79,6 +79,13 @@ export default function PublicInvoicePage() {
     }
   }, [invoice]);
 
+  // Switch to bank transfer tab automatically if online payment is disabled
+  useEffect(() => {
+    if (invoice && invoice.allowOnlinePayment === false) {
+      setActiveTab("transfer");
+    }
+  }, [invoice?.allowOnlinePayment]);
+
   // Verify transaction if returned from Paystack hosted checkout
   useEffect(() => {
     if (redirectRef && token && invoice && !isVerifying) {
@@ -574,32 +581,48 @@ export default function PublicInvoicePage() {
             </h3>
 
             {/* Payment Method Tabs */}
-            <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-2xl">
-              <button
-                type="button"
-                onClick={() => setActiveTab("card")}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  activeTab === "card"
-                    ? "bg-white text-gray-900 shadow-xs"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                <CreditCard className="w-4 h-4 text-brand-600" />
-                <span>Card / Online</span>
-              </button>
-              <button
-                type="button"
-                onClick={() => setActiveTab("transfer")}
-                className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
-                  activeTab === "transfer"
-                    ? "bg-white text-gray-900 shadow-xs"
-                    : "text-gray-500 hover:text-gray-900"
-                }`}
-              >
-                <Building2 className="w-4 h-4 text-brand-600" />
-                <span>Bank Transfer</span>
-              </button>
-            </div>
+            {invoice.allowOnlinePayment !== false ? (
+              <div className="grid grid-cols-2 gap-2 p-1 bg-gray-100 rounded-2xl">
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("card")}
+                  className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    activeTab === "card"
+                      ? "bg-white text-gray-900 shadow-xs"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <CreditCard className="w-4 h-4 text-brand-600" />
+                  <span>Card / Online</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setActiveTab("transfer")}
+                  className={`py-2.5 rounded-xl text-xs font-bold transition-all flex items-center justify-center gap-2 cursor-pointer ${
+                    activeTab === "transfer"
+                      ? "bg-white text-gray-900 shadow-xs"
+                      : "text-gray-500 hover:text-gray-900"
+                  }`}
+                >
+                  <Building2 className="w-4 h-4 text-brand-600" />
+                  <span>Bank Transfer</span>
+                </button>
+              </div>
+            ) : (
+              <div className="p-3.5 rounded-2xl bg-brand-50/80 border border-brand-200/80 flex items-center gap-3">
+                <div className="p-2 rounded-xl bg-brand-100 text-brand-700 shrink-0">
+                  <Building2 className="w-4 h-4" />
+                </div>
+                <div>
+                  <p className="text-xs font-bold text-gray-900">
+                    Direct Bank Transfer Active
+                  </p>
+                  <p className="text-[11px] text-gray-600 leading-tight mt-0.5">
+                    Pay directly to the designer's account below and upload your receipt for instant confirmation.
+                  </p>
+                </div>
+              </div>
+            )}
 
             {/* Amount to Pay selector */}
             <div>
@@ -643,7 +666,7 @@ export default function PublicInvoicePage() {
             </div>
 
             {/* Tab 1: Card / Online Paystack */}
-            {activeTab === "card" && (
+            {invoice.allowOnlinePayment !== false && activeTab === "card" && (
               <div className="space-y-4">
                 <p className="text-xs text-gray-500 leading-relaxed">
                   Fast and automated. Pay with your Debit Card, USSD code, or

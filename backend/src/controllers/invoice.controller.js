@@ -432,11 +432,24 @@ export const getPublicInvoiceByToken = asyncHandler(async (req, res) => {
     return sendError(res, "Invoice not found or link is invalid", 404);
   }
 
-  return sendSuccess(res, invoice);
+  const isOnlinePaymentEnabled = process.env.ENABLE_INVOICE_ONLINE_PAYMENT === "true";
+  const invoiceObj = invoice.toObject();
+  invoiceObj.allowOnlinePayment = isOnlinePaymentEnabled;
+
+  return sendSuccess(res, invoiceObj);
 });
 
 /* ── POST /api/invoices/public/:token/pay ───────────────────────── */
 export const initializeInvoicePayment = asyncHandler(async (req, res) => {
+  // Feature flag check: gate online payments until Paystack live subaccount clearance
+  if (process.env.ENABLE_INVOICE_ONLINE_PAYMENT !== "true") {
+    return sendError(
+      res,
+      "Online card checkout is temporarily disabled. Please pay via Direct Bank Transfer.",
+      403
+    );
+  }
+
   const { token } = req.params;
   const { amount, email } = req.body;
 

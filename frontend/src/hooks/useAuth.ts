@@ -102,21 +102,22 @@ export function useLogout() {
   return useMutation({
     mutationFn: () => apiPost("/auth/logout"),
 
-    onSuccess: () => {
+    onMutate: async () => {
+      // Optimistic UI change: Immediately clear client state, query caches, and redirect
       clearVendor();
       queryClient.removeQueries({ queryKey: AUTH_QUERY_KEYS.me });
-      queryClient.clear(); //nuke all cached queries
-      clearPersistedQueryCache().catch(() => {});
-      toast.success("signed out successfully.");
-      router.push("/login");
+      queryClient.clear(); // Nuke in-memory cache immediately
+      clearPersistedQueryCache().catch(() => {}); // Nuke IndexedDB offline cache
+      toast.success("Signed out successfully.");
+      router.replace("/login");
+    },
+
+    onSuccess: () => {
+      // Backend cookie was successfully expired; state already cleared optimistically
     },
 
     onError: () => {
-      // still clear all client state, always logout from UI perspective
-      clearVendor();
-      queryClient.clear();
-      clearPersistedQueryCache().catch(() => {});
-      router.push("/login");
+      // Even if network fails or offline, local state and UI are already securely cleared
     },
   });
 }
