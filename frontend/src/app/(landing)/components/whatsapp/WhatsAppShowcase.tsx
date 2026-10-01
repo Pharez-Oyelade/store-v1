@@ -159,8 +159,8 @@ export const WhatsAppShowcase: React.FC = () => {
               href="/register"
               className="inline-flex items-center justify-center gap-2 px-6 py-3 rounded-full bg-[#075e54] hover:bg-[#064e46] text-white text-sm font-semibold shadow-md shadow-emerald-950/20 active:scale-95 transition-all group"
             >
-              <span>Try Vendra Assistant</span>
-              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
+              <span className="text-white">Try Vendra Assistant</span>
+              <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-white" />
             </Link>
           </div>
         </div>
