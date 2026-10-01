@@ -979,6 +979,7 @@ export interface Invoice {
   terms?: string;
   paymentHistory: InvoicePaymentRecord[];
   manualPaymentProofs: ManualPaymentProof[];
+  allowOnlinePayment?: boolean;
   createdAt: string;
   updatedAt: string;
 }
