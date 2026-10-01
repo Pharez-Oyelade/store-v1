@@ -84,13 +84,22 @@ api.interceptors.response.use(
           pathname.startsWith("/forgot-password") ||
           pathname.startsWith("/reset-password");
 
-        // Clear Zustand auth store to prevent ghost sessions
-        useAuthStore.getState().clearVendor();
-
         if (isProtectedRoute && !isAuthRoute && !isRedirectingToLogin) {
           isRedirectingToLogin = true;
+
+          // Clear Zustand auth store to prevent ghost sessions
+          useAuthStore.getState().clearVendor();
+
+          // Purge client caches on session expiration
+          try {
+            const { queryClient } = require("@/lib/react-query");
+            queryClient.clear();
+            const { clearPersistedQueryCache } = require("@/lib/offline/queryPersister");
+            clearPersistedQueryCache().catch(() => {});
+          } catch {}
+
           const returnPath = encodeURIComponent(pathname + (search || ""));
-          window.location.href = `/login?from=${returnPath}`;
+          window.location.href = `/login?from=${returnPath}&expired=1`;
           setTimeout(() => {
             isRedirectingToLogin = false;
           }, 3000);

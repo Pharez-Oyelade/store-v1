@@ -122,6 +122,7 @@ export async function middleware(request: NextRequest) {
        */
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
+      loginUrl.searchParams.set("expired", "1");
       const response = NextResponse.redirect(loginUrl);
       response.cookies.delete(AUTH_COOKIE);
       return response;
@@ -170,6 +171,7 @@ export async function middleware(request: NextRequest) {
       );
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
+      loginUrl.searchParams.set("expired", "1");
       const response = NextResponse.redirect(loginUrl);
       response.cookies.delete(AUTH_COOKIE);
       return response;

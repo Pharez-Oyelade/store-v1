@@ -88,14 +88,15 @@ app.use(
 // Rate limiters (silence RFC 7239 Forwarded header check behind reverse proxies)
 const apiLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 100,
+  max: 500, // Generous ceiling for interactive dashboard SPA
   message: { success: false, message: "Too many requests, Please slow down." },
   validate: { forwardedHeader: false },
 });
 
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
-  max: 20, // Stricter for auth endpoints
+  max: 30, // Targeted brute-force protection
+  skipSuccessfulRequests: true, // Successful logins/registers do not count against limit
   message: {
     success: false,
     message: "Too many login attempts. Try again later.",
@@ -164,7 +165,7 @@ app.use("/api/auth/register", authLimiter);
 app.use("/api/auth/forgot-password", authLimiter);
 app.use("/api/auth/reset-password", authLimiter);
 
-app.use("/api/auth", apiLimiter, authRouter);
+app.use("/api/auth", authRouter);
 app.use("/api/vendor", apiLimiter, vendorRouter);
 app.use("/api/products", apiLimiter, productRouter);
 app.use("/api/orders", apiLimiter, orderRouter);

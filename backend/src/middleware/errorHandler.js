@@ -103,14 +103,19 @@ export const errorHandler = (err, req, res, next) => {
    * - JsonWebTokenError: token is malformed or signature is invalid
    * - TokenExpiredError: token exists but has expired
    */
-  if (err.name === "JsonWebTokenError") {
+  if (err.name === "JsonWebTokenError" || err.name === "TokenExpiredError") {
     statusCode = 401;
-    message = "Invalid authentication token";
-  }
+    message =
+      err.name === "TokenExpiredError"
+        ? "Your session has expired. Please login again."
+        : "Invalid authentication token";
 
-  if (err.name === "TokenExpiredError") {
-    statusCode = 401;
-    message = "Your session has expired. Please login again.";
+    res.cookie("access_token", "", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: process.env.NODE_ENV === "production" ? "none" : "lax",
+      maxAge: 0,
+    });
   }
 
   /*
