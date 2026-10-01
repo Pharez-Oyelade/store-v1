@@ -63,7 +63,7 @@ const CTA = () => {
         </div>
 
         <p className="text-gray-400 text-sm mt-6">
-          14-day free trial on Growth plan. No credit card required.
+          14-day free trial on Stitch plan. No credit card required.
         </p>
       </motion.div>
     </section>

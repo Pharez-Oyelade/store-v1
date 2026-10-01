@@ -3,6 +3,7 @@ import Hero from "./components/Hero";
 import Marquee from "./components/Marquee";
 import Problem from "./components/Problem";
 import Features from "./components/Features";
+import WhatsAppShowcase from "./components/whatsapp/WhatsAppShowcase";
 import Process from "./components/Process";
 import Testimonials from "./components/Testimonials";
 import FAQ from "./components/FAQ";
@@ -16,6 +17,7 @@ const page = () => {
       <Marquee />
       <Problem />
       <Features />
+      <WhatsAppShowcase />
       <Process />
       {/* <Testimonials /> */}
       <FAQ />

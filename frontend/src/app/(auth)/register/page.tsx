@@ -215,197 +215,192 @@ export default function RegisterPage() {
         noValidate
         className="space-y-4 w-full"
       >
-            {/* STEP 1 - Business Info */}
-            {currentStep === 1 && (
-              <div className="space-y-4">
-                <Input
-                  label="Business Name"
-                  placeholder="Eri's Fashion House"
-                  error={errors.businessName?.message}
-                  leftElement={<Building2 size={16} />}
-                  {...register("businessName")}
-                />
+        {/* STEP 1 - Business Info */}
+        {currentStep === 1 && (
+          <div className="space-y-4">
+            <Input
+              label="Business Name"
+              placeholder="Eri's Fashion House"
+              error={errors.businessName?.message}
+              leftElement={<Building2 size={16} />}
+              {...register("businessName")}
+            />
 
-                <div>
-                  <Input
-                    label="store Handle"
-                    placeholder="eris-fashion-house"
-                    helper="Your storefront URL: tryvendra.ng/store/your-handle"
-                    error={errors.handle?.message}
-                    leftElement={
-                      <span className="text-xs text-gray-400 whitespace-nowrap">
-                        @
-                      </span>
-                    }
-                    {...register("handle")}
-                  />
-                  <button
-                    type="button"
-                    onClick={handleAutoGenerate}
-                    className="text-xs text-brand-600 hover:text-brand-700 mt-1 font-medium transition-colors"
-                  >
-                    Auto generate from business name
-                  </button>
-                </div>
-
-                <Input
-                  label="WhatsApp / PhoneNumber"
-                  type="tel"
-                  placeholder="08012345678"
-                  error={errors.phone?.message}
-                  {...register("phone")}
-                />
-
-                <Input
-                  label="Email Address (optional)"
-                  type="email"
-                  placeholder="eri@example.com"
-                  helper="We'll use this for account recovery"
-                  error={errors.email?.message}
-                  {...register("email")}
-                />
-              </div>
-            )}
-
-            {/* STEP 2: Location */}
-            {currentStep === 2 && (
-              <div className="space-y-4">
-                <Select
-                  label="state"
-                  options={nigerianStates}
-                  placeholder="Select your state"
-                  error={errors.state?.message}
-                  defaultValue="Select state"
-                  {...register("state")}
-                />
-
-                <Input
-                  label="City / Town"
-                  placeholder="Ibadan"
-                  error={errors.city?.message}
-                  {...register("city")}
-                />
-
-                <Input
-                  label="Market / Area (optional)"
-                  placeholder="Dugbe Market, University of Ibadan area"
-                  helper="Helps buyers find you in the discovery network"
-                  error={errors.area?.message}
-                  {...register("area")}
-                />
-
-                <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brnad-700">
-                  Your location helps buyers nearby discover ypur store
-                </div>
-              </div>
-            )}
-
-            {/* STEP - 3: Password */}
-            {currentStep === 3 && (
-              <div className="space-y-4">
-                <Input
-                  label="Password"
-                  type={showPassword ? "text" : "password"}
-                  placeholder="Create a strong password"
-                  error={errors.password?.message}
-                  helper="At least 8 characters"
-                  leftElement={<Lock size={16} />}
-                  rightElement={
-                    <button
-                      type="button"
-                      onClick={() => setShowPassword((s) => !s)}
-                      className="text-gray-400 hover:text-gray-600 transition-colors"
-                    >
-                      {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  }
-                  {...register("password")}
-                />
-
-                <Input
-                  label="Confirm Password"
-                  type={showConfirm ? "text" : "password"}
-                  placeholder="Repeat your password"
-                  error={errors.confirmPassword?.message}
-                  leftElement={<Lock size={16} />}
-                  rightElement={
-                    <button
-                      type="button"
-                      onClick={() => setShowConfirm((s) => !s)}
-                      className="text-gray-400 hover:text-gray-600"
-                    >
-                      {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
-                    </button>
-                  }
-                  {...register("confirmPassword")}
-                />
-
-                <p className="text-xs text-gray-400">
-                  By creating an account you agree to our{" "}
-                  <Link
-                    href="/terms"
-                    className="text-brand-600 hover:underline"
-                  >
-                    Terms of Service
-                  </Link>{" "}
-                  and{" "}
-                  <Link
-                    href="/privacy"
-                    className="text-brand-600 hover:underline"
-                  >
-                    Privacy Policy
-                  </Link>
-                  .
-                </p>
-              </div>
-            )}
-
-            {/* NAV BUTTONS */}
-            <div className="flex gap-3 mt-6">
-              {currentStep > 1 && (
-                <Button
-                  type="button"
-                  variant="outline"
-                  className="flex-1"
-                  leftIcon={<ArrowLeft size={16} />}
-                  onClick={() => setCurrentStep((s) => s - 1)}
-                >
-                  Back
-                </Button>
-              )}
-
-              {currentStep < TOTAL_STEPS ? (
-                <Button
-                  type="button"
-                  variant="primary"
-                  className="flex-1"
-                  rightIcon={<ArrowRight size={16} />}
-                  onClick={handleNextStep}
-                >
-                  Continue
-                </Button>
-              ) : (
-                <Button
-                  type="submit"
-                  variant="primary"
-                  className="flex-1"
-                  isLoading={isSubmitting}
-                >
-                  Register
-                </Button>
-              )}
+            <div>
+              <Input
+                label="store Handle"
+                placeholder="eris-fashion-house"
+                helper="Your storefront URL: tryvendra.ng/store/your-handle"
+                error={errors.handle?.message}
+                leftElement={
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    @
+                  </span>
+                }
+                {...register("handle")}
+              />
+              <button
+                type="button"
+                onClick={handleAutoGenerate}
+                className="text-xs text-brand-600 hover:text-brand-700 mt-1 font-medium transition-colors"
+              >
+                Auto generate from business name
+              </button>
             </div>
-          </form>
 
-          <p className="text-center text-sm text-gray-500 mt-6">
-            Already have an account?{" "}
-            <Link
-              href="/login"
-              className="text-brand-700 font-semibold hover:text-brand-800"
+            <Input
+              label="WhatsApp / PhoneNumber"
+              type="tel"
+              placeholder="08012345678"
+              helper="Input WhatsApp number to use Vendra Assistant"
+              error={errors.phone?.message}
+              {...register("phone")}
+            />
+
+            <Input
+              label="Email Address"
+              type="email"
+              placeholder="eri@example.com"
+              helper="We'll use this for account recovery"
+              error={errors.email?.message}
+              {...register("email")}
+            />
+          </div>
+        )}
+
+        {/* STEP 2: Location */}
+        {currentStep === 2 && (
+          <div className="space-y-4">
+            <Select
+              label="state"
+              options={nigerianStates}
+              placeholder="Select your state"
+              error={errors.state?.message}
+              defaultValue="Select state"
+              {...register("state")}
+            />
+
+            <Input
+              label="City / Town"
+              placeholder="Ibadan"
+              error={errors.city?.message}
+              {...register("city")}
+            />
+
+            <Input
+              label="Market / Area (optional)"
+              placeholder="Dugbe Market, University of Ibadan area"
+              helper="Helps buyers find you in the discovery network"
+              error={errors.area?.message}
+              {...register("area")}
+            />
+
+            <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 text-sm text-brnad-700">
+              Your location helps buyers nearby discover ypur store
+            </div>
+          </div>
+        )}
+
+        {/* STEP - 3: Password */}
+        {currentStep === 3 && (
+          <div className="space-y-4">
+            <Input
+              label="Password"
+              type={showPassword ? "text" : "password"}
+              placeholder="Create a strong password"
+              error={errors.password?.message}
+              helper="At least 8 characters"
+              leftElement={<Lock size={16} />}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowPassword((s) => !s)}
+                  className="text-gray-400 hover:text-gray-600 transition-colors"
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
+              {...register("password")}
+            />
+
+            <Input
+              label="Confirm Password"
+              type={showConfirm ? "text" : "password"}
+              placeholder="Repeat your password"
+              error={errors.confirmPassword?.message}
+              leftElement={<Lock size={16} />}
+              rightElement={
+                <button
+                  type="button"
+                  onClick={() => setShowConfirm((s) => !s)}
+                  className="text-gray-400 hover:text-gray-600"
+                >
+                  {showConfirm ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              }
+              {...register("confirmPassword")}
+            />
+
+            <p className="text-xs text-gray-400">
+              By creating an account you agree to our{" "}
+              <Link href="/terms" className="text-brand-600 hover:underline">
+                Terms of Service
+              </Link>{" "}
+              and{" "}
+              <Link href="/privacy" className="text-brand-600 hover:underline">
+                Privacy Policy
+              </Link>
+              .
+            </p>
+          </div>
+        )}
+
+        {/* NAV BUTTONS */}
+        <div className="flex gap-3 mt-6">
+          {currentStep > 1 && (
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1"
+              leftIcon={<ArrowLeft size={16} />}
+              onClick={() => setCurrentStep((s) => s - 1)}
             >
-              Sign in →
-            </Link>
-          </p>
+              Back
+            </Button>
+          )}
+
+          {currentStep < TOTAL_STEPS ? (
+            <Button
+              type="button"
+              variant="primary"
+              className="flex-1"
+              rightIcon={<ArrowRight size={16} />}
+              onClick={handleNextStep}
+            >
+              Continue
+            </Button>
+          ) : (
+            <Button
+              type="submit"
+              variant="primary"
+              className="flex-1"
+              isLoading={isSubmitting}
+            >
+              Register
+            </Button>
+          )}
+        </div>
+      </form>
+
+      <p className="text-center text-sm text-gray-500 mt-6">
+        Already have an account?{" "}
+        <Link
+          href="/login"
+          className="text-brand-700 font-semibold hover:text-brand-800"
+        >
+          Sign in →
+        </Link>
+      </p>
     </div>
   );
 }
