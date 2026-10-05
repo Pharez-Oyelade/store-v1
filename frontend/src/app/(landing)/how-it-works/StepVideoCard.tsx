@@ -64,7 +64,7 @@ export default function StepVideoCard({
 
   return (
     <div
-      className="relative rounded-2xl overflow-hidden border border-gray-200/80 shadow-md group hover:shadow-xl transition-all duration-300 h-[320px] sm:h-[380px] md:h-[420px] lg:h-[450px] w-full flex flex-col justify-between p-6 md:p-8 bg-gray-950 cursor-pointer select-none"
+      className="relative rounded-2xl overflow-hidden border border-gray-200/80 shadow-md group hover:shadow-xl transition-all duration-300 h-[200px] sm:h-[380px] md:h-[420px] lg:h-[450px] w-full flex flex-col justify-between p-6 md:p-8 bg-gray-950 cursor-pointer select-none"
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
       onClick={handleTogglePlay}
