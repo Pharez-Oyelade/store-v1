@@ -332,13 +332,13 @@ export default function StorefrontDashboardPage() {
               <div className="space-y-2 max-w-xl">
                 <div className="flex items-center gap-2">
                   <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                    Live Storefront Ready
+                    {/* <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" /> */}
+                    Storefront Ready
                   </span>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-gray-300 border border-white/15">
+                  {/* <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-gray-300 border border-white/15">
                     <ShieldCheck size={12} className="text-amber-400" />
                     Production Guard Active
-                  </span>
+                  </span> */}
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-serif font-bold text-white">
