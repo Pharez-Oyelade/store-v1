@@ -105,14 +105,16 @@ export default function StorefrontDashboardPage() {
 
           <div className="max-w-xl mx-auto space-y-2">
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
-              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
-              <span>Coming Soon to Your Workspace</span>
+              <span>Coming Soon</span>
             </div>
             <h2 className="text-2xl sm:text-3xl font-serif font-bold text-gray-950">
               Online Storefronts Are Rolling Out
             </h2>
             <p className="text-sm text-stone-600 leading-relaxed">
-              We are finalizing custom storefronts for fashion houses and bespoke tailors on Vendra. Once enabled, you will be able to customize your boutique&apos;s public link, theme colors, state delivery rates, and promotional discount campaigns right here.
+              We are finalizing custom storefronts for fashion brands and
+              bespoke tailors on Vendra. Once enabled, you will be able to
+              customize your boutique's public link, theme colors, state
+              delivery rates, and promotional discount campaigns right here.
             </p>
           </div>
 
@@ -122,9 +124,12 @@ export default function StorefrontDashboardPage() {
               <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
                 01
               </div>
-              <h4 className="font-semibold text-xs text-gray-950">Bespoke & RTW Catalog</h4>
+              <h4 className="font-semibold text-xs text-gray-950">
+                Bespoke & RTW Catalog
+              </h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Showcase your collections with automatic adaptation for ready-to-wear pieces and custom tailoring requests.
+                Showcase your collections with automatic adaptation for
+                ready-to-wear pieces and custom tailoring requests.
               </p>
             </div>
 
@@ -132,9 +137,12 @@ export default function StorefrontDashboardPage() {
               <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
                 02
               </div>
-              <h4 className="font-semibold text-xs text-gray-950">Rose Closet 2-Step Checkout</h4>
+              <h4 className="font-semibold text-xs text-gray-950">
+                2-Step Checkout
+              </h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Frictionless 2-step checkout with delivery address collection, state-based shipping fees, and Paystack or WhatsApp orders.
+                Frictionless 2-step checkout with delivery address collection,
+                state-based shipping fees, and Paystack or WhatsApp orders.
               </p>
             </div>
 
@@ -142,9 +150,12 @@ export default function StorefrontDashboardPage() {
               <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
                 03
               </div>
-              <h4 className="font-semibold text-xs text-gray-950">Campaigns & Custom Theme</h4>
+              <h4 className="font-semibold text-xs text-gray-950">
+                Campaigns & Custom Theme
+              </h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Create coupon codes, broadcast notice bar announcements, and customize brand theme colors for your boutique.
+                Create coupon codes, broadcast notice bar announcements, and
+                customize brand theme colors for your boutique.
               </p>
             </div>
           </div>
@@ -155,8 +166,8 @@ export default function StorefrontDashboardPage() {
               href="/dashboard/products"
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gray-950 hover:bg-gray-800 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-2"
             >
-              <Package size={14} />
-              <span>Prepare Your Products</span>
+              <Package size={14} className="text-white" />
+              <span className="text-white">Prepare Your Products</span>
             </Link>
             <Link
               href="/dashboard"
