@@ -59,7 +59,7 @@ const steps: StepItem[] = [
     number: "03",
     title: "Share Your Catalog & Stop DM Chaos",
     description:
-      "Add your new link to your Instagram Bio or WhatsApp status. Customers can browse what's in stock, select their sizes, and order directly — no DM required to ask 'Is this available?'",
+      "Add your new link to your Instagram Bio or WhatsApp status. Customers can browse what's in stock, select their sizes, and order directly. No DM required to ask 'Is this available?'",
     icon: <Share2 className="w-6 h-6 text-emerald-600" />,
     badge: "Auto Stock-Sync",
     color: "from-emerald-50 to-emerald-100/30",
