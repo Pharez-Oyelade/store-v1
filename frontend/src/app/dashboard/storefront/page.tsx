@@ -81,6 +81,95 @@ const NIGERIAN_STATES = [
 ];
 
 export default function StorefrontDashboardPage() {
+  const isStorefrontGuardedInProd =
+    process.env.NODE_ENV === "production" &&
+    process.env.NEXT_PUBLIC_ENABLE_STOREFRONT !== "true" &&
+    process.env.ENABLE_STOREFRONT !== "true";
+
+  const isStorefrontDashboardDisabled =
+    process.env.NEXT_PUBLIC_ENABLE_STOREFRONT_DASHBOARD === "false" ||
+    isStorefrontGuardedInProd;
+
+  if (isStorefrontDashboardDisabled) {
+    return (
+      <div className="space-y-6 max-w-5xl mx-auto pb-12">
+        <PageHeader
+          title="Storefront & Public Catalog"
+          description="Your dedicated online boutique link and public catalog on Vendra."
+        />
+
+        <div className="bg-white border border-stone-200 rounded-3xl p-8 sm:p-12 text-center shadow-xs space-y-6">
+          <div className="size-16 rounded-2xl bg-amber-50 border border-amber-200/60 flex items-center justify-center text-amber-600 mx-auto shadow-xs">
+            <Store size={32} />
+          </div>
+
+          <div className="max-w-xl mx-auto space-y-2">
+            <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-amber-50 border border-amber-200 text-amber-800 text-xs font-semibold">
+              <span className="size-2 rounded-full bg-amber-500 animate-pulse" />
+              <span>Coming Soon to Your Workspace</span>
+            </div>
+            <h2 className="text-2xl sm:text-3xl font-serif font-bold text-gray-950">
+              Online Storefronts Are Rolling Out
+            </h2>
+            <p className="text-sm text-stone-600 leading-relaxed">
+              We are finalizing custom storefronts for fashion houses and bespoke tailors on Vendra. Once enabled, you will be able to customize your boutique&apos;s public link, theme colors, state delivery rates, and promotional discount campaigns right here.
+            </p>
+          </div>
+
+          {/* Feature Highlights */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-left max-w-3xl mx-auto pt-4">
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2">
+              <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
+                01
+              </div>
+              <h4 className="font-semibold text-xs text-gray-950">Bespoke & RTW Catalog</h4>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Showcase your collections with automatic adaptation for ready-to-wear pieces and custom tailoring requests.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2">
+              <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
+                02
+              </div>
+              <h4 className="font-semibold text-xs text-gray-950">Rose Closet 2-Step Checkout</h4>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Frictionless 2-step checkout with delivery address collection, state-based shipping fees, and Paystack or WhatsApp orders.
+              </p>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200/70 space-y-2">
+              <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
+                03
+              </div>
+              <h4 className="font-semibold text-xs text-gray-950">Campaigns & Custom Theme</h4>
+              <p className="text-[11px] text-stone-500 leading-relaxed">
+                Create coupon codes, broadcast notice bar announcements, and customize brand theme colors for your boutique.
+              </p>
+            </div>
+          </div>
+
+          {/* Navigation Action Buttons */}
+          <div className="pt-4 flex flex-col sm:flex-row items-center justify-center gap-3">
+            <Link
+              href="/dashboard/products"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gray-950 hover:bg-gray-800 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-2"
+            >
+              <Package size={14} />
+              <span>Prepare Your Products</span>
+            </Link>
+            <Link
+              href="/dashboard"
+              className="w-full sm:w-auto px-5 py-2.5 rounded-xl border border-stone-200 hover:bg-stone-50 text-stone-700 text-xs font-semibold transition-colors flex items-center justify-center gap-2"
+            >
+              <span>Back to Overview</span>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const { data: vendorProfile, isLoading } = useVendorProfile();
   const authVendor = useAuthStore((s) => s.vendor);
   const vendor = vendorProfile || (authVendor as any);
@@ -331,14 +420,21 @@ export default function StorefrontDashboardPage() {
             <div className="relative z-10 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
               <div className="space-y-2 max-w-xl">
                 <div className="flex items-center gap-2">
-                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
-                    {/* <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" /> */}
+                  <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold tracking-wide uppercase bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">
+                    <span className="size-1.5 rounded-full bg-emerald-400 animate-pulse" />
                     Storefront Ready
                   </span>
-                  {/* <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-white/10 text-gray-300 border border-white/15">
-                    <ShieldCheck size={12} className="text-amber-400" />
-                    Production Guard Active
-                  </span> */}
+                  {process.env.NEXT_PUBLIC_ENABLE_STOREFRONT === "true" ? (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-emerald-500/10 text-emerald-300 border border-emerald-500/20">
+                      <Globe size={12} className="text-emerald-400" />
+                      Public Store Live
+                    </span>
+                  ) : (
+                    <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-amber-500/10 text-amber-300 border border-amber-500/20">
+                      <ShieldCheck size={12} className="text-amber-400" />
+                      Public Guard Active (404)
+                    </span>
+                  )}
                 </div>
 
                 <h2 className="text-xl sm:text-2xl font-serif font-bold text-white">
