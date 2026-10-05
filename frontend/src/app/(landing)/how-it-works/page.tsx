@@ -30,6 +30,7 @@ interface StepItem {
   badge: string;
   color: string;
   video?: string;
+  image?: string;
   poster?: string;
 }
 
@@ -52,6 +53,7 @@ const steps: StepItem[] = [
     icon: <PlusCircle className="w-6 h-6 text-accent-600" />,
     badge: "Built for Fashion",
     color: "from-accent-50 to-accent-100/30",
+    video: "/videos/step-02.mp4",
   },
   {
     number: "03",
@@ -61,6 +63,7 @@ const steps: StepItem[] = [
     icon: <Share2 className="w-6 h-6 text-emerald-600" />,
     badge: "Auto Stock-Sync",
     color: "from-emerald-50 to-emerald-100/30",
+    image: "/steps/step-03.png",
   },
   {
     number: "04",
@@ -70,6 +73,7 @@ const steps: StepItem[] = [
     icon: <MessageSquare className="w-6 h-6 text-blue-600" />,
     badge: "WhatsApp Ready",
     color: "from-blue-50 to-blue-100/30",
+    video: "/videos/step-04.mp4",
   },
   {
     number: "05",
@@ -79,6 +83,7 @@ const steps: StepItem[] = [
     icon: <BarChart3 className="w-6 h-6 text-purple-600" />,
     badge: "Clean Analytics",
     color: "from-purple-50 to-purple-100/30",
+    image: "/steps/step-05.png",
   },
 ];
 
@@ -191,7 +196,7 @@ export default function HowItWorksPage() {
 
                 {/* Left/Content block */}
                 <div className="w-full md:w-1/2 pl-6 md:pl-0 space-y-4">
-                  <span className="inline-block bg-brand-50 text-brand-700 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider w-[30%]">
+                  <span className="inline-block bg-brand-50 text-brand-700 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider w-auto">
                     {step.badge}
                   </span>
                   <div className="flex items-baseline gap-3">
@@ -224,6 +229,27 @@ export default function HowItWorksPage() {
                       colorGradient={step.color}
                       isActive={activeStep === step.number}
                     />
+                  ) : step.image ? (
+                    <div className="relative rounded-2xl overflow-hidden border border-gray-200/80 shadow-md group hover:shadow-xl transition-all duration-300 h-[200px] sm:h-[380px] md:h-[420px] lg:h-[450px] w-full flex flex-col justify-between p-6 md:p-8 bg-gray-950 cursor-pointer select-none">
+                      <img
+                        src={step.image}
+                        alt={step.title}
+                        className="absolute inset-0 w-full h-full object-cover object-center"
+                      />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/50 pointer-events-none" />
+
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/50 pointer-events-none transition-opacity duration-300" />
+
+                      {/* Top Header Row: Icon Badge & Giant Step Number */}
+                      <div className="relative z-10 flex justify-between items-start pointer-events-none">
+                        <div className="p-3 bg-white/95 backdrop-blur-md rounded-xl shadow-lg border border-white/20 transition-transform duration-300 group-hover:scale-105">
+                          {step.icon}
+                        </div>
+                        <span className="text-6xl md:text-7xl font-black text-white/80 drop-shadow-lg select-none group-hover:scale-105 transition-transform duration-300 font-sans">
+                          {step.number}
+                        </span>
+                      </div>
+                    </div>
                   ) : (
                     <div
                       className={`p-6 md:p-8 rounded-2xl bg-gradient-to-br ${step.color} border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 h-[320px] sm:h-[380px] md:h-[420px] lg:h-[450px] flex flex-col justify-between`}
