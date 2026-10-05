@@ -32,6 +32,18 @@ const productSchema = new mongoose.Schema(
       default: [],
     },
 
+    fulfillmentType: {
+      type: String,
+      enum: ["ready_to_wear", "made_to_order", "demand"],
+      default: "ready_to_wear",
+    },
+
+    leadTimeDays: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     images: {
       type: [
         {

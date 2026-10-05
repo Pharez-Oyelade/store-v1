@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
-import { apiGet, apiPut } from "@/lib/api";
+import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api";
 import type { Vendor } from "@/types";
 
 export const VENDOR_KEYS = {
@@ -42,5 +42,66 @@ export function useUpdateVendorProfile() {
       toast.success("Profile updated");
     },
     onError: (error: Error) => toast.error(error.message || "Failed to update profile"),
+  });
+}
+
+export function useUpdateStorefrontSettings() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: any) => apiPut<any>("/vendor/storefront-settings", data),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: VENDOR_KEYS.profile });
+      toast.success("Storefront settings saved");
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to update settings"),
+  });
+}
+
+export function useUpdateStorefrontBanner() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (formData: FormData) => apiPut<any>("/vendor/storefront-banner", formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VENDOR_KEYS.profile });
+      toast.success("Storefront banner uploaded");
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to upload banner"),
+  });
+}
+
+export function useVendorDiscounts() {
+  return useQuery({
+    queryKey: ["vendor", "discounts"],
+    queryFn: () => apiGet<any[]>("/vendor/discounts"),
+  });
+}
+
+export function useCreateDiscount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (data: any) => apiPost<any>("/vendor/discounts", data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor", "discounts"] });
+      queryClient.invalidateQueries({ queryKey: VENDOR_KEYS.profile });
+      toast.success("Discount code created");
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to create discount"),
+  });
+}
+
+export function useDeleteDiscount() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (discountId: string) => apiDelete<any>(`/vendor/discounts/${discountId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["vendor", "discounts"] });
+      queryClient.invalidateQueries({ queryKey: VENDOR_KEYS.profile });
+      toast.success("Discount removed");
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to delete discount"),
   });
 }

@@ -34,6 +34,12 @@ const customerSchema = new mongoose.Schema(
       default: "",
     },
 
+    deliveryAddress: {
+      street: { type: String, default: "" },
+      city: { type: String, default: "" },
+      state: { type: String, default: "" },
+    },
+
     /*
      * ltv = Life-Time Value — the total amount this customer has spent.
      * Auto-updated when an order is marked "completed".

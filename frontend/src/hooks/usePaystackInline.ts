@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 
 declare global {
   interface Window {
-    PaystackPop: any;
+    PaystackPop?: any;
   }
 }
 

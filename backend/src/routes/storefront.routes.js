@@ -5,6 +5,7 @@ import {
   getStorefrontProduct,
   createStorefrontOrder,
   createStorefrontCustomRequest,
+  validateCoupon,
 } from "../controllers/storefront.controller.js";
 import { createStorefrontOrderValidators } from "../validators/storefront.validators.js";
 import { validate } from "../validators/auth.validators.js";
@@ -16,6 +17,7 @@ const storefrontRouter = Router();
 storefrontRouter.get("/:handle", getVendorStorefront);
 storefrontRouter.get("/:handle/products", getStorefrontProducts);
 storefrontRouter.get("/:handle/products/:productId", getStorefrontProduct);
+storefrontRouter.post("/:handle/validate-coupon", validateCoupon);
 storefrontRouter.post(
   "/:handle/orders",
   createStorefrontOrderValidators,
