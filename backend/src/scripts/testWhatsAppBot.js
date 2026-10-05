@@ -85,6 +85,19 @@ async function runTests() {
   await handleIncomingMessage(vendor.phone, "Sold 2 blue Ankara bubu", "wamid.test_order_intake", "text");
   console.log("   ✅ Order intake processed.");
 
+  /* ── 7. Test Forwarded Customer Message ──────────── */
+  console.log("\n7. Testing Forwarded Customer Message Flow...");
+  const forwardedPayload = `[FORWARDED CUSTOMER MESSAGE] A customer sent this to the vendor: "I want to buy the Bubu in pink"`;
+  console.log(`   Sending: "${forwardedPayload}" from ${vendor.phone}...`);
+  await handleIncomingMessage(
+    vendor.phone,
+    forwardedPayload,
+    `wamid.test_forwarded_${Date.now()}`,
+    "text",
+    { isForwarded: true, originalContent: "I want to buy the Bubu in pink" }
+  );
+  console.log("   ✅ Forwarded customer message processed.");
+
   console.log("\n==========================================");
   console.log("  ALL TESTS COMPLETED SUCCESSFULLY! ✅   ");
   console.log("==========================================");

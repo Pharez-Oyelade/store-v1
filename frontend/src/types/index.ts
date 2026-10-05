@@ -204,6 +204,8 @@ export interface Product {
   description?: string;
   category?: string;
   tags?: string[];
+  fulfillmentType?: "ready_to_wear" | "made_to_order" | "demand";
+  leadTimeDays?: number;
   images: CloudinaryImage[];
   hasVariants?: boolean;
   variantOptions?: VariantOptionDimension[];
@@ -243,6 +245,31 @@ export interface Vendor {
     orderDispatchedTemplate?: string;
     orderCompletedTemplate?: string;
   };
+  businessType?: "ready_to_wear" | "made_to_order" | "demand" | "hybrid";
+  category?: string;
+  storefrontSettings?: {
+    themeColor?: string;
+    accentColor?: string;
+    bannerImage?: CloudinaryImage;
+    customDomain?: string;
+    customCss?: string;
+    announcementText?: string;
+    announcementActive?: boolean;
+    whatsappFabEnabled?: boolean;
+    featuredProductIds?: string[];
+    deliveryRates?: {
+      state: string;
+      fee: number;
+      areas?: string[];
+    }[];
+  };
+  activeCampaign?: {
+    code: string;
+    type: "percentage" | "fixed";
+    value: number;
+    minOrderAmount?: number;
+  } | null;
+  hasOnlinePayment?: boolean;
   isActive: boolean;
   lastLogin?: string;
   lastActiveAt?: string;
@@ -343,6 +370,12 @@ export interface Order {
     phone: string;
     email?: string;
   };
+  deliveryAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+  };
+  deliveryFee?: number;
   whatsappLinks?: {
     confirmed: string;
     dispatched: string;
@@ -354,6 +387,13 @@ export interface Order {
   balanceOwed: number; // totalAmount - depositPaid
   status: OrderStatus;
   source: OrderSource;
+  paymentMethod?: "whatsapp" | "paystack" | "bank_transfer" | "cash";
+  paymentReference?: string;
+  discount?: {
+    code?: string;
+    amount?: number;
+    percentage?: number;
+  };
   notes?: string;
   whatsappSent: boolean; // track if order details have been sent to customer via WhatsApp
   invoice?: {
@@ -368,6 +408,20 @@ export interface Order {
   isPendingSync?: boolean;
   createdAt: string;
   updatedAt: string;
+}
+
+export interface DiscountCampaign {
+  _id?: string;
+  code: string;
+  type: "percentage" | "fixed";
+  value: number;
+  minOrderAmount: number;
+  maxUses?: number | null;
+  usedCount: number;
+  startDate?: string;
+  endDate?: string | null;
+  isActive: boolean;
+  showInAnnouncementBar?: boolean;
 }
 
 

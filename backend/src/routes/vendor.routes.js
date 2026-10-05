@@ -7,6 +7,11 @@ import {
   resolveBankDetails,
   getPayoutSettings,
   updatePayoutSettings,
+  updateStorefrontSettings,
+  updateStorefrontBanner,
+  getDiscounts,
+  createDiscount,
+  deleteDiscount,
 } from "../controllers/vendor.controller.js";
 import { getBadgeCountsHandler } from "../controllers/badge.controller.js";
 import { protect } from "../middleware/protect.js";
@@ -25,6 +30,32 @@ vendorRouter.put(
   requireRole("owner", "manager"),
   uploadSingle,
   updateLogo,
+);
+
+/* ── Storefront Settings & Customization Routes ─────────────────── */
+vendorRouter.put(
+  "/storefront-settings",
+  requireRole("owner", "manager"),
+  updateStorefrontSettings,
+);
+vendorRouter.put(
+  "/storefront-banner",
+  requireRole("owner", "manager"),
+  uploadSingle,
+  updateStorefrontBanner,
+);
+
+/* ── Promotional Discounts & Campaigns ──────────────────────────── */
+vendorRouter.get("/discounts", getDiscounts);
+vendorRouter.post(
+  "/discounts",
+  requireRole("owner", "manager"),
+  createDiscount,
+);
+vendorRouter.delete(
+  "/discounts/:discountId",
+  requireRole("owner", "manager"),
+  deleteDiscount,
 );
 
 /* ── Payout & Bank Settlement Routes ────────────────────────────── */
