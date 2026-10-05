@@ -689,8 +689,9 @@ async function executeStockAdjustment(session) {
  * @param {string} messageText - The message body
  * @param {string} messageId   - Meta message ID for deduplication
  * @param {string} messageType - "text", "interactive", etc.
+ * @param {object} metadata    - Additional message metadata (e.g. isForwarded)
  */
-export async function handleIncomingMessage(senderPhone, messageText, messageId, messageType) {
+export async function handleIncomingMessage(senderPhone, messageText, messageId, messageType, metadata = {}) {
   const startTime = Date.now();
   const normalized = normalizePhone(senderPhone);
 
@@ -722,6 +723,7 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
       status: "received",
       processingTimeMs: Date.now() - startTime,
       error: "Unregistered sender",
+      metadata,
     });
     return;
   }
@@ -750,6 +752,7 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
     messageType,
     content: messageText,
     status: "received",
+    metadata,
   });
 
   /* ── Step 4: Handle confirmations / cancellations ─────── */
@@ -816,11 +819,21 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
 
   const geminiResult = await processWithGemini(geminiHistory, vendorContext);
 
-  /* ── Step 6: Handle function calls from Gemini ────────── */
-  if (geminiResult.functionCalls && geminiResult.functionCalls.length > 0) {
+  let outboundText = "";
+  let currentResult = geminiResult;
+  let iterations = 0;
+  const MAX_ITERATIONS = 4;
+
+  /* ── Step 6: Handle function calls from Gemini (multi-step loop) ── */
+  while (
+    currentResult.functionCalls &&
+    currentResult.functionCalls.length > 0 &&
+    iterations < MAX_ITERATIONS
+  ) {
+    iterations++;
     let combinedResults = [];
 
-    for (const fnCall of geminiResult.functionCalls) {
+    for (const fnCall of currentResult.functionCalls) {
       const result = await executeFunctionCall(fnCall, vendor._id);
       combinedResults.push({ name: fnCall.name, result });
 
@@ -883,8 +896,7 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
     }
 
     /*
-     * Feed function results back to Gemini for a natural language response.
-     * Gemini sees what the functions returned and crafts a user-facing message.
+     * Feed function results back to Gemini for the next turn.
      */
     const functionResultParts = combinedResults.map((r) => ({
       functionResponse: {
@@ -893,13 +905,12 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
       },
     }));
 
-    /* Add function results as a model turn in the history */
-    if (geminiResult.rawContent) {
-      geminiHistory.push(geminiResult.rawContent);
+    if (currentResult.rawContent) {
+      geminiHistory.push(currentResult.rawContent);
     } else {
       geminiHistory.push({
         role: "model",
-        parts: geminiResult.functionCalls.map((fc) => ({
+        parts: currentResult.functionCalls.map((fc) => ({
           functionCall: { name: fc.name, args: fc.args },
         })),
       });
@@ -910,38 +921,30 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
       parts: functionResultParts,
     });
 
-    /* Second Gemini call to get the natural language response */
-    const followUp = await processWithGemini(geminiHistory, vendorContext);
+    currentResult = await processWithGemini(geminiHistory, vendorContext);
+  }
 
-    if (followUp.text) {
-      session.dialogHistory.push({
-        role: "assistant",
-        text: followUp.text,
-        timestamp: new Date(),
-      });
+  /* ── Step 7: Send final natural language response ── */
+  outboundText = currentResult.text || "";
 
-      await session.save();
-
-      /* Send the response */
-      if (session.state === "pending_confirmation") {
-        await sendInteractiveButtons(normalized, followUp.text, [
-          { id: "btn_confirm", title: "✅ Confirm" },
-          { id: "btn_cancel", title: "❌ Cancel" },
-        ]);
-      } else {
-        await sendTextMessage(normalized, followUp.text);
-      }
-    }
-  } else if (geminiResult.text) {
-    /* ── Step 7: Plain text response (no function calls) ── */
+  if (outboundText) {
     session.dialogHistory.push({
       role: "assistant",
-      text: geminiResult.text,
+      text: outboundText,
       timestamp: new Date(),
     });
 
     await session.save();
-    await sendTextMessage(normalized, geminiResult.text);
+
+    /* Send the response via WhatsApp */
+    if (session.state === "pending_confirmation") {
+      await sendInteractiveButtons(normalized, outboundText, [
+        { id: "btn_confirm", title: "✅ Confirm" },
+        { id: "btn_cancel", title: "❌ Cancel" },
+      ]);
+    } else {
+      await sendTextMessage(normalized, outboundText);
+    }
   }
 
   /* Log outbound message */
@@ -951,7 +954,7 @@ export async function handleIncomingMessage(senderPhone, messageText, messageId,
     senderPhone: process.env.WHATSAPP_PHONE_NUMBER_ID,
     recipientPhone: normalized,
     messageType: "text",
-    content: geminiResult.text || "(function call response)",
+    content: outboundText || "(no content)",
     status: "sent",
     processingTimeMs: Date.now() - startTime,
   });
@@ -969,20 +972,20 @@ async function handleConfirmation(session, vendor, senderPhone, startTime) {
     const result = await executeOrderCreation(session);
 
     if (result.success) {
-      /* Send customer receipt if requested */
-      if (session.draftData.sendCustomerReceipt) {
-        const custPhone = normalizePhone(session.draftData.customer.phone);
-        if (custPhone) {
-          await sendTextMessage(
-            custPhone,
-            `Hi ${session.draftData.customer.name}! Your order with ${vendor.businessName} has been confirmed ✅\n\n` +
-              `📋 Order #${result.orderId}\n` +
-              `💰 Total: ₦${result.totalAmount.toLocaleString("en-NG")}\n` +
-              `${result.balanceOwed > 0 ? `⚖️ Balance Due: ₦${result.balanceOwed.toLocaleString("en-NG")}\n` : ""}` +
-              `\nThank you for shopping with ${vendor.businessName}! 🙏`,
-          );
-        }
-      }
+      /* Prepare customer receipt copy for vendor to forward to customer */
+      const customerReceiptBlock =
+        `📲 *Customer Receipt (Copy & forward to ${result.customerName}):*\n` +
+        `━━━━━━━━━━━━━━━━━━\n` +
+        `*Receipt from ${vendor.businessName}* 👗\n` +
+        `Hello ${result.customerName}! Thank you for your purchase.\n\n` +
+        `📋 *Order #${result.orderId}*\n` +
+        (session.draftData.items || [])
+          .map((i) => `• ${i.quantity}x ${i.productName} (${i.variantLabel}) — ₦${((i.price || 0) * (i.quantity || 1)).toLocaleString("en-NG")}`)
+          .join("\n") +
+        `\n\n💰 *Total:* ₦${result.totalAmount.toLocaleString("en-NG")}\n` +
+        `${result.balanceOwed > 0 ? `⚖️ *Balance Due:* ₦${result.balanceOwed.toLocaleString("en-NG")}\n` : "💳 *Payment:* Paid in full ✅\n"}` +
+        `\nThank you for shopping with ${vendor.businessName}! 🙏\n` +
+        `━━━━━━━━━━━━━━━━━━`;
 
       await sendTextMessage(
         senderPhone,
@@ -990,8 +993,9 @@ async function handleConfirmation(session, vendor, senderPhone, startTime) {
           `• Customer: ${result.customerName}\n` +
           `• Total: ₦${result.totalAmount.toLocaleString("en-NG")}\n` +
           `${result.balanceOwed > 0 ? `• Balance: ₦${result.balanceOwed.toLocaleString("en-NG")}\n` : "• Payment: Paid in full\n"}` +
-          `${session.draftData.sendCustomerReceipt ? "• Receipt sent to customer ✅" : ""}\n\n` +
-          `Stock has been updated. What else can I help with?`,
+          `• Stock has been updated.\n\n` +
+          `${customerReceiptBlock}\n\n` +
+          `What else can I help with?`,
       );
     } else {
       await sendTextMessage(

@@ -119,12 +119,37 @@ export const handleIncoming = asyncHandler(async (req, res) => {
 
       if (!messageText.trim()) continue;
 
+      /* ── Forwarded & Copied Customer Message Detection ── */
+      const isForwarded = Boolean(
+        message.context?.forwarded || message.context?.frequently_forwarded
+      );
+
+      const looksLikeCustomerInquiry = (text) => {
+        const trimmed = text.trim();
+        // Quoted text: "..." or '...' or “...”
+        if (/^["'“].+["'”]$/s.test(trimmed)) return true;
+        // Typical buyer inquiry opening phrases when vendor copies customer DM verbatim
+        return /^(i want to (buy|order|get|purchase)|can i (buy|get|order|pay)|how much (is|for)|do you have|is this available|is the .* in stock)/i.test(trimmed);
+      };
+
+      let processedText = messageText;
+      const isCustomerMessage = isForwarded || (messageType === "text" && looksLikeCustomerInquiry(messageText));
+
+      if (isCustomerMessage && messageType === "text") {
+        const cleanContent = messageText.trim().replace(/^["'“]|["'”]$/g, "");
+        processedText = `[FORWARDED CUSTOMER MESSAGE] A customer sent this to the vendor: "${cleanContent}"`;
+      }
+
       /*
        * Process message asynchronously.
        * We don't await this because we already sent 200 to Meta.
        * Errors are caught and logged internally by handleIncomingMessage.
        */
-      handleIncomingMessage(senderPhone, messageText, messageId, messageType).catch(
+      handleIncomingMessage(senderPhone, processedText, messageId, messageType, {
+        isForwarded,
+        isCustomerMessage,
+        originalContent: messageText,
+      }).catch(
         (err) => {
           console.error("[WhatsApp] Error processing message:", err);
         },
