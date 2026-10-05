@@ -34,6 +34,36 @@ export const createStorefrontOrderValidators = [
     .withMessage("Please enter a valid email address")
     .normalizeEmail(),
 
+  body("deliveryAddress.street")
+    .optional({ values: "falsy" })
+    .trim()
+    .isLength({ max: 200 }),
+
+  body("deliveryAddress.city")
+    .optional({ values: "falsy" })
+    .trim()
+    .isLength({ max: 100 }),
+
+  body("deliveryAddress.state")
+    .optional({ values: "falsy" })
+    .trim()
+    .isLength({ max: 100 }),
+
+  body("deliveryFee")
+    .optional()
+    .isFloat({ min: 0 })
+    .withMessage("Delivery fee must be a non-negative number"),
+
+  body("paymentMethod")
+    .optional()
+    .isIn(["whatsapp", "paystack", "bank_transfer", "cash"])
+    .withMessage("Invalid payment method"),
+
+  body("couponCode")
+    .optional({ values: "falsy" })
+    .trim()
+    .isLength({ max: 50 }),
+
   body("notes")
     .optional()
     .trim()

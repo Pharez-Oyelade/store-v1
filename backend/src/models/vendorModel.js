@@ -119,10 +119,22 @@ const vendorSchema = new mongoose.Schema(
       default: "active",
     },
 
+    /* ── Business & Storefront Type ────────────────────── */
+    businessType: {
+      type: String,
+      enum: ["ready_to_wear", "made_to_order", "demand", "hybrid"],
+      default: "ready_to_wear",
+    },
+
+    category: {
+      type: String,
+      default: "fashion",
+    },
+
     /* ── Storefront Settings ────────────────────────────── */
     storefrontSettings: {
       themeColor: { type: String, default: "#E2A03F" },
-      accentColor: { type: String, default: "#1F2937" },
+      accentColor: { type: String, default: "#E11D48" },
       bannerImage: {
         url: { type: String, default: "" },
         publicId: { type: String, default: "" },
@@ -130,7 +142,39 @@ const vendorSchema = new mongoose.Schema(
       customDomain: { type: String, default: "" },
       customCss: { type: String, default: "" },
       announcementText: { type: String, default: "" },
+      announcementActive: { type: Boolean, default: true },
+      whatsappFabEnabled: { type: Boolean, default: true },
+      featuredProductIds: [
+        { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
+      ],
+      deliveryRates: [
+        {
+          state: { type: String, required: true, trim: true },
+          fee: { type: Number, required: true, min: 0 },
+          areas: [{ type: String, trim: true }],
+        },
+      ],
     },
+
+    /* ── Promotional Campaigns & Discounts ───────────────── */
+    discounts: [
+      {
+        code: { type: String, uppercase: true, trim: true, required: true },
+        type: {
+          type: String,
+          enum: ["percentage", "fixed"],
+          default: "percentage",
+        },
+        value: { type: Number, required: true, min: 0 },
+        minOrderAmount: { type: Number, default: 0, min: 0 },
+        maxUses: { type: Number, default: null },
+        usedCount: { type: Number, default: 0 },
+        startDate: { type: Date, default: Date.now },
+        endDate: { type: Date, default: null },
+        isActive: { type: Boolean, default: true },
+        showInAnnouncementBar: { type: Boolean, default: false },
+      },
+    ],
 
     /* ── Social Messaging Templates ─────────────────────── */
     socialMessaging: {

@@ -40,6 +40,18 @@ const orderSchema = new mongoose.Schema(
       email: { type: String, default: "" },
     },
 
+    deliveryAddress: {
+      street: { type: String, default: "" },
+      city: { type: String, default: "" },
+      state: { type: String, default: "" },
+    },
+
+    deliveryFee: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
+
     /*
      * Each item stores both a product reference and a snapshot of
      * the product name + variant + price at order time.
@@ -137,6 +149,23 @@ const orderSchema = new mongoose.Schema(
       type: String,
       maxlength: [500, "Notes cannot exceed 500 characters"],
       default: "",
+    },
+
+    paymentMethod: {
+      type: String,
+      enum: ["whatsapp", "paystack", "bank_transfer", "cash"],
+      default: "whatsapp",
+    },
+
+    paymentReference: {
+      type: String,
+      default: "",
+    },
+
+    discount: {
+      code: { type: String, default: "" },
+      amount: { type: Number, default: 0, min: 0 },
+      percentage: { type: Number, default: 0, min: 0 },
     },
 
     /* Tracks whether a WhatsApp confirmation has been sent to the customer */

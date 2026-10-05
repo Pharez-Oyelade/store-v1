@@ -1,11 +1,12 @@
 "use client";
 
-import React from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 import { Title } from "@/components/ui/Title";
 import Button from "@/components/custom/Button";
 import Card from "@/components/ui/Card";
+import StepVideoCard from "./StepVideoCard";
 import {
   UserPlus,
   PlusCircle,
@@ -21,7 +22,18 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-const steps = [
+interface StepItem {
+  number: string;
+  title: string;
+  description: string;
+  icon: React.ReactNode;
+  badge: string;
+  color: string;
+  video?: string;
+  poster?: string;
+}
+
+const steps: StepItem[] = [
   {
     number: "01",
     title: "Create Your Shop in 60 Seconds",
@@ -30,6 +42,7 @@ const steps = [
     icon: <UserPlus className="w-6 h-6 text-brand-600" />,
     badge: "Fast Setup",
     color: "from-brand-50 to-brand-100/50",
+    video: "/videos/step01.mp4",
   },
   {
     number: "02",
@@ -70,6 +83,49 @@ const steps = [
 ];
 
 export default function HowItWorksPage() {
+  const [activeStep, setActiveStep] = useState<string | null>("01");
+  const stepCardRefs = useRef<{ [key: string]: HTMLDivElement | null }>({});
+
+  useEffect(() => {
+    const ratios: { [key: string]: number } = {};
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          const stepNum = entry.target.getAttribute("data-step-number");
+          if (stepNum) {
+            ratios[stepNum] = entry.isIntersecting
+              ? entry.intersectionRatio
+              : 0;
+          }
+        });
+
+        // Find the step with highest visible ratio (threshold > 0.25)
+        let bestStep: string | null = null;
+        let maxRatio = 0.25;
+
+        Object.entries(ratios).forEach(([stepNum, ratio]) => {
+          if (ratio > maxRatio) {
+            maxRatio = ratio;
+            bestStep = stepNum;
+          }
+        });
+
+        setActiveStep(bestStep);
+      },
+      {
+        threshold: [0, 0.2, 0.4, 0.6, 0.8, 1.0],
+        rootMargin: "-10% 0px -10% 0px",
+      },
+    );
+
+    Object.values(stepCardRefs.current).forEach((el) => {
+      if (el) observer.observe(el);
+    });
+
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="relative overflow-hidden bg-surface-base text-gray-900 pb-20">
       {/* Visual background accents */}
@@ -131,11 +187,11 @@ export default function HowItWorksPage() {
                 }`}
               >
                 {/* Timeline circle indicator for mobile/desktop */}
-                <div className="absolute left-[-9px] md:left-1/2 md:transform md:-translate-x-1/2 w-4 h-4 rounded-full bg-brand-500 border-4 border-white shadow-sm z-10" />
+                <div className="md:hidden absolute left-[-9px] md:left-1/2 md:transform md:-translate-x-1/2 w-4 h-4 rounded-full bg-brand-500 border-4 border-white shadow-sm z-10" />
 
                 {/* Left/Content block */}
                 <div className="w-full md:w-1/2 pl-6 md:pl-0 space-y-4">
-                  <span className="inline-block bg-brand-50 text-brand-700 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+                  <span className="inline-block bg-brand-50 text-brand-700 text-xs px-3 py-1 rounded-full font-bold uppercase tracking-wider w-[30%]">
                     {step.badge}
                   </span>
                   <div className="flex items-baseline gap-3">
@@ -151,25 +207,42 @@ export default function HowItWorksPage() {
                   </p>
                 </div>
 
-                {/* Right/Visual Placeholder Mockup */}
-                <div className="w-full md:w-1/2 pl-6 md:pl-0">
-                  <div
-                    className={`p-8 rounded-2xl bg-gradient-to-br ${step.color} border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 min-h-[220px] flex flex-col justify-between`}
-                  >
-                    <div className="flex justify-between items-start">
-                      <div className="p-3 bg-white rounded-xl shadow-sm">
-                        {step.icon}
+                {/* Right/Visual Placeholder or Video Mockup */}
+                <div
+                  ref={(el) => {
+                    stepCardRefs.current[step.number] = el;
+                  }}
+                  data-step-number={step.number}
+                  className="w-full md:w-[80%] pl-6 md:pl-0"
+                >
+                  {step.video ? (
+                    <StepVideoCard
+                      stepNumber={step.number}
+                      icon={step.icon}
+                      videoSrc={step.video}
+                      posterSrc={step.poster}
+                      colorGradient={step.color}
+                      isActive={activeStep === step.number}
+                    />
+                  ) : (
+                    <div
+                      className={`p-6 md:p-8 rounded-2xl bg-gradient-to-br ${step.color} border border-gray-100 shadow-sm relative overflow-hidden group hover:shadow-md transition-shadow duration-300 h-[320px] sm:h-[380px] md:h-[420px] lg:h-[450px] flex flex-col justify-between`}
+                    >
+                      <div className="flex justify-between items-start">
+                        <div className="p-3 bg-white rounded-xl shadow-sm">
+                          {step.icon}
+                        </div>
+                        <span className="text-6xl md:text-7xl font-black text-white/40 select-none group-hover:scale-105 transition-transform duration-300 font-sans">
+                          {step.number}
+                        </span>
                       </div>
-                      <span className="text-6xl font-black text-white/40 select-none group-hover:scale-105 transition-transform duration-300">
-                        {step.number}
-                      </span>
-                    </div>
 
-                    <div className="space-y-2 mt-6">
-                      <div className="h-2 w-1/3 bg-gray-200 rounded-full" />
-                      <div className="h-2 w-2/3 bg-gray-200/70 rounded-full" />
+                      <div className="space-y-3 mt-6">
+                        <div className="h-2.5 w-1/3 bg-gray-200 rounded-full" />
+                        <div className="h-2.5 w-2/3 bg-gray-200/70 rounded-full" />
+                      </div>
                     </div>
-                  </div>
+                  )}
                 </div>
               </motion.div>
             );
