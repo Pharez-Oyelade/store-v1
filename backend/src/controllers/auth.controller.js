@@ -100,10 +100,19 @@ const buildAuthUserResponse = (vendor, user = null) => {
 
 /* Register -------------------------------- */
 export const register = asyncHandler(async (req, res) => {
-  const { businessName, handle, phone, email, password } = req.body;
+  const { businessName, handle, phone, email, password, location } = req.body;
+
+  const cleanPhone = phone.trim();
+  const altPhone = cleanPhone.startsWith("+234")
+    ? `0${cleanPhone.slice(4)}`
+    : cleanPhone.startsWith("0")
+      ? `+234${cleanPhone.slice(1)}`
+      : cleanPhone;
 
   // check if vendor exists
-  const existingByPhone = await Vendor.findOne({ phone });
+  const existingByPhone = await Vendor.findOne({
+    $or: [{ phone: cleanPhone }, { phone: altPhone }],
+  });
 
   if (existingByPhone) {
     return sendError(
@@ -143,9 +152,16 @@ export const register = asyncHandler(async (req, res) => {
   const vendor = await Vendor.create({
     businessName: businessName.trim(),
     handle: handle.toLowerCase().trim(),
-    phone: phone.trim(),
+    phone: cleanPhone,
     email: email ? email.toLowerCase().trim() : undefined,
     password,
+    location: location
+      ? {
+          state: location.state?.trim() || "",
+          city: location.city?.trim() || "",
+          area: location.area?.trim() || "",
+        }
+      : undefined,
     lastLogin: new Date(),
     lastActiveAt: new Date(),
     subscriptionPlan: "stitch",
@@ -199,9 +215,16 @@ export const login = asyncHandler(async (req, res) => {
 
   // accepting either email or phone as credential
   const isEmail = validator.isEmail(credential);
+  const cleanCred = credential.trim();
+  const altPhoneCred = cleanCred.startsWith("+234")
+    ? `0${cleanCred.slice(4)}`
+    : cleanCred.startsWith("0")
+      ? `+234${cleanCred.slice(1)}`
+      : cleanCred;
+
   const query = isEmail
-    ? { email: credential.toLowerCase().trim() }
-    : { phone: credential.trim() };
+    ? { email: cleanCred.toLowerCase() }
+    : { $or: [{ phone: cleanCred }, { phone: altPhoneCred }] };
 
   // 1. Check if a primary Store Owner (Vendor) matches
   const vendor = await Vendor.findOne(query).select("+password");

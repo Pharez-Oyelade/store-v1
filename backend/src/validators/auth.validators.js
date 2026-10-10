@@ -50,6 +50,7 @@ export const registerValidators = [
 
   body("phone")
     .trim()
+    .customSanitizer((val) => (typeof val === "string" ? val.replace(/[\s\-()]/g, "") : val))
     .notEmpty()
     .withMessage("Phone number is required")
     .matches(/^(\+234|0)[789][01]\d{8}$/)

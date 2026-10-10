@@ -29,28 +29,43 @@ const registerSchema = z
   .object({
     businessName: z
       .string()
+      .trim()
       .min(2, "Business name must be at least 2 characters")
       .max(60, "Business name is too long"),
     handle: z
       .string()
-      .min(3, "Handle must be at least 3 characters")
+      .trim()
+      .toLowerCase()
+      .min(2, "Handle must be at least 2 characters")
       .max(30, "Handle must be at most 30 characters")
       .regex(
-        /^[a-z0-9-]+$/,
-        "Handle can only contain lowercase letters, numbers, and hyphens",
+        /^[a-z0-9_-]+$/,
+        "Handle can only contain lowercase letters, numbers, hyphens, and underscores",
       ),
     phone: z
       .string()
+      .trim()
       .min(10, "Enter a valid phone number")
-      .regex(
-        /^0[7-9][01]\d{8}$/,
-        "Enter a valid Nigerian phone number (e.g. 08012345678)",
+      .refine(
+        (val) => /^(\+234|0)[7-9][01]\d{8}$/.test(val.replace(/[\s\-()]/g, "")),
+        "Enter a valid Nigerian phone number (e.g. 08012345678 or +2348012345678)",
       ),
-    email: z.email("Enter a valid email address").optional().or(z.literal("")), //allow empty string (email optional)
+    email: z
+      .string()
+      .trim()
+      .email("Enter a valid email address")
+      .optional()
+      .or(z.literal("")), // allow empty string (email optional)
     state: z.string().min(1, "Please select your state"),
-    city: z.string().min(2, "City is required"),
+    city: z.string().trim().min(2, "City is required"),
     area: z.string().optional(),
-    password: z.string().min(8, "Password must be at least 8 characters"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-zA-Z])(?=.*\d)/,
+        "Password must contain at least one letter and one number",
+      ),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
 
@@ -133,6 +148,7 @@ export default function RegisterPage() {
     handleSubmit,
     trigger, //validate specific fields
     setValue, //set a field's value
+    setError,
     watch, //read a field's value in real time
     formState: { errors, isSubmitting },
   } = useForm<RegisterFormValues>({
@@ -162,23 +178,46 @@ export default function RegisterPage() {
 
   const onSubmit = async (data: RegisterFormValues) => {
     try {
-      registerMutation.mutate({
-        businessName: data.businessName,
-        handle: data.handle,
-        phone: data.phone,
-        email: data.email,
+      const cleanPhone = data.phone.replace(/[\s\-()]/g, "");
+      const cleanEmail = data.email?.trim() || undefined;
+
+      await registerMutation.mutateAsync({
+        businessName: data.businessName.trim(),
+        handle: data.handle.toLowerCase().trim(),
+        phone: cleanPhone,
+        email: cleanEmail,
         password: data.password,
         location: {
-          state: data.state,
-          city: data.city,
-          area: data.area,
+          state: data.state.trim(),
+          city: data.city.trim(),
+          area: data.area?.trim() || "",
         },
       });
-      // useRegister() when auth is built
-    } catch (error) {
-      toast.error(
-        error instanceof Error ? error.message : "Registration failed",
-      );
+    } catch (error: any) {
+      if (error?.errors && typeof error.errors === "object") {
+        Object.entries(error.errors).forEach(([field, msg]) => {
+          setError(field as keyof RegisterFormValues, {
+            type: "server",
+            message: msg as string,
+          });
+        });
+
+        // Navigate back to the step containing the invalid field
+        if (
+          error.errors.businessName ||
+          error.errors.handle ||
+          error.errors.phone ||
+          error.errors.email
+        ) {
+          setCurrentStep(1);
+        } else if (
+          error.errors.state ||
+          error.errors.city ||
+          error.errors.area
+        ) {
+          setCurrentStep(2);
+        }
+      }
     }
   };
 
@@ -309,7 +348,7 @@ export default function RegisterPage() {
               type={showPassword ? "text" : "password"}
               placeholder="Create a strong password"
               error={errors.password?.message}
-              helper="At least 8 characters"
+              helper="At least 8 characters, with letters and numbers"
               leftElement={<Lock size={16} />}
               rightElement={
                 <button
@@ -384,7 +423,7 @@ export default function RegisterPage() {
               type="submit"
               variant="primary"
               className="flex-1"
-              isLoading={isSubmitting}
+              isLoading={registerMutation.isPending || isSubmitting}
             >
               Register
             </Button>
