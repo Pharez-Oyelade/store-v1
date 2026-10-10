@@ -107,8 +107,21 @@ api.interceptors.response.use(
       }
     }
 
+    const fieldErrors = error.response?.data?.errors;
+    let formattedMessage = serverMessage;
+
+    if (fieldErrors && typeof fieldErrors === "object") {
+      const errorList = Object.values(fieldErrors).filter(Boolean);
+      if (errorList.length > 0) {
+        formattedMessage =
+          serverMessage && serverMessage !== "Validation failed"
+            ? `${serverMessage}: ${errorList.join(", ")}`
+            : errorList.join(", ");
+      }
+    }
+
     const message =
-      serverMessage ||
+      formattedMessage ||
       (status === 404
         ? "Resource not found"
         : status === 403
@@ -122,6 +135,7 @@ api.interceptors.response.use(
 
     const customError = new Error(message);
     (customError as any).status = status;
+    (customError as any).errors = fieldErrors;
     return Promise.reject(customError);
   },
 );
