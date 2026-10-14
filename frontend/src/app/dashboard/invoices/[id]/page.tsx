@@ -22,6 +22,7 @@ import {
   Loader2,
   Trash2,
   Ban,
+  Share2,
 } from "lucide-react";
 import {
   useInvoice,
@@ -31,6 +32,7 @@ import {
   downloadVendorInvoicePdf,
   downloadVendorReceiptPdf,
 } from "@/hooks/useInvoices";
+import { InvoiceShareModal } from "@/components/dashboard/invoices/InvoiceShareModal";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
 
@@ -46,6 +48,7 @@ export default function InvoiceDetailPage() {
 
   const [copiedLink, setCopiedLink] = useState(false);
   const [showManualPayModal, setShowManualPayModal] = useState(false);
+  const [showShareModal, setShowShareModal] = useState(false);
   const [payAmount, setPayAmount] = useState<number | "">("");
   const [payChannel, setPayChannel] = useState("bank_transfer");
   const [payNotes, setPayNotes] = useState("");
@@ -120,37 +123,6 @@ export default function InvoiceDetailPage() {
     setTimeout(() => setCopiedLink(false), 2500);
   };
 
-  const handleWhatsAppShare = () => {
-    if (invoice.status === "cancelled") {
-      toast.error("Cancelled invoices cannot be sent to customers");
-      return;
-    }
-    const custName = invoice.customerSnapshot?.name || "Valued Customer";
-    const phone = invoice.customerSnapshot?.phone?.replace(/[^0-9]/g, "") || "";
-
-    let message = "";
-    if (invoice.status === "paid") {
-      message = `Hi ${custName}, thank you for your payment! Your invoice #${invoice.invoiceNumber} is fully settled.\n\nTotal Paid: ${formatCurrency(
-        invoice.totalPaid,
-      )}\nBalance Remaining: ₦0\n\nYou can access your official receipt here anytime:\n${liveUrl}`;
-    } else if (invoice.status === "partially_paid") {
-      message = `Hi ${custName}, thank you for your payment! We have received ${formatCurrency(
-        invoice.totalPaid,
-      )} for invoice #${invoice.invoiceNumber}.\n\nOutstanding Balance: ${formatCurrency(
-        invoice.balanceDue,
-      )}\n\nYou can view your updated invoice and complete payment here:\n${liveUrl}`;
-    } else {
-      message = `Hi ${custName}, here is your live invoice #${invoice.invoiceNumber}.\n\nTotal: ${formatCurrency(
-        invoice.totalAmount,
-      )}\nBalance Due: ${formatCurrency(invoice.balanceDue)}\n\nView invoice, pay online, or see transfer details here:\n${liveUrl}`;
-    }
-
-    const waUrl = phone
-      ? `https://wa.me/${phone}?text=${encodeURIComponent(message)}`
-      : `https://wa.me/?text=${encodeURIComponent(message)}`;
-
-    window.open(waUrl, "_blank");
-  };
 
   const handleManualPayment = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -447,16 +419,22 @@ export default function InvoiceDetailPage() {
 
               <button
                 type="button"
-                onClick={handleWhatsAppShare}
-                className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
+                onClick={() => {
+                  if (invoice.status === "cancelled") {
+                    toast.error("Cancelled invoices cannot be sent or shared");
+                    return;
+                  }
+                  setShowShareModal(true);
+                }}
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-brand-600 hover:bg-brand-700 text-white text-xs font-bold shadow-2xs transition-colors cursor-pointer"
               >
-                <MessageCircle className="w-3.5 h-3.5" />
+                <Share2 className="w-3.5 h-3.5" />
                 <span>
                   {invoice.status === "paid"
-                    ? "Send Receipt on WhatsApp"
+                    ? "Share Receipt"
                     : invoice.status === "partially_paid"
-                      ? "Send Update on WhatsApp"
-                      : "Share on WhatsApp"}
+                      ? "Share Update"
+                      : "Share Invoice"}
                 </span>
               </button>
 
@@ -764,6 +742,14 @@ export default function InvoiceDetailPage() {
           </div>
         </div>
       )}
+
+      {/* Multi-Platform Invoice & Receipt Share Modal */}
+      <InvoiceShareModal
+        isOpen={showShareModal}
+        onClose={() => setShowShareModal(false)}
+        invoice={invoice}
+        liveUrl={liveUrl}
+      />
     </div>
   );
 }
