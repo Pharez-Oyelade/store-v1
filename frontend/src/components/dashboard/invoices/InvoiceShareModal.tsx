@@ -218,11 +218,12 @@ export function InvoiceShareModal({
               onClick={handleWhatsApp}
               className="flex items-center gap-3 p-3 rounded-2xl border border-emerald-200/80 bg-emerald-50/50 hover:bg-emerald-100/60 transition-all text-left group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-xl text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                 <svg
                   role="img"
                   viewBox="0 0 24 24"
-                  className="w-5 h-5"
+                  className="w-5 h-5 text-white"
+                  fill="white"
                   xmlns="http://www.w3.org/2000/svg"
                 >
                   <title>WhatsApp</title>
@@ -250,6 +251,7 @@ export function InvoiceShareModal({
                 <svg
                   role="img"
                   viewBox="0 0 24 24"
+                  fill="white"
                   className="w-5 h-5"
                   xmlns="http://www.w3.org/2000/svg"
                 >
@@ -271,11 +273,12 @@ export function InvoiceShareModal({
               onClick={handleX}
               className="flex items-center gap-3 p-3 rounded-2xl border border-gray-200 bg-gray-50/60 hover:bg-gray-100/80 transition-all text-left group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+              <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
                 {/* <XPlatformIcon className="w-4 h-4 text-white" /> */}
                 <svg
                   role="img"
                   viewBox="0 0 24 24"
+                  fill="white"
                   xmlns="http://www.w3.org/2000/svg"
                   className="w-5 h-5"
                 >
@@ -297,8 +300,8 @@ export function InvoiceShareModal({
               onClick={handleEmail}
               className="flex items-center gap-3 p-3 rounded-2xl border border-blue-200/80 bg-blue-50/40 hover:bg-blue-100/60 transition-all text-left group cursor-pointer"
             >
-              <div className="w-9 h-9 rounded-xl flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                <Mail className="w-5 h-5" />
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
+                <Mail className="w-5 h-5 text-white" />
               </div>
               <div className="min-w-0">
                 <p className="text-xs font-bold text-blue-950">Email</p>
