@@ -16,7 +16,11 @@ const resetPasswordSchema = z
   .object({
     password: z
       .string()
-      .min(8, "Password must be at least 8 characters"),
+      .min(8, "Password must be at least 8 characters")
+      .regex(
+        /^(?=.*[a-zA-Z])(?=.*\d)/,
+        "Password must contain at least one letter and one number",
+      ),
     confirmPassword: z.string().min(1, "Please confirm your password"),
   })
 
@@ -96,7 +100,7 @@ export default function ResetPasswordPage({
                 Set new password
               </h1>
               <p className="text-sm text-gray-500 mt-1">
-                Choose a strong password with at least 8 characters.
+                Choose a strong password with at least 8 characters, including a letter and a number.
               </p>
             </div>
 

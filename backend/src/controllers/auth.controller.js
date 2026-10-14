@@ -363,10 +363,17 @@ export const forgotPassword = asyncHandler(async (req, res) => {
     return sendError(res, "Email or phone number is required", 400);
   }
 
-  const isEmail = validator.isEmail(credential);
+  const cleanCred = credential.trim();
+  const isEmail = validator.isEmail(cleanCred);
+  const altPhoneCred = cleanCred.startsWith("+234")
+    ? `0${cleanCred.slice(4)}`
+    : cleanCred.startsWith("0")
+      ? `+234${cleanCred.slice(1)}`
+      : cleanCred;
+
   const query = isEmail
-    ? { email: credential.toLowerCase() }
-    : { phone: credential };
+    ? { email: cleanCred.toLowerCase() }
+    : { $or: [{ phone: cleanCred }, { phone: altPhoneCred }] };
 
   const vendor = await Vendor.findOne(query);
 
@@ -428,6 +435,14 @@ export const resetPassword = asyncHandler(async (req, res) => {
 
   if (password.length < 8) {
     return sendError(res, "Password must be at least 8 characters", 400);
+  }
+
+  if (!/^(?=.*[a-zA-Z])(?=.*\d)/.test(password)) {
+    return sendError(
+      res,
+      "Password must contain at least one letter and one number",
+      400,
+    );
   }
 
   // Hash the incoming token to compare against stored hash

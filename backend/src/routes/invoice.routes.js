@@ -10,6 +10,10 @@ import {
   submitManualPaymentProof,
   verifyManualPaymentProof,
   cancelInvoice,
+  downloadInvoicePdf,
+  downloadReceiptPdf,
+  downloadPublicInvoicePdf,
+  downloadPublicReceiptPdf,
 } from "../controllers/invoice.controller.js";
 import { paystackWebhook } from "../controllers/subscription.controller.js";
 import { protect } from "../middleware/protect.js";
@@ -33,8 +37,17 @@ const invoicePublicLimiter = rateLimit({
   validate: { forwardedHeader: false },
 });
 
+const invoicePdfLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: { success: false, message: "PDF download rate limit reached. Please try again in a few minutes." },
+  validate: { forwardedHeader: false },
+});
+
 /* ── Public Routes (Unauthenticated, accessed via secret token or webhook) ─── */
 invoiceRouter.get("/public/:token", getPublicInvoiceByToken);
+invoiceRouter.get("/public/:token/pdf", invoicePdfLimiter, downloadPublicInvoicePdf);
+invoiceRouter.get("/public/:token/receipt/pdf", invoicePdfLimiter, downloadPublicReceiptPdf);
 invoiceRouter.post("/public/:token/pay", invoicePublicLimiter, initializeInvoicePayment);
 invoiceRouter.post("/public/:token/verify", invoicePublicLimiter, verifyInvoicePayment);
 invoiceRouter.post(
@@ -52,6 +65,8 @@ invoiceRouter.use(protect, requireRole("owner", "manager", "sales"), checkIdempo
 invoiceRouter.get("/", getInvoices);
 invoiceRouter.post("/", checkInvoiceLimit, createInvoiceValidators, validate, createInvoice);
 invoiceRouter.get("/:id", getInvoiceById);
+invoiceRouter.get("/:id/pdf", downloadInvoicePdf);
+invoiceRouter.get("/:id/receipt/pdf", downloadReceiptPdf);
 invoiceRouter.patch("/:id/manual-payment", recordManualPaymentValidators, validate, recordManualPayment);
 invoiceRouter.patch("/:id/verify-proof", verifyManualPaymentProof);
 invoiceRouter.patch("/:id/cancel", cancelInvoice);
