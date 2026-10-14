@@ -82,7 +82,10 @@ export const getBrowser = async () => {
           "--disable-extensions",
           "--disable-sync",
           "--disable-gpu",
-          ...(os.platform() === "linux" ? ["--single-process", "--no-zygote"] : []),
+          "--disable-crash-reporter",
+          "--disable-breakpad",
+          "--disable-software-rasterizer",
+          "--mute-audio",
         ],
       };
 
