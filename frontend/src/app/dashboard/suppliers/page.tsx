@@ -429,6 +429,7 @@ function SupplierForm({
       </div>
       <Input
         label="Supplier name"
+        placeholder="Ade's Fabrics"
         value={form.name}
         onChange={(event) => update("name", event.target.value)}
         required
@@ -467,18 +468,21 @@ function SupplierForm({
       </div>
       <Input
         label="Contact name"
+        placeholder="Adeola Adebayo"
         value={form.contactName}
         onChange={(event) => update("contactName", event.target.value)}
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           label="Phone"
+          placeholder="08012345678"
           value={form.phone}
           onChange={(event) => update("phone", event.target.value)}
           required
         />
         <Input
           label="WhatsApp"
+          placeholder="08123456789"
           value={form.whatsapp}
           onChange={(event) => update("whatsapp", event.target.value)}
         />
@@ -486,29 +490,33 @@ function SupplierForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           label="Email"
+          placeholder="ade@example.com"
           value={form.email}
           onChange={(event) => update("email", event.target.value)}
         />
         <Input
           label="Instagram"
+          placeholder="@adesfabrics"
           value={form.instagram}
           onChange={(event) => update("instagram", event.target.value)}
         />
       </div>
       <Input
         label="Location"
+        placeholder="24, Oja Oba, Ibadan"
         value={form.location}
         onChange={(event) => update("location", event.target.value)}
       />
       <Input
         label="Materials"
+        placeholder="Cotton, Polyester, Ankara"
         helper="Comma-separated"
         value={form.materials}
         onChange={(event) => update("materials", event.target.value)}
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
-          label="Last purchase"
+          label="Last purchase (₦)"
           type="number"
           min={0}
           placeholder="0"
@@ -521,7 +529,7 @@ function SupplierForm({
           }
         />
         <Input
-          label="Outstanding balance"
+          label="Outstanding balance (₦)"
           type="number"
           min={0}
           placeholder="0"

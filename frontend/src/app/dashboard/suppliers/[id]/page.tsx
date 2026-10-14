@@ -57,6 +57,30 @@ export default function SupplierDetailPage() {
     date: new Date().toISOString().slice(0, 10),
   });
 
+  // useOfflineMutation MUST be called before any early returns to satisfy Rules of Hooks
+  const { handleOfflineSave, isOnline } = useOfflineMutation({
+    entityType: "supplier",
+    endpoint: `/suppliers/${params.id}`,
+    method: "PUT",
+    description: `Update Supplier: ${supplier.data?.name || name || "Supplier"}`,
+    queryKeyToUpdate: ["suppliers"],
+    getOptimisticRecord: (_tempId, payload) => ({
+      ...supplier.data,
+      ...payload,
+      materials:
+        typeof payload.materials === "string"
+          ? payload.materials
+              .split(",")
+              .map((s: string) => s.trim())
+              .filter(Boolean)
+          : payload.materials || [],
+      _id: params.id,
+      id: params.id,
+      isPendingSync: true,
+      updatedAt: new Date().toISOString(),
+    }),
+  });
+
   useEffect(() => {
     if (!supplier.data) return;
     setName(supplier.data.name);
@@ -81,29 +105,6 @@ export default function SupplierDetailPage() {
       />
     );
   }
-
-  const { handleOfflineSave, isOnline } = useOfflineMutation({
-    entityType: "supplier",
-    endpoint: `/suppliers/${params.id}`,
-    method: "PUT",
-    description: `Update Supplier: ${supplier.data?.name || name || "Supplier"}`,
-    queryKeyToUpdate: ["suppliers"],
-    getOptimisticRecord: (_tempId, payload) => ({
-      ...supplier.data,
-      ...payload,
-      materials:
-        typeof payload.materials === "string"
-          ? payload.materials
-              .split(",")
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : payload.materials || [],
-      _id: params.id,
-      id: params.id,
-      isPendingSync: true,
-      updatedAt: new Date().toISOString(),
-    }),
-  });
 
   async function saveSupplier() {
     const payload = {
