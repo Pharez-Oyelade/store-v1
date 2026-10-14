@@ -323,7 +323,7 @@ export interface SupplierFormValues {
   instagram?: string;
   whatsapp?: string;
   location?: string;
-  materials?: string;
+  materials?: string | string[];
   notes?: string;
   status: SupplierStatus;
   lastPurchaseAmount?: number;
