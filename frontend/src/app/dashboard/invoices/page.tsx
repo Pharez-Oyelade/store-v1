@@ -195,8 +195,8 @@ export default function InvoicesListPage() {
             href="/dashboard/settings?tab=payouts"
             className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-amber-700 hover:bg-amber-800 text-white text-xs font-bold shrink-0 shadow-xs transition-colors"
           >
-            <span>Connect Bank</span>
-            <ArrowRight className="size-3.5" />
+            <span className="text-white">Connect Bank</span>
+            <ArrowRight className="size-3.5 text-white" />
           </Link>
         </div>
       )}
