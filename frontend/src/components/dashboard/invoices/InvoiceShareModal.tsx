@@ -268,13 +268,13 @@ export function InvoiceShareModal({
             </button>
 
             {/* X (Twitter) */}
-            <button
+            {/* <button
               type="button"
               onClick={handleX}
               className="flex items-center gap-3 p-3 rounded-2xl border border-gray-200 bg-gray-50/60 hover:bg-gray-100/80 transition-all text-left group cursor-pointer"
             >
               <div className="w-9 h-9 rounded-xl bg-black flex items-center justify-center shrink-0 shadow-2xs group-hover:scale-105 transition-transform">
-                {/* <XPlatformIcon className="w-4 h-4 text-white" /> */}
+                
                 <svg
                   role="img"
                   viewBox="0 0 24 24"
@@ -292,7 +292,7 @@ export function InvoiceShareModal({
                   Share post or send in DM
                 </p>
               </div>
-            </button>
+            </button> */}
 
             {/* Email */}
             <button
@@ -320,7 +320,7 @@ export function InvoiceShareModal({
               className="w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50 text-gray-700 text-xs font-semibold shadow-2xs transition-colors cursor-pointer mt-1"
             >
               <Smartphone className="w-4 h-4 text-gray-500" />
-              <span>More Options (Telegram, Slack, Device Share)</span>
+              <span>More Options (X, Telegram, Slack)</span>
             </button>
           )}
         </div>
