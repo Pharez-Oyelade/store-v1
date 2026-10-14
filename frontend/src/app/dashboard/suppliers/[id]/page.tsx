@@ -17,6 +17,8 @@ import {
 } from "@/components/dashboard/DashboardPrimitives";
 import { useSupplier, useUpdateSupplier } from "@/hooks/useSuppliers";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { useSupplierOptions } from "@/hooks/useSupplierOptions";
+import CreatableTagInput from "@/components/ui/CreatableTagInput";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import {
   SupplierStatus,
@@ -28,6 +30,7 @@ export default function SupplierDetailPage() {
   const params = useParams<{ id: string }>();
   const supplier = useSupplier(params.id);
   const updateSupplier = useUpdateSupplier(params.id);
+  const { materials: suggestedMaterials, addMaterial } = useSupplierOptions();
 
   // Supplier basic details state
   const [name, setName] = useState("");
@@ -35,7 +38,7 @@ export default function SupplierDetailPage() {
   const [email, setEmail] = useState("");
   const [location, setLocation] = useState("");
   const [notes, setNotes] = useState("");
-  const [materials, setMaterials] = useState("");
+  const [materials, setMaterials] = useState<string[]>([]);
   const [status, setStatus] = useState<SupplierStatus>(SupplierStatus.Active);
   const [category, setCategory] = useState<SupplierCategory>(
     SupplierCategory.Fabric,
@@ -68,12 +71,14 @@ export default function SupplierDetailPage() {
       ...supplier.data,
       ...payload,
       materials:
-        typeof payload.materials === "string"
+        Array.isArray(payload.materials)
           ? payload.materials
-              .split(",")
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : payload.materials || [],
+          : typeof payload.materials === "string"
+            ? payload.materials
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : [],
       _id: params.id,
       id: params.id,
       isPendingSync: true,
@@ -88,7 +93,7 @@ export default function SupplierDetailPage() {
     setEmail(supplier.data.email ?? "");
     setLocation(supplier.data.location ?? "");
     setNotes(supplier.data.notes ?? "");
-    setMaterials(supplier.data.materials.join(", "));
+    setMaterials(Array.isArray(supplier.data.materials) ? supplier.data.materials : []);
     setStatus(supplier.data.status);
     setCategory(supplier.data.category);
   }, [supplier.data]);
@@ -424,11 +429,16 @@ export default function SupplierDetailPage() {
             value={location}
             onChange={(e) => setLocation(e.target.value)}
           />
-          <Input
+          <CreatableTagInput
             label="Materials"
-            helper="Comma-separated"
             value={materials}
-            onChange={(e) => setMaterials(e.target.value)}
+            onChange={setMaterials}
+            onAddOption={addMaterial}
+            options={suggestedMaterials}
+            placeholder="Select or type material..."
+            itemLabel="material"
+            suggestionHeading="Suggested Materials"
+            helper="Select from suggestions or type custom materials (press Enter or comma to add)"
           />
 
           <div className="grid gap-3 sm:grid-cols-2">
