@@ -90,7 +90,20 @@ export const getBrowser = async () => {
         launchOptions.executablePath = execPath;
       }
 
-      const browser = await puppeteer.launch(launchOptions);
+      let browser;
+      try {
+        browser = await puppeteer.launch(launchOptions);
+      } catch (launchErr) {
+        if (launchErr.message && launchErr.message.includes("Could not find Chrome")) {
+          console.warn("[PDF Service] Chrome not detected in cache. Triggering on-demand browser installation...");
+          const { downloadBrowsers } = await import("puppeteer/internal/node/install.js");
+          await downloadBrowsers();
+          console.log("[PDF Service] Chrome downloaded successfully. Retrying browser launch...");
+          browser = await puppeteer.launch(launchOptions);
+        } else {
+          throw launchErr;
+        }
+      }
 
       browser.on("disconnected", () => {
         browserInstance = null;
