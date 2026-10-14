@@ -53,23 +53,31 @@ export default function InvoiceDetailPage() {
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
 
-  const handleDownloadInvoice = () => {
+  const handleDownloadInvoice = async () => {
     if (!invoice) return;
     try {
-      toast.success("Downloading Invoice PDF...", { id: "pdf-invoice" });
-      downloadVendorInvoicePdf(invoice._id, invoice.invoiceNumber);
+      setIsDownloadingInvoice(true);
+      toast.loading("Generating single-page invoice PDF...", { id: "pdf-invoice" });
+      await downloadVendorInvoicePdf(invoice._id, invoice.invoiceNumber);
+      toast.success("Invoice PDF downloaded!", { id: "pdf-invoice" });
     } catch (err: any) {
       toast.error(err.message || "Failed to download invoice PDF", { id: "pdf-invoice" });
+    } finally {
+      setIsDownloadingInvoice(false);
     }
   };
 
-  const handleDownloadReceipt = (paymentId?: string) => {
+  const handleDownloadReceipt = async (paymentId?: string) => {
     if (!invoice) return;
     try {
-      toast.success("Downloading Payment Receipt PDF...", { id: "pdf-receipt" });
-      downloadVendorReceiptPdf(invoice._id, invoice.invoiceNumber, paymentId);
+      setIsDownloadingReceipt(true);
+      toast.loading("Generating single-page receipt PDF...", { id: "pdf-receipt" });
+      await downloadVendorReceiptPdf(invoice._id, invoice.invoiceNumber, paymentId);
+      toast.success("Receipt PDF downloaded!", { id: "pdf-receipt" });
     } catch (err: any) {
       toast.error(err.message || "Failed to download receipt PDF", { id: "pdf-receipt" });
+    } finally {
+      setIsDownloadingReceipt(false);
     }
   };
 
