@@ -120,12 +120,12 @@ export const PhoneMockup: React.FC<PhoneMockupProps> = ({
   }, [visibleCount, isTyping]);
 
   return (
-    <div className="relative mx-auto w-full max-w-[330px] sm:max-w-[360px] md:max-w-[325px]">
+    <div className="relative mx-auto w-full max-w-[300px] sm:max-w-[320px]">
       {/* Ambient background glow behind the phone */}
       <div className="absolute -inset-4 bg-gradient-to-tr from-emerald-500/20 via-brand-500/10 to-teal-400/20 rounded-[52px] blur-2xl -z-10 opacity-70" />
 
       {/* Outer Phone Shell */}
-      <div className="relative rounded-[35px] md:rounded-[45px] p-1.5 bg-gradient-to-b from-gray-800 via-gray-900 to-black shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.12)] border border-gray-700/60">
+      <div className="relative rounded-[35px] md:rounded-[45px] p-1.5 bg-black shadow-[0_25px_60px_-15px_rgba(0,0,0,0.35),0_0_0_1px_rgba(255,255,255,0.12)] border border-gray-700/60">
         {/* Antenna bands & buttons simulation */}
         <div className="absolute -left-[3px] top-28 w-[3px] h-9 bg-gray-600 rounded-l-sm" />
         <div className="absolute -left-[3px] top-40 w-[3px] h-9 bg-gray-600 rounded-l-sm" />
