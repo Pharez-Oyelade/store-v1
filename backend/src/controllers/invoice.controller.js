@@ -2,6 +2,8 @@ import crypto from "node:crypto";
 import Invoice from "../models/invoiceModel.js";
 import Vendor from "../models/vendorModel.js";
 import Order from "../models/orderModel.js";
+import Customer from "../models/customerModel.js";
+import Product from "../models/productModel.js";
 import CustomRequest from "../models/customRequestModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
@@ -43,6 +45,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
   const {
     orderId,
     customRequestId,
+    customerId,
     customerSnapshot,
     items,
     totalAmount,
@@ -246,6 +249,33 @@ export const createInvoice = asyncHandler(async (req, res) => {
       return sendError(res, "At least one invoice line item is required", 400);
     }
 
+    // Validate available stock for catalog items to prevent invoicing extra unavailable stock
+    for (const item of items) {
+      const productRef = item.productId || item.product;
+      const qty = Math.max(1, Number(item.quantity) || 1);
+
+      if (productRef) {
+        const prod = await Product.findOne({
+          _id: productRef,
+          vendor: req.vendor._id,
+        });
+
+        if (prod) {
+          const variant =
+            prod.variants.find((v) => v.label === item.variantLabel) ||
+            prod.variants[0];
+
+          if (variant && variant.quantity < qty) {
+            return sendError(
+              res,
+              `Insufficient stock for "${prod.name}" (${variant.label || "Default"}). Available: ${variant.quantity}, Requested: ${qty}`,
+              400,
+            );
+          }
+        }
+      }
+    }
+
     invoiceCustomer = {
       name: rawCustomer.name.trim(),
       phone: rawCustomer.phone?.trim() || "",
@@ -257,6 +287,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
       const qty = Math.max(1, Number(item.quantity) || 1);
       const price = Math.max(0, Number(item.unitPrice) || 0);
       return {
+        product: item.productId || item.product || null,
         description: item.description.trim(),
         variantLabel: item.variantLabel?.trim() || "",
         quantity: qty,
@@ -286,6 +317,125 @@ export const createInvoice = asyncHandler(async (req, res) => {
     }
   }
 
+  // Resolve or auto-create Customer document
+  let resolvedCustomerId = customerId || null;
+
+  if (resolvedCustomerId) {
+    const existingCust = await Customer.findOne({
+      _id: resolvedCustomerId,
+      vendor: req.vendor._id,
+    });
+    if (!existingCust) {
+      resolvedCustomerId = null;
+    }
+  }
+
+  const cleanPhone = invoiceCustomer.phone?.trim();
+
+  // If no customer ID was linked yet, search for existing customer by phone
+  if (!resolvedCustomerId && cleanPhone) {
+    const existingByPhone = await Customer.findOne({
+      vendor: req.vendor._id,
+      phone: cleanPhone,
+    });
+
+    if (existingByPhone) {
+      resolvedCustomerId = existingByPhone._id;
+      let changed = false;
+      if (!existingByPhone.email && invoiceCustomer.email) {
+        existingByPhone.email = invoiceCustomer.email;
+        changed = true;
+      }
+      if (!existingByPhone.deliveryAddress?.street && invoiceCustomer.address) {
+        existingByPhone.deliveryAddress = {
+          street: invoiceCustomer.address,
+          city: existingByPhone.deliveryAddress?.city || "",
+          state: existingByPhone.deliveryAddress?.state || "",
+        };
+        changed = true;
+      }
+      if (changed) {
+        await existingByPhone.save();
+      }
+    }
+  }
+
+  // If still not found and we have valid customer info, auto-create the new Customer!
+  if (!resolvedCustomerId && invoiceCustomer.name && cleanPhone) {
+    try {
+      const newCustomer = await Customer.create({
+        vendor: req.vendor._id,
+        name: invoiceCustomer.name,
+        phone: cleanPhone,
+        email: invoiceCustomer.email || "",
+        deliveryAddress: invoiceCustomer.address
+          ? { street: invoiceCustomer.address }
+          : undefined,
+      });
+      resolvedCustomerId = newCustomer._id;
+    } catch (custErr) {
+      console.warn("[Invoice] Auto-create customer notice:", custErr?.message);
+    }
+  } else if (!resolvedCustomerId && linkedOrder?.customer) {
+    resolvedCustomerId = linkedOrder.customer;
+  } else if (!resolvedCustomerId && linkedCustomRequest?.customer) {
+    resolvedCustomerId = linkedCustomRequest.customer;
+  }
+
+  // If this invoice was created from scratch (manual invoice without pre-existing order or bespoke demand),
+  // automatically create a new Order so items, customer, and payments are tracked in the orders management system!
+  let newlyCreatedOrder = null;
+  if (!linkedOrder && !linkedCustomRequest) {
+    const orderItems = invoiceItems.map((item) => ({
+      product: item.product || null,
+      productName: item.description || "Custom Item",
+      variantLabel: item.variantLabel?.trim() || "Standard",
+      price: item.unitPrice,
+      quantity: item.quantity,
+    }));
+
+    let orderStatus = "pending";
+    if (invoiceTotal > 0 && priorPaidAmount >= invoiceTotal) {
+      orderStatus = "confirmed";
+    }
+
+    newlyCreatedOrder = await Order.create({
+      vendor: req.vendor._id,
+      customer: resolvedCustomerId,
+      customerSnapshot: {
+        name: invoiceCustomer.name,
+        phone: invoiceCustomer.phone || "N/A",
+        email: invoiceCustomer.email || "",
+      },
+      deliveryAddress: invoiceCustomer.address
+        ? { street: invoiceCustomer.address }
+        : undefined,
+      items: orderItems,
+      totalAmount: invoiceTotal,
+      depositPaid: priorPaidAmount,
+      status: orderStatus,
+      source: "dm",
+      notes: notes?.trim() || "Created from manual invoice",
+      completedAt: null,
+    });
+
+    // If order was created confirmed (fully paid upfront upon creation), deplete inventory
+    if (orderStatus === "confirmed") {
+      try {
+        await depleteInventory(newlyCreatedOrder);
+        newlyCreatedOrder.stockDepleted = true;
+        await newlyCreatedOrder.save();
+      } catch (depleteErr) {
+        console.warn(
+          "[Invoice] Deplete inventory notice for manual order:",
+          depleteErr?.message,
+        );
+      }
+    }
+
+    linkedOrder = newlyCreatedOrder;
+  }
+
   const balanceDue = Math.max(0, invoiceTotal - priorPaidAmount);
   const invoiceStatus =
     balanceDue <= 0 && invoiceTotal > 0
@@ -306,6 +456,7 @@ export const createInvoice = asyncHandler(async (req, res) => {
         vendor: req.vendor._id,
         order: linkedOrder ? linkedOrder._id : null,
         customRequest: linkedCustomRequest ? linkedCustomRequest._id : null,
+        customer: resolvedCustomerId,
         invoiceNumber,
         accessToken,
         customerSnapshot: invoiceCustomer,
@@ -324,8 +475,16 @@ export const createInvoice = asyncHandler(async (req, res) => {
     } catch (createErr) {
       if (createErr.code === 11000 && createErr.keyPattern?.invoiceNumber) {
         attempts++;
-        if (attempts >= 3) throw createErr;
+        if (attempts >= 3) {
+          if (newlyCreatedOrder) {
+            await Order.findByIdAndDelete(newlyCreatedOrder._id).catch(() => {});
+          }
+          throw createErr;
+        }
         continue;
+      }
+      if (newlyCreatedOrder) {
+        await Order.findByIdAndDelete(newlyCreatedOrder._id).catch(() => {});
       }
       throw createErr;
     }
