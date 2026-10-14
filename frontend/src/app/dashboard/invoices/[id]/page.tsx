@@ -15,6 +15,7 @@ import {
   AlertTriangle,
   XCircle,
   Printer,
+  Download,
   Calendar,
   Clock,
   Send,
@@ -27,6 +28,8 @@ import {
   useRecordManualPayment,
   useVerifyPaymentProof,
   useCancelInvoice,
+  downloadVendorInvoicePdf,
+  downloadVendorReceiptPdf,
 } from "@/hooks/useInvoices";
 import { formatCurrency, formatDate } from "@/lib/utils";
 import toast from "react-hot-toast";
@@ -45,8 +48,29 @@ export default function InvoiceDetailPage() {
   const [showManualPayModal, setShowManualPayModal] = useState(false);
   const [payAmount, setPayAmount] = useState<number | "">("");
   const [payChannel, setPayChannel] = useState("bank_transfer");
-  const [payNotes, setPayNotes] = useState("");
   const [verifyingProofId, setVerifyingProofId] = useState<string | null>(null);
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
+
+  const handleDownloadInvoice = () => {
+    if (!invoice) return;
+    try {
+      toast.success("Downloading Invoice PDF...", { id: "pdf-invoice" });
+      downloadVendorInvoicePdf(invoice._id, invoice.invoiceNumber);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download invoice PDF", { id: "pdf-invoice" });
+    }
+  };
+
+  const handleDownloadReceipt = (paymentId?: string) => {
+    if (!invoice) return;
+    try {
+      toast.success("Downloading Payment Receipt PDF...", { id: "pdf-receipt" });
+      downloadVendorReceiptPdf(invoice._id, invoice.invoiceNumber, paymentId);
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download receipt PDF", { id: "pdf-receipt" });
+    }
+  };
 
   if (isLoading) {
     return (
@@ -202,12 +226,35 @@ export default function InvoiceDetailPage() {
           )} */}
           <button
             type="button"
-            onClick={() => window.print()}
-            className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:text-gray-900 hover:bg-gray-50 transition-colors cursor-pointer"
-            title="Print invoice"
+            onClick={handleDownloadInvoice}
+            disabled={isDownloadingInvoice}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-gray-200 text-gray-700 hover:text-gray-900 hover:bg-gray-50 transition-colors text-xs font-semibold cursor-pointer disabled:opacity-50"
+            title="Download Single-Page Invoice PDF"
           >
-            <Printer className="w-4 h-4" />
+            {isDownloadingInvoice ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600" />
+            ) : (
+              <Download className="w-3.5 h-3.5 text-gray-500" />
+            )}
+            <span>Invoice PDF</span>
           </button>
+
+          {invoice.totalPaid > 0 && (
+            <button
+              type="button"
+              onClick={() => handleDownloadReceipt()}
+              disabled={isDownloadingReceipt}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-emerald-200 bg-emerald-50 text-emerald-800 hover:bg-emerald-100 transition-colors text-xs font-semibold cursor-pointer disabled:opacity-50"
+              title="Download Single-Page Payment Receipt PDF"
+            >
+              {isDownloadingReceipt ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-emerald-600" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-emerald-600" />
+              )}
+              <span>Receipt PDF</span>
+            </button>
+          )}
 
           {invoice.totalPaid === 0 && invoice.status !== "cancelled" && (
             <button
@@ -604,6 +651,15 @@ export default function InvoiceDetailPage() {
                     {formatDate(pmt.paidAt)} • Ref: {pmt.reference}
                   </p>
                 </div>
+
+                <button
+                  type="button"
+                  onClick={() => handleDownloadReceipt(pmt._id)}
+                  className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-600 transition-colors cursor-pointer"
+                  title="Download Single-Page Receipt PDF for this payment"
+                >
+                  <Download className="w-3.5 h-3.5 text-gray-600" />
+                </button>
               </div>
             ))}
           </div>

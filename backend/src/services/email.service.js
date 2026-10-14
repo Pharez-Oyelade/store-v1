@@ -143,11 +143,13 @@ export const sendOnlinePaymentConfirmationEmail = async (email, {
   orderNumber,
   storeName = "Vendra Store",
   viewUrl,
+  receiptDownloadUrl,
 }) => {
   const subject = `Payment Confirmed: ${invoiceNumber} — ${storeName}`;
   const formattedAmount = `₦${Number(amountPaid || 0).toLocaleString()}`;
   const formattedBalance = `₦${Number(balanceRemaining || 0).toLocaleString()}`;
   const url = viewUrl || `${process.env.FRONTEND_URL || "http://localhost:3000"}`;
+  const downloadUrl = receiptDownloadUrl || (url.includes("/i/") ? `${url}?download=receipt` : `${url}`);
 
   const html = `
     <div style="font-family: sans-serif; max-width: 600px; margin: auto; padding: 24px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff;">
@@ -180,7 +182,8 @@ export const sendOnlinePaymentConfirmationEmail = async (email, {
       </div>
 
       <div style="margin: 24px 0; text-align: center;">
-        <a href="${url}" style="background-color: #0D6B31; color: white; padding: 12px 28px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">View Invoice & Order Status</a>
+        <a href="${downloadUrl}" style="background-color: #0D6B31; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block; margin-right: 8px; margin-bottom: 8px;">Download Receipt (PDF)</a>
+        <a href="${url}" style="background-color: #f3f4f6; color: #111827; border: 1px solid #d1d5db; padding: 12px 20px; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 14px; display: inline-block; margin-bottom: 8px;">View Live Invoice</a>
       </div>
       <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
         Powered by Vendra Fashion Commerce OS
@@ -188,7 +191,7 @@ export const sendOnlinePaymentConfirmationEmail = async (email, {
     </div>
   `;
 
-  const text = `Payment Confirmed for ${invoiceNumber}: ${formattedAmount} received. Balance remaining: ${balanceRemaining > 0 ? formattedBalance : "₦0"}. View: ${url}`;
+  const text = `Payment Confirmed for ${invoiceNumber}: ${formattedAmount} received. Balance remaining: ${balanceRemaining > 0 ? formattedBalance : "₦0"}. Download Receipt (PDF): ${downloadUrl} | View Invoice: ${url}`;
   return sendEmail({ to: email, subject, html, text });
 };
 

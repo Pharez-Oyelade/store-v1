@@ -311,3 +311,76 @@ export function useUpdatePayoutAccount() {
     },
   });
 }
+
+/* ── PDF File Download Helpers ───────────────────────────────────── */
+
+/**
+ * Resolves the public API URL for document streaming/downloads
+ */
+const getPublicApiUrl = () => {
+  const envUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
+  return envUrl.replace(/\/$/, "");
+};
+
+/**
+ * Triggers an immediate browser file download synchronously using native browser navigation.
+ * Bypasses user-gesture expiration, blob memory leaks, and mobile webview blocks.
+ */
+function triggerDirectUrlDownload(url: string, filename?: string) {
+  if (typeof window === "undefined") return;
+
+  const link = document.createElement("a");
+  link.href = url;
+  if (filename) {
+    link.download = filename;
+  }
+  link.target = "_blank";
+  link.rel = "noopener noreferrer";
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    if (document.body.contains(link)) {
+      document.body.removeChild(link);
+    }
+  }, 300);
+}
+
+/**
+ * Download Vendor Invoice PDF
+ */
+export async function downloadVendorInvoicePdf(invoiceId: string, invoiceNumber: string) {
+  const baseUrl = getPublicApiUrl();
+  const url = `${baseUrl}/invoices/${invoiceId}/pdf`;
+  triggerDirectUrlDownload(url, `Invoice-${invoiceNumber}.pdf`);
+}
+
+/**
+ * Download Vendor Receipt PDF
+ */
+export async function downloadVendorReceiptPdf(invoiceId: string, invoiceNumber: string, paymentId?: string) {
+  const baseUrl = getPublicApiUrl();
+  const query = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : "";
+  const url = `${baseUrl}/invoices/${invoiceId}/receipt/pdf${query}`;
+  triggerDirectUrlDownload(url, `Receipt-${invoiceNumber}.pdf`);
+}
+
+/**
+ * Download Public Customer Invoice PDF
+ */
+export async function downloadPublicInvoicePdf(token: string, invoiceNumber?: string) {
+  const baseUrl = getPublicApiUrl();
+  const url = `${baseUrl}/invoices/public/${token}/pdf`;
+  triggerDirectUrlDownload(url, invoiceNumber ? `Invoice-${invoiceNumber}.pdf` : undefined);
+}
+
+/**
+ * Download Public Customer Receipt PDF
+ */
+export async function downloadPublicReceiptPdf(token: string, invoiceNumber?: string, paymentId?: string) {
+  const baseUrl = getPublicApiUrl();
+  const query = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : "";
+  const url = `${baseUrl}/invoices/public/${token}/receipt/pdf${query}`;
+  triggerDirectUrlDownload(url, invoiceNumber ? `Receipt-${invoiceNumber}.pdf` : undefined);
+}
+
+
