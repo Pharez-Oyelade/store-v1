@@ -48,6 +48,7 @@ export default function InvoiceDetailPage() {
   const [showManualPayModal, setShowManualPayModal] = useState(false);
   const [payAmount, setPayAmount] = useState<number | "">("");
   const [payChannel, setPayChannel] = useState("bank_transfer");
+  const [payNotes, setPayNotes] = useState("");
   const [verifyingProofId, setVerifyingProofId] = useState<string | null>(null);
   const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
   const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
