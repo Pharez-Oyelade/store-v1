@@ -12,6 +12,8 @@ import {
   Scissors,
   Calendar,
   User,
+  Users,
+  UserPlus,
   Phone,
   Mail,
   MapPin,
@@ -22,21 +24,26 @@ import {
   CheckCircle2,
   WifiOff,
   MessageCircle,
+  Package,
 } from "lucide-react";
 import {
   useCreateInvoice,
   usePayoutAccount,
   useInvoices,
 } from "@/hooks/useInvoices";
-import type { Invoice } from "@/types";
+import type { Invoice, Product } from "@/types";
+import { ProductStatus } from "@/types";
 import { useOrders, useOrder } from "@/hooks/useOrders";
 import { useCustomRequests, useCustomRequest } from "@/hooks/useCustomRequests";
+import { useCustomers } from "@/hooks/useCustomers";
+import { useProducts } from "@/hooks/useProducts";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { generateLocalId } from "@/lib/offline/outbox";
 import { formatCurrency } from "@/lib/utils";
 import toast from "react-hot-toast";
 
 interface LineItemDraft {
+  productId?: string;
   description: string;
   variantLabel: string;
   quantity: number | "";
@@ -65,7 +72,8 @@ export default function NewInvoicePage() {
   const loadedOrderIdRef = useRef<string>("");
   const loadedDemandRef = useRef<string>("");
 
-  // Customer Snapshot
+  // Customer Snapshot & Selection
+  const [selectedCustomerId, setSelectedCustomerId] = useState("");
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
@@ -73,7 +81,13 @@ export default function NewInvoicePage() {
 
   // Line Items
   const [items, setItems] = useState<LineItemDraft[]>([
-    { description: "", variantLabel: "", quantity: 1, unitPrice: "" },
+    {
+      productId: "",
+      description: "",
+      variantLabel: "",
+      quantity: 1,
+      unitPrice: "",
+    },
   ]);
 
   // Financial Settings
@@ -86,7 +100,16 @@ export default function NewInvoicePage() {
     "Thank you for your patronage! Please settle the remaining balance upon delivery or fitting.",
   );
 
-  // Queries for linked selections
+  // Queries for linked selections & directory data
+  const customersQuery = useCustomers({ page: 1, limit: 200 });
+  const productsQuery = useProducts({
+    page: 1,
+    limit: 100,
+    status: ProductStatus.Active,
+  });
+  const customerList = customersQuery.data?.customers || [];
+  const productList = productsQuery.data?.products || [];
+
   const ordersQuery = useOrders({ limit: 50 });
   const demandsQuery = useCustomRequests({ limit: 50 });
   const singleOrderQuery = useOrder(preloadOrderId || "");
@@ -301,10 +324,112 @@ export default function NewInvoicePage() {
     }),
   });
 
+  const handleCustomerSelect = (custId: string) => {
+    setSelectedCustomerId(custId);
+    if (!custId) {
+      // New customer mode - clear inputs for manual entry
+      setCustomerName("");
+      setCustomerPhone("");
+      setCustomerEmail("");
+      setCustomerAddress("");
+      return;
+    }
+    const found = customerList.find((c) => c._id === custId);
+    if (found) {
+      setCustomerName(found.name || "");
+      setCustomerPhone(found.phone || "");
+      setCustomerEmail(found.email || "");
+      const addr = found.deliveryAddress?.street
+        ? [
+            found.deliveryAddress.street,
+            found.deliveryAddress.city,
+            found.deliveryAddress.state,
+          ]
+            .filter(Boolean)
+            .join(", ")
+        : found.address || "";
+      setCustomerAddress(addr);
+    }
+  };
+
+  const handleProductSelect = (idx: number, prodId: string) => {
+    if (!prodId) {
+      // Switched to custom item
+      setItems((prev) =>
+        prev.map((item, i) =>
+          i === idx
+            ? {
+                ...item,
+                productId: "",
+                description: "",
+                variantLabel: "",
+                unitPrice: "",
+              }
+            : item,
+        ),
+      );
+      return;
+    }
+
+    const prod = productList.find((p) => p._id === prodId);
+    if (!prod) return;
+
+    const firstVariant = prod.variants?.[0];
+    const price = firstVariant?.price ?? prod.basePrice ?? "";
+    const variantLabel = firstVariant?.label ?? "";
+
+    setItems((prev) =>
+      prev.map((item, i) =>
+        i === idx
+          ? {
+              ...item,
+              productId: prod._id,
+              description: prod.name,
+              variantLabel: variantLabel,
+              unitPrice: price,
+              quantity: Number(item.quantity) || 1,
+            }
+          : item,
+      ),
+    );
+  };
+
+  const handleVariantSelect = (
+    idx: number,
+    prod: Product,
+    varLabel: string,
+  ) => {
+    const variant = prod.variants?.find((v) => v.label === varLabel);
+    const maxStock = variant?.quantity;
+    setItems((prev) =>
+      prev.map((item, i) => {
+        if (i !== idx) return item;
+        const currentQty = Number(item.quantity) || 1;
+        const clampedQty =
+          maxStock !== undefined && maxStock > 0 && currentQty > maxStock
+            ? maxStock
+            : currentQty;
+        return {
+          ...item,
+          variantLabel: varLabel,
+          unitPrice:
+            variant?.price !== undefined ? variant.price : item.unitPrice,
+          quantity: clampedQty,
+        };
+      }),
+    );
+  };
+
   const addItem = () => {
     setItems((prev) => [
       ...prev,
-      { description: "", variantLabel: "", quantity: 1, unitPrice: "" },
+      {
+        productId: "",
+        description: "",
+        variantLabel: "",
+        quantity: 1,
+        unitPrice: "",
+      },
     ]);
   };
 
@@ -344,7 +469,35 @@ export default function NewInvoicePage() {
       return;
     }
 
+    // Verify stock availability for catalog products
+    for (const item of items) {
+      if (item.productId) {
+        const prod = productList.find((p) => p._id === item.productId);
+        const variant =
+          prod?.variants.find((v) => v.label === item.variantLabel) ||
+          prod?.variants?.[0];
+        const stock = variant?.quantity;
+        const requestedQty = Number(item.quantity) || 1;
+
+        if (stock !== undefined) {
+          if (stock <= 0) {
+            toast.error(
+              `"${prod?.name || "Product"} (${variant?.label || "Default"})" is out of stock. Please remove it or update stock before issuing invoice.`
+            );
+            return;
+          }
+          if (requestedQty > stock) {
+            toast.error(
+              `Cannot invoice ${requestedQty} units of "${prod?.name || "Product"} (${variant?.label || "Default"})". Only ${stock} available in stock.`
+            );
+            return;
+          }
+        }
+      }
+    }
+
     const payload: any = {
+      customerId: selectedCustomerId || undefined,
       customerSnapshot: {
         name: customerName.trim(),
         phone: customerPhone.trim(),
@@ -352,6 +505,8 @@ export default function NewInvoicePage() {
         address: customerAddress.trim(),
       },
       items: items.map((i) => ({
+        product: i.productId || undefined,
+        productId: i.productId || undefined,
         description: i.description.trim(),
         variantLabel: i.variantLabel.trim(),
         quantity: Number(i.quantity) || 1,
@@ -685,10 +840,69 @@ export default function NewInvoicePage() {
 
         {/* Customer Information */}
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs space-y-4">
-          <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
-            <User className="w-3.5 h-3.5 text-brand-600" />
-            <span>Customer Details</span>
-          </h2>
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-1 border-b border-gray-100">
+            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+              <User className="w-3.5 h-3.5 text-brand-600" />
+              <span>Customer Details</span>
+            </h2>
+
+            {/* Quick Helper Badge */}
+            {selectedCustomerId ? (
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                <span>Existing Customer Loaded from Directory</span>
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1.5 text-[11px] text-gray-500 bg-gray-50 px-2.5 py-1 rounded-lg border border-gray-200">
+                <UserPlus className="w-3 h-3 text-brand-600 shrink-0" />
+                <span>New customer will be auto-saved to your directory</span>
+              </span>
+            )}
+          </div>
+
+          {/* Customer Directory Dropdown */}
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <label className="block text-xs font-semibold text-gray-700">
+                Select from Customer Directory
+              </label>
+              {selectedCustomerId && (
+                <button
+                  type="button"
+                  onClick={() => handleCustomerSelect("")}
+                  className="text-[11px] font-semibold text-brand-600 hover:text-brand-700 transition-colors cursor-pointer"
+                >
+                  ＋ Switch to New Customer
+                </button>
+              )}
+            </div>
+
+            <div className="relative">
+              <div className="pointer-events-none absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400">
+                {selectedCustomerId ? (
+                  <Users className="w-4 h-4 text-emerald-600" />
+                ) : (
+                  <UserPlus className="w-4 h-4 text-gray-400" />
+                )}
+              </div>
+              <select
+                value={selectedCustomerId}
+                onChange={(e) => handleCustomerSelect(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white cursor-pointer"
+              >
+                <option value="">＋ New customer</option>
+                {customerList.length > 0 && (
+                  <optgroup label="Saved Customers Directory">
+                    {customerList.map((c) => (
+                      <option key={c._id} value={c._id}>
+                        {c.name} — {c.phone} {c.email ? `(${c.email})` : ""}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            </div>
+          </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
@@ -749,9 +963,15 @@ export default function NewInvoicePage() {
         {/* Line Items */}
         <div className="bg-white rounded-2xl p-5 border border-gray-100 shadow-xs space-y-4">
           <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
-              Invoice Items
-            </h2>
+            <div>
+              <h2 className="text-xs font-bold text-gray-700 uppercase tracking-wider">
+                Invoice Items
+              </h2>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                Select catalog products with pre-filled pricing or enter custom
+                items.
+              </p>
+            </div>
             <button
               type="button"
               onClick={addItem}
@@ -763,92 +983,226 @@ export default function NewInvoicePage() {
           </div>
 
           <div className="space-y-3">
-            {items.map((item, idx) => (
-              <div
-                key={idx}
-                className="p-3.5 rounded-xl bg-gray-50 border border-gray-200/70 flex flex-col sm:flex-row items-start sm:items-center gap-3"
-              >
-                <div className="flex-1 w-full sm:w-auto">
-                  <input
-                    type="text"
-                    required
-                    value={item.description}
-                    onChange={(e) =>
-                      updateItem(idx, "description", e.target.value)
-                    }
-                    placeholder="Item description / garment name"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
-                  />
-                </div>
+            {items.map((item, idx) => {
+              const selectedProduct = productList.find(
+                (p) => p._id === item.productId,
+              );
+              const selectedVariant =
+                selectedProduct?.variants?.find(
+                  (v) => v.label === item.variantLabel,
+                ) || selectedProduct?.variants?.[0];
+              const maxStock = selectedVariant?.quantity;
+              const isOutOfStock = Boolean(
+                selectedProduct && maxStock !== undefined && maxStock <= 0,
+              );
+              const hasMultipleVariants = Boolean(
+                selectedProduct &&
+                selectedProduct.variants &&
+                selectedProduct.variants.length > 1,
+              );
 
-                <div className="w-full sm:w-36">
-                  <input
-                    type="text"
-                    value={item.variantLabel}
-                    onChange={(e) =>
-                      updateItem(idx, "variantLabel", e.target.value)
-                    }
-                    placeholder="Variant / Color (opt)"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
-                  />
-                </div>
-
-                <div className="w-20">
-                  <input
-                    type="number"
-                    min="1"
-                    required
-                    value={item.quantity}
-                    onChange={(e) =>
-                      updateItem(
-                        idx,
-                        "quantity",
-                        e.target.value === "" ? "" : Number(e.target.value),
-                      )
-                    }
-                    placeholder="1"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs text-center font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
-                  />
-                </div>
-
-                <div className="w-full sm:w-32">
-                  <input
-                    type="number"
-                    min="0"
-                    required
-                    value={item.unitPrice}
-                    onChange={(e) =>
-                      updateItem(
-                        idx,
-                        "unitPrice",
-                        e.target.value === "" ? "" : Number(e.target.value),
-                      )
-                    }
-                    placeholder="Price ₦"
-                    className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
-                  />
-                </div>
-
-                <div className="w-24 text-right hidden sm:block">
-                  <span className="text-xs font-bold text-gray-900">
-                    {formatCurrency(
-                      (Number(item.quantity) || 0) *
-                        (Number(item.unitPrice) || 0),
-                    )}
-                  </span>
-                </div>
-
-                <button
-                  type="button"
-                  onClick={() => removeItem(idx)}
-                  disabled={items.length <= 1}
-                  className="p-2 text-gray-400 hover:text-red-500 rounded-lg hover:bg-red-50 transition-colors disabled:opacity-30 cursor-pointer"
-                  title="Delete item"
+              return (
+                <div
+                  key={idx}
+                  className="p-3.5 rounded-xl bg-gray-50 border border-gray-200/70 space-y-2.5"
                 >
-                  <Trash2 className="w-4 h-4" />
-                </button>
-              </div>
-            ))}
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-[11px] font-bold text-gray-500 uppercase tracking-wider flex items-center gap-1.5">
+                      <Package className="w-3.5 h-3.5 text-gray-400" />
+                      <span>Item {idx + 1}</span>
+                    </span>
+
+                    <div className="flex items-center gap-2">
+                      {item.productId ? (
+                        <span className="text-[10px] font-bold text-brand-700 bg-brand-50 px-2 py-0.5 rounded border border-brand-200">
+                          Catalog Product
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
+                          Custom Item
+                        </span>
+                      )}
+
+                      {items.length > 1 && (
+                        <button
+                          type="button"
+                          onClick={() => removeItem(idx)}
+                          className="p-1 text-gray-400 hover:text-red-500 rounded hover:bg-red-50 transition-colors cursor-pointer"
+                          title="Delete item"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="grid grid-cols-1 sm:grid-cols-12 gap-2.5 items-start">
+                    {/* Catalog Product Dropdown (sm:col-span-4) */}
+                    <div className="sm:col-span-4">
+                      <select
+                        value={item.productId || ""}
+                        onChange={(e) =>
+                          handleProductSelect(idx, e.target.value)
+                        }
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white cursor-pointer"
+                      >
+                        <option value="">Custom item</option>
+                        {productList.length > 0 && (
+                          <optgroup label="Catalog Products & Pricing">
+                            {productList.map((prod) => (
+                              <option key={prod._id} value={prod._id}>
+                                {prod.name} — from ₦
+                                {prod.basePrice?.toLocaleString()}
+                              </option>
+                            ))}
+                          </optgroup>
+                        )}
+                      </select>
+                    </div>
+
+                    {/* Description (sm:col-span-3) */}
+                    <div className="sm:col-span-3">
+                      <input
+                        type="text"
+                        required
+                        value={item.description}
+                        onChange={(e) =>
+                          updateItem(idx, "description", e.target.value)
+                        }
+                        placeholder="Item description / garment name"
+                        className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                      />
+                    </div>
+
+                    {/* Variant (sm:col-span-2) */}
+                    <div className="sm:col-span-2">
+                      {hasMultipleVariants ? (
+                        <select
+                          value={
+                            item.variantLabel ||
+                            selectedProduct?.variants[0]?.label
+                          }
+                          onChange={(e) =>
+                            handleVariantSelect(
+                              idx,
+                              selectedProduct!,
+                              e.target.value,
+                            )
+                          }
+                          className="w-full px-2.5 py-2 rounded-lg border border-gray-300 text-xs font-medium text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white cursor-pointer"
+                        >
+                          {selectedProduct?.variants.map((v) => (
+                            <option key={v.label} value={v.label}>
+                              {v.label} · ₦{v.price.toLocaleString()}{" "}
+                              {v.quantity <= 0
+                                ? "(Out of stock)"
+                                : `(${v.quantity} in stock)`}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <input
+                          type="text"
+                          value={item.variantLabel}
+                          onChange={(e) =>
+                            updateItem(idx, "variantLabel", e.target.value)
+                          }
+                          placeholder="Variant / Color (opt)"
+                          className="w-full px-3 py-2 rounded-lg border border-gray-300 text-xs text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                        />
+                      )}
+                    </div>
+
+                    {/* Quantity (sm:col-span-1) */}
+                    <div className="sm:col-span-1">
+                      <input
+                        type="number"
+                        min="1"
+                        max={
+                          maxStock !== undefined
+                            ? Math.max(1, maxStock)
+                            : undefined
+                        }
+                        required
+                        value={item.quantity}
+                        onChange={(e) => {
+                          const val =
+                            e.target.value === ""
+                              ? ""
+                              : Number(e.target.value);
+                          if (
+                            val !== "" &&
+                            maxStock !== undefined &&
+                            maxStock > 0 &&
+                            val > maxStock
+                          ) {
+                            toast.error(
+                              `Only ${maxStock} units available in stock for "${selectedProduct?.name} (${selectedVariant?.label || "Default"})"`,
+                            );
+                            updateItem(idx, "quantity", maxStock);
+                            return;
+                          }
+                          updateItem(idx, "quantity", val);
+                        }}
+                        placeholder="1"
+                        className={`w-full px-2 py-2 rounded-lg border text-xs text-center font-bold focus:ring-2 focus:ring-brand-500 outline-none bg-white ${
+                          isOutOfStock ||
+                          (maxStock !== undefined &&
+                            Number(item.quantity) > maxStock)
+                            ? "border-red-400 text-red-600 ring-1 ring-red-400"
+                            : "border-gray-300 text-gray-900"
+                        }`}
+                      />
+                      {selectedProduct && maxStock !== undefined && (
+                        <p
+                          className={`text-[10px] text-center mt-0.5 font-medium truncate ${
+                            maxStock <= 0 ? "text-red-600 font-bold" : "text-gray-400"
+                          }`}
+                        >
+                          {maxStock <= 0 ? "0 in stock" : `Max ${maxStock}`}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Unit Price ₦ (sm:col-span-2) */}
+                    <div className="sm:col-span-2 flex items-center gap-1.5">
+                      <div className="relative flex-1">
+                        <input
+                          type="number"
+                          min="0"
+                          required
+                          value={item.unitPrice}
+                          onChange={(e) =>
+                            updateItem(
+                              idx,
+                              "unitPrice",
+                              e.target.value === ""
+                                ? ""
+                                : Number(e.target.value),
+                            )
+                          }
+                          placeholder="Price ₦"
+                          className="w-full px-2.5 py-2 rounded-lg border border-gray-300 text-xs font-bold text-gray-900 focus:ring-2 focus:ring-brand-500 outline-none bg-white"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Subtotal row indicator */}
+                  <div className="flex justify-end pt-0.5">
+                    <span className="text-[11px] text-gray-500 font-medium">
+                      Item Subtotal:{" "}
+                      <strong className="text-gray-900">
+                        {formatCurrency(
+                          (Number(item.quantity) || 0) *
+                            (Number(item.unitPrice) || 0),
+                        )}
+                      </strong>
+                    </span>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
           {/* Subtotal & Balance Breakdown */}

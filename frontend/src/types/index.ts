@@ -339,6 +339,12 @@ export interface Customer {
   email?: string;
   phone: string;
   instagram?: string;
+  deliveryAddress?: {
+    street?: string;
+    city?: string;
+    state?: string;
+  };
+  address?: string;
   ltv: number; // lifetime value
   orderCount: number;
   lastOrderDate?: string;
@@ -962,6 +968,8 @@ export type InvoiceStatus = "draft" | "issued" | "partially_paid" | "paid" | "ca
 
 export interface InvoiceItem {
   _id?: string;
+  product?: string | Product;
+  productId?: string;
   description: string;
   variantLabel?: string;
   quantity: number;
