@@ -16,6 +16,8 @@ interface CreatableTagInputProps {
   disabled?: boolean;
   containerClassName?: string;
   className?: string;
+  itemLabel?: string;
+  suggestionHeading?: string;
 }
 
 export default function CreatableTagInput({
@@ -30,6 +32,8 @@ export default function CreatableTagInput({
   disabled,
   containerClassName,
   className,
+  itemLabel = "tag",
+  suggestionHeading,
 }: CreatableTagInputProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -209,7 +213,7 @@ export default function CreatableTagInput({
                 <Plus className="size-2.5" />
               </span>
               <span className="truncate">
-                Add &quot;<strong>{query.trim()}</strong>&quot; as new tag
+                Add &quot;<strong>{query.trim()}</strong>&quot; as new {itemLabel}
               </span>
             </button>
           )}
@@ -218,7 +222,8 @@ export default function CreatableTagInput({
           {filteredOptions.length > 0 ? (
             <div className="p-1">
               <div className="px-2 py-1 text-[11px] font-semibold uppercase tracking-wider text-gray-400">
-                Suggested Tags
+                {suggestionHeading ||
+                  `Suggested ${itemLabel.charAt(0).toUpperCase() + itemLabel.slice(1)}s`}
               </div>
               <div className="flex flex-wrap gap-1 p-1">
                 {filteredOptions.slice(0, 16).map((opt) => (
@@ -236,7 +241,7 @@ export default function CreatableTagInput({
             </div>
           ) : !isNewTag ? (
             <div className="px-3 py-3 text-center text-xs text-gray-500">
-              No further tag suggestions
+              No further {itemLabel} suggestions
             </div>
           ) : null}
         </div>

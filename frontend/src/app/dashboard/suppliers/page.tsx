@@ -25,6 +25,8 @@ import {
 } from "@/hooks/useSuppliers";
 import { useDebounce } from "@/hooks/useDebounce";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
+import { useSupplierOptions } from "@/hooks/useSupplierOptions";
+import CreatableTagInput from "@/components/ui/CreatableTagInput";
 import { generateLocalId } from "@/lib/offline/outbox";
 import { buildWhatsAppLink, formatCurrency, formatDate } from "@/lib/utils";
 import { SupplierCategory, SupplierStatus, type Supplier } from "@/types";
@@ -268,6 +270,7 @@ function SupplierForm({
 }) {
   const createSupplier = useCreateSupplier();
   const updateSupplier = useUpdateSupplier(supplier?._id ?? "");
+  const { materials: suggestedMaterials, addMaterial } = useSupplierOptions();
 
   const [form, setForm] = useState<{
     name: string;
@@ -278,7 +281,7 @@ function SupplierForm({
     instagram: string;
     whatsapp: string;
     location: string;
-    materials: string;
+    materials: string[];
     notes: string;
     status: SupplierStatus;
     lastPurchaseAmount: number | "";
@@ -293,7 +296,7 @@ function SupplierForm({
     instagram: "",
     whatsapp: "",
     location: "",
-    materials: "",
+    materials: [],
     notes: "",
     status: SupplierStatus.Active,
     lastPurchaseAmount: "",
@@ -318,12 +321,14 @@ function SupplierForm({
       whatsapp: payload.whatsapp,
       location: payload.location,
       materials:
-        typeof payload.materials === "string"
+        Array.isArray(payload.materials)
           ? payload.materials
-              .split(",")
-              .map((s: string) => s.trim())
-              .filter(Boolean)
-          : payload.materials || [],
+          : typeof payload.materials === "string"
+            ? payload.materials
+                .split(",")
+                .map((s: string) => s.trim())
+                .filter(Boolean)
+            : [],
       status: payload.status,
       lastPurchaseAmount: Number(payload.lastPurchaseAmount) || 0,
       outstandingBalance: Number(payload.outstandingBalance) || 0,
@@ -347,7 +352,7 @@ function SupplierForm({
         instagram: "",
         whatsapp: "",
         location: "",
-        materials: "",
+        materials: [],
         notes: "",
         status: SupplierStatus.Active,
         lastPurchaseAmount: "",
@@ -366,7 +371,7 @@ function SupplierForm({
       instagram: supplier.instagram ?? "",
       whatsapp: supplier.whatsapp ?? "",
       location: supplier.location ?? "",
-      materials: supplier.materials.join(", "),
+      materials: Array.isArray(supplier.materials) ? supplier.materials : [],
       notes: supplier.notes ?? "",
       status: supplier.status,
       lastPurchaseAmount: supplier.lastPurchaseAmount || "",
@@ -429,6 +434,7 @@ function SupplierForm({
       </div>
       <Input
         label="Supplier name"
+        placeholder="Ade's Fabrics"
         value={form.name}
         onChange={(event) => update("name", event.target.value)}
         required
@@ -467,18 +473,21 @@ function SupplierForm({
       </div>
       <Input
         label="Contact name"
+        placeholder="Adeola Adebayo"
         value={form.contactName}
         onChange={(event) => update("contactName", event.target.value)}
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           label="Phone"
+          placeholder="08012345678"
           value={form.phone}
           onChange={(event) => update("phone", event.target.value)}
           required
         />
         <Input
           label="WhatsApp"
+          placeholder="08123456789"
           value={form.whatsapp}
           onChange={(event) => update("whatsapp", event.target.value)}
         />
@@ -486,29 +495,37 @@ function SupplierForm({
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
           label="Email"
+          placeholder="ade@example.com"
           value={form.email}
           onChange={(event) => update("email", event.target.value)}
         />
         <Input
           label="Instagram"
+          placeholder="@adesfabrics"
           value={form.instagram}
           onChange={(event) => update("instagram", event.target.value)}
         />
       </div>
       <Input
         label="Location"
+        placeholder="24, Oja Oba, Ibadan"
         value={form.location}
         onChange={(event) => update("location", event.target.value)}
       />
-      <Input
+      <CreatableTagInput
         label="Materials"
-        helper="Comma-separated"
         value={form.materials}
-        onChange={(event) => update("materials", event.target.value)}
+        onChange={(val) => update("materials", val)}
+        onAddOption={addMaterial}
+        options={suggestedMaterials}
+        placeholder="Select or type material..."
+        itemLabel="material"
+        suggestionHeading="Suggested Materials"
+        helper="Select from suggestions or type custom materials (press Enter or comma to add)"
       />
       <div className="grid gap-3 sm:grid-cols-2">
         <Input
-          label="Last purchase"
+          label="Last purchase (₦)"
           type="number"
           min={0}
           placeholder="0"
@@ -521,7 +538,7 @@ function SupplierForm({
           }
         />
         <Input
-          label="Outstanding balance"
+          label="Outstanding balance (₦)"
           type="number"
           min={0}
           placeholder="0"
