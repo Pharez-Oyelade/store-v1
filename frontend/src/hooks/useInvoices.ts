@@ -311,3 +311,75 @@ export function useUpdatePayoutAccount() {
     },
   });
 }
+
+/* ── PDF File Download Helpers ───────────────────────────────────── */
+
+/**
+ * Triggers an immediate browser file download from an in-memory Blob.
+ * Uses window.URL.createObjectURL so the browser never opens a blank tab
+ * and never navigates away from the page.
+ */
+function triggerBlobDownload(blob: Blob, filename: string) {
+  if (typeof window === "undefined") return;
+
+  const url = window.URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  setTimeout(() => {
+    window.URL.revokeObjectURL(url);
+    if (document.body.contains(link)) {
+      document.body.removeChild(link);
+    }
+  }, 500);
+}
+
+/**
+ * Download Vendor Invoice PDF
+ */
+export async function downloadVendorInvoicePdf(invoiceId: string, invoiceNumber: string) {
+  const { default: api } = await import("@/lib/api");
+  const response = await api.get(`/invoices/${invoiceId}/pdf`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Invoice-${invoiceNumber}.pdf`);
+}
+
+/**
+ * Download Vendor Receipt PDF
+ */
+export async function downloadVendorReceiptPdf(invoiceId: string, invoiceNumber: string, paymentId?: string) {
+  const { default: api } = await import("@/lib/api");
+  const query = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : "";
+  const response = await api.get(`/invoices/${invoiceId}/receipt/pdf${query}`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Receipt-${invoiceNumber}.pdf`);
+}
+
+/**
+ * Download Public Customer Invoice PDF
+ */
+export async function downloadPublicInvoicePdf(token: string, invoiceNumber?: string) {
+  const { default: api } = await import("@/lib/api");
+  const response = await api.get(`/invoices/public/${token}/pdf`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Invoice-${invoiceNumber || token}.pdf`);
+}
+
+/**
+ * Download Public Customer Receipt PDF
+ */
+export async function downloadPublicReceiptPdf(token: string, invoiceNumber?: string, paymentId?: string) {
+  const { default: api } = await import("@/lib/api");
+  const query = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : "";
+  const response = await api.get(`/invoices/public/${token}/receipt/pdf${query}`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Receipt-${invoiceNumber || token}.pdf`);
+}
+
+

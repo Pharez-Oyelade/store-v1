@@ -25,6 +25,8 @@ import {
   useInitializeInvoicePayment,
   useVerifyInvoicePayment,
   useSubmitManualProof,
+  downloadPublicInvoicePdf,
+  downloadPublicReceiptPdf,
 } from "@/hooks/useInvoices";
 import { usePaystackInline } from "@/hooks/usePaystackInline";
 import { formatCurrency, formatDate } from "@/lib/utils";
@@ -54,6 +56,9 @@ export default function PublicInvoicePage() {
   const [transferRef, setTransferRef] = useState("");
   const [transferNotes, setTransferNotes] = useState("");
 
+  const [isDownloadingInvoice, setIsDownloadingInvoice] = useState(false);
+  const [isDownloadingReceipt, setIsDownloadingReceipt] = useState(false);
+
   // Poll every 4 seconds if pending proof or awaiting balance
   const {
     data: invoice,
@@ -64,6 +69,41 @@ export default function PublicInvoicePage() {
 
   const initPayment = useInitializeInvoicePayment();
   const submitProof = useSubmitManualProof();
+
+  const handleDownloadInvoice = async () => {
+    if (!invoice) return;
+    try {
+      setIsDownloadingInvoice(true);
+      toast.loading("Generating official invoice PDF...", { id: "cust-pdf-inv" });
+      await downloadPublicInvoicePdf(token, invoice.invoiceNumber);
+      toast.success("Invoice PDF downloaded!", { id: "cust-pdf-inv" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download invoice PDF", { id: "cust-pdf-inv" });
+    } finally {
+      setIsDownloadingInvoice(false);
+    }
+  };
+
+  const handleDownloadReceipt = async (paymentId?: string) => {
+    if (!invoice) return;
+    try {
+      setIsDownloadingReceipt(true);
+      toast.loading("Generating official payment receipt PDF...", { id: "cust-pdf-rec" });
+      await downloadPublicReceiptPdf(token, invoice.invoiceNumber, paymentId);
+      toast.success("Payment receipt PDF downloaded!", { id: "cust-pdf-rec" });
+    } catch (err: any) {
+      toast.error(err.message || "Failed to download receipt PDF", { id: "cust-pdf-rec" });
+    } finally {
+      setIsDownloadingReceipt(false);
+    }
+  };
+
+  // Auto-download receipt if opened from payment confirmation email link
+  useEffect(() => {
+    if (invoice && invoice.totalPaid > 0 && searchParams?.get("download") === "receipt") {
+      handleDownloadReceipt();
+    }
+  }, [invoice?.totalPaid, searchParams]);
 
   // Set default pay amount once invoice loads
   useEffect(() => {
@@ -317,12 +357,27 @@ export default function PublicInvoicePage() {
             </div>
           </div>
 
-          {/* Quick Contact Actions */}
-          <div className="flex items-center gap-2 self-start sm:self-center">
+          {/* Quick Contact & Download Actions */}
+          <div className="flex items-center gap-2 self-start sm:self-center flex-wrap">
+            <button
+              type="button"
+              onClick={handleDownloadInvoice}
+              disabled={isDownloadingInvoice}
+              className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl border border-gray-200 text-gray-700 hover:text-gray-900 hover:bg-gray-50 text-xs font-semibold shadow-2xs transition-colors cursor-pointer disabled:opacity-50"
+              title="Download Single-Page Invoice PDF"
+            >
+              {isDownloadingInvoice ? (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-brand-600" />
+              ) : (
+                <Download className="w-3.5 h-3.5 text-gray-500" />
+              )}
+              <span>Invoice PDF</span>
+            </button>
+
             {vendor?.phone && (
               <a
                 href={`tel:${vendor.phone}`}
-                className="p-2.5 rounded-xl border border-gray-200 text-gray-600 hover:text-brand-600 hover:bg-brand-50 transition-colors"
+                className="p-2 rounded-xl border border-gray-200 text-gray-600 hover:text-brand-600 hover:bg-brand-50 transition-colors"
                 title="Call Vendor"
               >
                 <Phone className="w-4 h-4" />
@@ -417,11 +472,31 @@ export default function PublicInvoicePage() {
               </div>
             ) : isPaid ? (
               <button
-                onClick={() => window.print()}
-                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto cursor-pointer"
+                type="button"
+                onClick={() => handleDownloadReceipt()}
+                disabled={isDownloadingReceipt}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-emerald-800 hover:bg-emerald-50 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto cursor-pointer disabled:opacity-50"
               >
-                <Download className="w-4 h-4" />
-                <span>Save Receipt</span>
+                {isDownloadingReceipt ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-emerald-600" />
+                ) : (
+                  <Download className="w-4 h-4 text-emerald-600" />
+                )}
+                <span>Save Receipt (PDF)</span>
+              </button>
+            ) : isPartiallyPaid && invoice.totalPaid > 0 ? (
+              <button
+                type="button"
+                onClick={() => handleDownloadReceipt()}
+                disabled={isDownloadingReceipt}
+                className="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-white text-blue-900 hover:bg-blue-50 text-xs font-bold shadow-sm transition-colors self-start sm:self-auto cursor-pointer disabled:opacity-50"
+              >
+                {isDownloadingReceipt ? (
+                  <Loader2 className="w-4 h-4 animate-spin text-blue-600" />
+                ) : (
+                  <Download className="w-4 h-4 text-blue-600" />
+                )}
+                <span>Deposit Receipt (PDF)</span>
               </button>
             ) : hasPendingProof ? (
               <div className="px-3.5 py-2 rounded-xl bg-amber-500/30 border border-amber-300/40 text-xs text-amber-100 flex items-center gap-2">
@@ -547,9 +622,20 @@ export default function PublicInvoicePage() {
                       {pmt.channel.replace("_", " ")}
                     </p>
                   </div>
-                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
-                    Verified
-                  </span>
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 uppercase">
+                      Verified
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => handleDownloadReceipt(pmt._id)}
+                      disabled={isDownloadingReceipt}
+                      className="p-1.5 rounded-lg border border-gray-200 bg-white hover:bg-gray-100 text-gray-700 transition-colors cursor-pointer"
+                      title="Download PDF Receipt for this payment"
+                    >
+                      <Download className="w-3.5 h-3.5 text-gray-600" />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>

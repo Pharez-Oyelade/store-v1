@@ -13,6 +13,7 @@ import {
   sendManualPaymentProofPromptEmail,
   sendStorePaymentNotificationEmail,
 } from "../services/email.service.js";
+import { generateInvoicePdf, generateReceiptPdf } from "../services/pdf.service.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 
 /**
@@ -989,3 +990,122 @@ export const verifyInvoicePayment = asyncHandler(async (req, res) => {
 
   return sendSuccess(res, invoice, "Payment verified and invoice updated successfully");
 });
+
+/* ── GET /api/invoices/:id/pdf (Protected Vendor Download) ───────── */
+export const downloadInvoicePdf = asyncHandler(async (req, res) => {
+  const invoice = await Invoice.findOne({
+    _id: req.params.id,
+    vendor: req.vendor._id,
+  });
+
+  if (!invoice) {
+    return sendError(res, "Invoice not found", 404);
+  }
+
+  const vendor = await Vendor.findById(req.vendor._id);
+  const pdfBuffer = await generateInvoicePdf(invoice, vendor);
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`
+  );
+  res.setHeader("Content-Length", pdfBuffer.length);
+
+  return res.send(pdfBuffer);
+});
+
+/* ── GET /api/invoices/:id/receipt/pdf (Protected Vendor Download) ── */
+export const downloadReceiptPdf = asyncHandler(async (req, res) => {
+  const invoice = await Invoice.findOne({
+    _id: req.params.id,
+    vendor: req.vendor._id,
+  });
+
+  if (!invoice) {
+    return sendError(res, "Invoice not found", 404);
+  }
+
+  if (invoice.totalPaid <= 0) {
+    return sendError(res, "No payments have been recorded for this invoice yet", 400);
+  }
+
+  let selectedPayment = null;
+  if (req.query.paymentId) {
+    selectedPayment = invoice.paymentHistory?.id(req.query.paymentId);
+  } else if (invoice.paymentHistory?.length > 0) {
+    // Select latest payment by default
+    selectedPayment = invoice.paymentHistory[invoice.paymentHistory.length - 1];
+  }
+
+  const vendor = await Vendor.findById(req.vendor._id);
+  const pdfBuffer = await generateReceiptPdf(invoice, vendor, selectedPayment);
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="Receipt-${invoice.invoiceNumber}.pdf"`
+  );
+  res.setHeader("Content-Length", pdfBuffer.length);
+
+  return res.send(pdfBuffer);
+});
+
+/* ── GET /api/invoices/public/:token/pdf (Public Customer Download) ── */
+export const downloadPublicInvoicePdf = asyncHandler(async (req, res) => {
+  const invoice = await Invoice.findOne({ accessToken: req.params.token });
+
+  if (!invoice) {
+    return sendError(res, "Invoice not found or link is invalid", 404);
+  }
+
+  if (invoice.status === "cancelled") {
+    return sendError(res, "This invoice has been cancelled", 400);
+  }
+
+  const vendor = await Vendor.findById(invoice.vendor);
+  const pdfBuffer = await generateInvoicePdf(invoice, vendor);
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="Invoice-${invoice.invoiceNumber}.pdf"`
+  );
+  res.setHeader("Content-Length", pdfBuffer.length);
+
+  return res.send(pdfBuffer);
+});
+
+/* ── GET /api/invoices/public/:token/receipt/pdf (Public Customer Download) ── */
+export const downloadPublicReceiptPdf = asyncHandler(async (req, res) => {
+  const invoice = await Invoice.findOne({ accessToken: req.params.token });
+
+  if (!invoice) {
+    return sendError(res, "Invoice not found or link is invalid", 404);
+  }
+
+  if (invoice.totalPaid <= 0) {
+    return sendError(res, "No payments have been recorded on this invoice yet", 400);
+  }
+
+  let selectedPayment = null;
+  if (req.query.paymentId) {
+    selectedPayment = invoice.paymentHistory?.id(req.query.paymentId);
+  } else if (invoice.paymentHistory?.length > 0) {
+    // Select latest payment by default
+    selectedPayment = invoice.paymentHistory[invoice.paymentHistory.length - 1];
+  }
+
+  const vendor = await Vendor.findById(invoice.vendor);
+  const pdfBuffer = await generateReceiptPdf(invoice, vendor, selectedPayment);
+
+  res.setHeader("Content-Type", "application/pdf");
+  res.setHeader(
+    "Content-Disposition",
+    `attachment; filename="Receipt-${invoice.invoiceNumber}.pdf"`
+  );
+  res.setHeader("Content-Length", pdfBuffer.length);
+
+  return res.send(pdfBuffer);
+});
+
