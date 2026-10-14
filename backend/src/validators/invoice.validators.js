@@ -115,6 +115,21 @@ export const createInvoiceValidators = [
     .optional({ values: "falsy" })
     .isMongoId()
     .withMessage("Invalid custom request ID"),
+
+  body("customerId")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Invalid customer ID"),
+
+  body("items.*.product")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Invalid product ID"),
+
+  body("items.*.productId")
+    .optional({ values: "falsy" })
+    .isMongoId()
+    .withMessage("Invalid product ID"),
 ];
 
 export const recordManualPaymentValidators = [
