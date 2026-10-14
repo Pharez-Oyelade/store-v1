@@ -315,72 +315,71 @@ export function useUpdatePayoutAccount() {
 /* ── PDF File Download Helpers ───────────────────────────────────── */
 
 /**
- * Resolves the public API URL for document streaming/downloads
+ * Triggers an immediate browser file download from an in-memory Blob.
+ * Uses window.URL.createObjectURL so the browser never opens a blank tab
+ * and never navigates away from the page.
  */
-const getPublicApiUrl = () => {
-  const envUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api";
-  return envUrl.replace(/\/$/, "");
-};
-
-/**
- * Triggers an immediate browser file download synchronously using native browser navigation.
- * Bypasses user-gesture expiration, blob memory leaks, and mobile webview blocks.
- */
-function triggerDirectUrlDownload(url: string, filename?: string) {
+function triggerBlobDownload(blob: Blob, filename: string) {
   if (typeof window === "undefined") return;
 
+  const url = window.URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  if (filename) {
-    link.download = filename;
-  }
-  link.target = "_blank";
-  link.rel = "noopener noreferrer";
+  link.download = filename;
   document.body.appendChild(link);
   link.click();
   setTimeout(() => {
+    window.URL.revokeObjectURL(url);
     if (document.body.contains(link)) {
       document.body.removeChild(link);
     }
-  }, 300);
+  }, 500);
 }
 
 /**
  * Download Vendor Invoice PDF
  */
 export async function downloadVendorInvoicePdf(invoiceId: string, invoiceNumber: string) {
-  const baseUrl = getPublicApiUrl();
-  const url = `${baseUrl}/invoices/${invoiceId}/pdf`;
-  triggerDirectUrlDownload(url, `Invoice-${invoiceNumber}.pdf`);
+  const { default: api } = await import("@/lib/api");
+  const response = await api.get(`/invoices/${invoiceId}/pdf`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Invoice-${invoiceNumber}.pdf`);
 }
 
 /**
  * Download Vendor Receipt PDF
  */
 export async function downloadVendorReceiptPdf(invoiceId: string, invoiceNumber: string, paymentId?: string) {
-  const baseUrl = getPublicApiUrl();
+  const { default: api } = await import("@/lib/api");
   const query = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : "";
-  const url = `${baseUrl}/invoices/${invoiceId}/receipt/pdf${query}`;
-  triggerDirectUrlDownload(url, `Receipt-${invoiceNumber}.pdf`);
+  const response = await api.get(`/invoices/${invoiceId}/receipt/pdf${query}`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Receipt-${invoiceNumber}.pdf`);
 }
 
 /**
  * Download Public Customer Invoice PDF
  */
 export async function downloadPublicInvoicePdf(token: string, invoiceNumber?: string) {
-  const baseUrl = getPublicApiUrl();
-  const url = `${baseUrl}/invoices/public/${token}/pdf`;
-  triggerDirectUrlDownload(url, invoiceNumber ? `Invoice-${invoiceNumber}.pdf` : undefined);
+  const { default: api } = await import("@/lib/api");
+  const response = await api.get(`/invoices/public/${token}/pdf`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Invoice-${invoiceNumber || token}.pdf`);
 }
 
 /**
  * Download Public Customer Receipt PDF
  */
 export async function downloadPublicReceiptPdf(token: string, invoiceNumber?: string, paymentId?: string) {
-  const baseUrl = getPublicApiUrl();
+  const { default: api } = await import("@/lib/api");
   const query = paymentId ? `?paymentId=${encodeURIComponent(paymentId)}` : "";
-  const url = `${baseUrl}/invoices/public/${token}/receipt/pdf${query}`;
-  triggerDirectUrlDownload(url, invoiceNumber ? `Receipt-${invoiceNumber}.pdf` : undefined);
+  const response = await api.get(`/invoices/public/${token}/receipt/pdf${query}`, {
+    responseType: "blob",
+  });
+  triggerBlobDownload(response as unknown as Blob, `Receipt-${invoiceNumber || token}.pdf`);
 }
 
 

@@ -1,5 +1,7 @@
 import puppeteer from "puppeteer";
 import fs from "node:fs";
+import os from "node:os";
+import path from "node:path";
 
 /**
  * Detect available browser executable paths with fallback to system browsers
@@ -46,9 +48,6 @@ const getExecutablePath = () => {
   return undefined; // default to bundled Puppeteer chromium
 };
 
-import os from "node:os";
-import path from "node:path";
-
 let browserInstance = null;
 let browserLaunchPromise = null;
 
@@ -83,6 +82,7 @@ export const getBrowser = async () => {
           "--disable-extensions",
           "--disable-sync",
           "--disable-gpu",
+          ...(os.platform() === "linux" ? ["--single-process", "--no-zygote"] : []),
         ],
       };
 

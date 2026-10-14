@@ -70,23 +70,31 @@ export default function PublicInvoicePage() {
   const initPayment = useInitializeInvoicePayment();
   const submitProof = useSubmitManualProof();
 
-  const handleDownloadInvoice = () => {
+  const handleDownloadInvoice = async () => {
     if (!invoice) return;
     try {
-      toast.success("Downloading Invoice PDF...", { id: "cust-pdf-inv" });
-      downloadPublicInvoicePdf(token, invoice.invoiceNumber);
+      setIsDownloadingInvoice(true);
+      toast.loading("Generating official invoice PDF...", { id: "cust-pdf-inv" });
+      await downloadPublicInvoicePdf(token, invoice.invoiceNumber);
+      toast.success("Invoice PDF downloaded!", { id: "cust-pdf-inv" });
     } catch (err: any) {
       toast.error(err.message || "Failed to download invoice PDF", { id: "cust-pdf-inv" });
+    } finally {
+      setIsDownloadingInvoice(false);
     }
   };
 
-  const handleDownloadReceipt = (paymentId?: string) => {
+  const handleDownloadReceipt = async (paymentId?: string) => {
     if (!invoice) return;
     try {
-      toast.success("Downloading Payment Receipt PDF...", { id: "cust-pdf-rec" });
-      downloadPublicReceiptPdf(token, invoice.invoiceNumber, paymentId);
+      setIsDownloadingReceipt(true);
+      toast.loading("Generating official payment receipt PDF...", { id: "cust-pdf-rec" });
+      await downloadPublicReceiptPdf(token, invoice.invoiceNumber, paymentId);
+      toast.success("Payment receipt PDF downloaded!", { id: "cust-pdf-rec" });
     } catch (err: any) {
       toast.error(err.message || "Failed to download receipt PDF", { id: "cust-pdf-rec" });
+    } finally {
+      setIsDownloadingReceipt(false);
     }
   };
 
