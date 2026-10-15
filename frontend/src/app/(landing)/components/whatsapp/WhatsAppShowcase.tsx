@@ -61,8 +61,6 @@ export const WhatsAppShowcase: React.FC = () => {
       id="whatsapp-assistant"
       aria-label="WhatsApp AI Assistant Showcase"
       className="relative px-5 md:px-15 py-20 md:py-28 bg-gradient-to-b from-surface-base via-emerald-50/25 to-white overflow-hidden border-t border-gray-100/80"
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
     >
       {/* Decorative background ambient glows */}
       <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] bg-emerald-200/25 rounded-full blur-[130px] -z-10 pointer-events-none" />
@@ -166,7 +164,11 @@ export const WhatsAppShowcase: React.FC = () => {
         </div>
 
         {/* Right Column: Desktop-Only Interactive Feature List */}
-        <div className="hidden lg:flex lg:col-span-7 flex-col justify-center">
+        <div
+          className="hidden lg:flex lg:col-span-7 flex-col justify-center"
+          onMouseEnter={() => setIsPaused(true)}
+          onMouseLeave={() => setIsPaused(false)}
+        >
           {/* Feature Selector Cards */}
           <div className="space-y-3.5">
             {showcaseFeatures.map((feature, idx) => {
