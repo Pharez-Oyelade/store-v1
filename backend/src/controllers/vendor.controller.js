@@ -166,6 +166,8 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
   const {
     themeColor,
     accentColor,
+    bannerHeadline,
+    bannerText,
     announcementText,
     announcementActive,
     whatsappFabEnabled,
@@ -186,6 +188,8 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
 
   if (themeColor !== undefined) vendor.storefrontSettings.themeColor = themeColor;
   if (accentColor !== undefined) vendor.storefrontSettings.accentColor = accentColor;
+  if (bannerHeadline !== undefined) vendor.storefrontSettings.bannerHeadline = bannerHeadline;
+  if (bannerText !== undefined) vendor.storefrontSettings.bannerText = bannerText;
   if (announcementText !== undefined) vendor.storefrontSettings.announcementText = announcementText;
   if (announcementActive !== undefined) vendor.storefrontSettings.announcementActive = Boolean(announcementActive);
   if (whatsappFabEnabled !== undefined) vendor.storefrontSettings.whatsappFabEnabled = Boolean(whatsappFabEnabled);

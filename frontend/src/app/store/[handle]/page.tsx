@@ -44,6 +44,8 @@ interface VendorData {
       url?: string;
       publicId?: string;
     };
+    bannerHeadline?: string;
+    bannerText?: string;
     announcementText?: string;
     announcementActive?: boolean;
     whatsappFabEnabled?: boolean;
@@ -178,14 +180,14 @@ export default async function StorefrontPage({
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-white space-y-4 max-w-3xl mx-auto">
               <span className="text-xs font-semibold tracking-widest uppercase text-amber-300">
-                Atelier Collection
+                {vendor.storefrontSettings?.bannerHeadline || "Atelier Collection"}
               </span>
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight">
                 {vendor.businessName}
               </h1>
-              {vendor.bio && (
+              {(vendor.storefrontSettings?.bannerText || vendor.bio) && (
                 <p className="text-xs sm:text-base text-stone-200 max-w-xl line-clamp-3 leading-relaxed">
-                  {vendor.bio}
+                  {vendor.storefrontSettings?.bannerText || vendor.bio}
                 </p>
               )}
               <div className="pt-2">
@@ -214,16 +216,16 @@ export default async function StorefrontPage({
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center space-y-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/70 text-stone-800 text-[11px] font-bold uppercase tracking-wider">
               <Sparkles size={13} className="text-amber-600" />
-              Fashion House & Boutique
+              {vendor.storefrontSettings?.bannerHeadline || "Fashion House & Boutique"}
             </span>
 
             <h1 className="text-4xl sm:text-6xl font-serif font-bold text-gray-950 tracking-tight leading-tight">
               {vendor.businessName}
             </h1>
 
-            {vendor.bio && (
+            {(vendor.storefrontSettings?.bannerText || vendor.bio) && (
               <p className="text-sm sm:text-base text-stone-600 max-w-xl mx-auto leading-relaxed">
-                {vendor.bio}
+                {vendor.storefrontSettings?.bannerText || vendor.bio}
               </p>
             )}
 

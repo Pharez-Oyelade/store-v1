@@ -140,6 +140,8 @@ const vendorSchema = new mongoose.Schema(
         url: { type: String, default: "" },
         publicId: { type: String, default: "" },
       },
+      bannerHeadline: { type: String, default: "" },
+      bannerText: { type: String, default: "" },
       customDomain: { type: String, default: "" },
       customCss: { type: String, default: "" },
       announcementText: { type: String, default: "" },

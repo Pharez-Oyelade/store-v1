@@ -252,6 +252,8 @@ export interface Vendor {
     themeColor?: string;
     accentColor?: string;
     bannerImage?: CloudinaryImage;
+    bannerHeadline?: string;
+    bannerText?: string;
     customDomain?: string;
     customCss?: string;
     announcementText?: string;
