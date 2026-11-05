@@ -1,4 +1,5 @@
 import Vendor from "../models/vendorModel.js";
+import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImage } from "../services/cloudinary.service.js";
@@ -174,6 +175,7 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
     category,
     deliveryRates,
     featuredProductIds,
+    isPublished,
   } = req.body;
 
   const vendor = await Vendor.findById(req.vendor._id);
@@ -199,7 +201,49 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
   if (businessType !== undefined) vendor.businessType = businessType;
   if (category !== undefined) vendor.category = category;
 
+  // Validate publish prerequisites if vendor is attempting to publish
+  if (isPublished !== undefined) {
+    if (isPublished) {
+      if (!vendor.businessType || vendor.businessType === "unselected") {
+        return sendError(res, "Please select your business model before publishing your storefront", 400);
+      }
+      if (vendor.businessType === "demand") {
+        const hasContact = Boolean(vendor.socials?.whatsapp || vendor.phone);
+        if (!hasContact) {
+          return sendError(res, "Please provide a WhatsApp or contact phone number for customer inquiries before publishing", 400);
+        }
+      } else {
+        const activeProductCount = await Product.countDocuments({
+          vendor: vendor._id,
+          status: "active",
+        });
+        if (activeProductCount < 2) {
+          return sendError(
+            res,
+            `Catalog requires at least 2 active products to publish your storefront (currently ${activeProductCount}/2)`,
+            400
+          );
+        }
+      }
+      vendor.storefrontSettings.isPublished = true;
+    } else {
+      vendor.storefrontSettings.isPublished = false;
+    }
+  }
+
   await vendor.save();
+
+  // Return readiness stats for dashboard
+  const activeProductCount = await Product.countDocuments({
+    vendor: vendor._id,
+    status: "active",
+  });
+
+  const isEligible =
+    vendor.businessType !== "unselected" &&
+    (vendor.businessType === "demand"
+      ? Boolean(vendor.socials?.whatsapp || vendor.phone)
+      : activeProductCount >= 2);
 
   return sendSuccess(
     res,
@@ -207,6 +251,9 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
       storefrontSettings: vendor.storefrontSettings,
       businessType: vendor.businessType,
       category: vendor.category,
+      activeProductCount,
+      isEligible,
+      isPublished: Boolean(vendor.storefrontSettings?.isPublished),
     },
     "Storefront settings updated successfully"
   );

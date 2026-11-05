@@ -11,19 +11,54 @@ import { uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 import { verifyTransaction } from "../services/paystack.service.js";
 
+/* ── Helper: Evaluate Storefront Readiness ──────────────────────── */
+export async function checkStorefrontEligibility(vendor) {
+  const isTypeChosen = vendor.businessType && vendor.businessType !== "unselected";
+  const activeProductCount = await Product.countDocuments({
+    vendor: vendor._id,
+    status: "active",
+  });
+
+  const isEligible =
+    Boolean(isTypeChosen) &&
+    (vendor.businessType === "demand"
+      ? Boolean(vendor.socials?.whatsapp || vendor.phone)
+      : activeProductCount >= 2);
+
+  const isPublished = Boolean(vendor.storefrontSettings?.isPublished);
+
+  return {
+    isTypeChosen: Boolean(isTypeChosen),
+    activeProductCount,
+    isEligible,
+    isPublished,
+    canBeLive: isEligible && isPublished,
+  };
+}
+
 /* ── GET /api/storefront/:handle ────────────────────────────────── */
 export const getVendorStorefront = asyncHandler(async (req, res) => {
   const { handle } = req.params;
+  const { preview } = req.query;
+  const isPreview = preview === "true";
 
   const vendor = await Vendor.findOne({
     handle: handle.toLowerCase(),
     isActive: true,
   }).select(
-    "businessName handle bio logo location socials subscriptionPlan businessType category storefrontSettings discounts payoutAccount"
+    "businessName handle phone bio logo location socials subscriptionPlan businessType category storefrontSettings discounts payoutAccount"
   );
 
   if (!vendor) {
     return sendError(res, "Store not found", 404);
+  }
+
+  const { activeProductCount, isEligible, isPublished, canBeLive } =
+    await checkStorefrontEligibility(vendor);
+
+  // If public visitor (not authenticated dashboard preview) and store is not published or eligible, return 404
+  if (!isPreview && !canBeLive) {
+    return sendError(res, "Store not found or not yet published", 404);
   }
 
   const vendorObj = vendor.toObject();
@@ -52,21 +87,45 @@ export const getVendorStorefront = asyncHandler(async (req, res) => {
   vendorObj.hasOnlinePayment = Boolean(vendorObj.payoutAccount?.isVerified);
   delete vendorObj.payoutAccount;
 
+  // Add activation & tier metadata
+  const plan = (vendorObj.subscriptionPlan || "free").toLowerCase();
+  const isSinglePage = ["free", "stitch"].includes(plan);
+
+  vendorObj.isPublished = isPublished;
+  vendorObj.isEligible = isEligible;
+  vendorObj.activeProductCount = activeProductCount;
+  vendorObj.isSinglePage = isSinglePage;
+  vendorObj.tierCapabilities = {
+    plan,
+    isSinglePage,
+    hasCustomColors: !["free", "stitch"].includes(plan),
+    hasNoticeBar: !["free", "stitch"].includes(plan),
+    hasCustomDomain: ["atelier", "maison"].includes(plan),
+    canRemoveWatermark: ["atelier", "maison"].includes(plan),
+  };
+
   return sendSuccess(res, vendorObj);
 });
 
 /* ── GET /api/storefront/:handle/products ───────────────────────── */
 export const getStorefrontProducts = asyncHandler(async (req, res) => {
   const { handle } = req.params;
-  const { page = 1, limit = 20, category } = req.query;
+  const { page = 1, limit = 20, category, preview } = req.query;
 
   const vendor = await Vendor.findOne({
     handle: handle.toLowerCase(),
     isActive: true,
-  }).select("_id");
+  }).select("_id businessName socials businessType storefrontSettings phone");
 
   if (!vendor) {
     return sendError(res, "Store not found", 404);
+  }
+
+  if (preview !== "true") {
+    const { canBeLive } = await checkStorefrontEligibility(vendor);
+    if (!canBeLive) {
+      return sendError(res, "Store not found or not yet published", 404);
+    }
   }
 
   const filter = {
@@ -115,14 +174,22 @@ export const getStorefrontProducts = asyncHandler(async (req, res) => {
 /* ── GET /api/storefront/:handle/products/:productId ────────────── */
 export const getStorefrontProduct = asyncHandler(async (req, res) => {
   const { handle, productId } = req.params;
+  const { preview } = req.query;
 
   const vendor = await Vendor.findOne({
     handle: handle.toLowerCase(),
     isActive: true,
-  }).select("_id businessName socials");
+  }).select("_id businessName socials businessType storefrontSettings phone");
 
   if (!vendor) {
     return sendError(res, "Store not found", 404);
+  }
+
+  if (preview !== "true") {
+    const { canBeLive } = await checkStorefrontEligibility(vendor);
+    if (!canBeLive) {
+      return sendError(res, "Store not found or not yet published", 404);
+    }
   }
 
   const product = await Product.findOne({

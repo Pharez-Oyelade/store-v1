@@ -77,7 +77,12 @@ export function useCreateCustomRequest() {
       apiPost<CustomRequest>(
         "/custom-requests",
         data,
-        data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined
+        data instanceof FormData
+          ? {
+              headers: { "Content-Type": "multipart/form-data" },
+              timeout: 120000,
+            }
+          : undefined
       ),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
@@ -100,7 +105,12 @@ export function useUpdateCustomRequest(id: string) {
       apiPut<CustomRequest>(
         `/custom-requests/${id}`,
         data,
-        data instanceof FormData ? { headers: { "Content-Type": "multipart/form-data" } } : undefined
+        data instanceof FormData
+          ? {
+              headers: { "Content-Type": "multipart/form-data" },
+              timeout: 120000,
+            }
+          : undefined
       ),
     onSuccess: (updated) => {
       queryClient.invalidateQueries({ queryKey: CUSTOM_REQUEST_KEYS.all });
