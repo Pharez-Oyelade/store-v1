@@ -86,11 +86,23 @@ const FASHION_PALETTES = [
 ];
 
 const STANDARD_NIGERIA_RATES = [
-  { state: "Lagos", fee: 2500, areas: ["Mainland", "Island", "Ikeja", "Lekki"] },
-  { state: "Abuja (FCT)", fee: 4500, areas: ["Central Area", "Maitama", "Garki", "Wuse"] },
+  {
+    state: "Lagos",
+    fee: 2500,
+    areas: ["Mainland", "Island", "Ikeja", "Lekki"],
+  },
+  {
+    state: "Abuja (FCT)",
+    fee: 4500,
+    areas: ["Central Area", "Maitama", "Garki", "Wuse"],
+  },
   { state: "Rivers", fee: 4500, areas: ["Port Harcourt", "Obio-Akpor"] },
   { state: "Oyo", fee: 3500, areas: ["Ibadan Central", "Bodija", "Oluyole"] },
-  { state: "Interstate Express", fee: 6000, areas: ["All other states nationwide"] },
+  {
+    state: "Interstate Express",
+    fee: 6000,
+    areas: ["All other states nationwide"],
+  },
 ];
 
 const NIGERIAN_STATES = [
@@ -159,6 +171,8 @@ export default function StorefrontDashboardPage() {
   const [appearanceForm, setAppearanceForm] = useState({
     themeColor: "#141210",
     accentColor: "#C88A2C",
+    bannerHeadline: "",
+    bannerText: "",
     announcementText: "",
     announcementActive: true,
     whatsappFabEnabled: true,
@@ -176,7 +190,9 @@ export default function StorefrontDashboardPage() {
 
   // Campaign Form State
   const [newPromoCode, setNewPromoCode] = useState("");
-  const [newPromoType, setNewPromoType] = useState<"percentage" | "fixed">("percentage");
+  const [newPromoType, setNewPromoType] = useState<"percentage" | "fixed">(
+    "percentage",
+  );
   const [newPromoValue, setNewPromoValue] = useState<string>("10");
   const [newPromoMinSpend, setNewPromoMinSpend] = useState<string>("0");
   const [newPromoBroadcast, setNewPromoBroadcast] = useState(true);
@@ -187,9 +203,14 @@ export default function StorefrontDashboardPage() {
       setAppearanceForm({
         themeColor: vendorProfile.storefrontSettings?.themeColor || "#141210",
         accentColor: vendorProfile.storefrontSettings?.accentColor || "#C88A2C",
-        announcementText: vendorProfile.storefrontSettings?.announcementText || "",
-        announcementActive: vendorProfile.storefrontSettings?.announcementActive !== false,
-        whatsappFabEnabled: vendorProfile.storefrontSettings?.whatsappFabEnabled !== false,
+        bannerHeadline: vendorProfile.storefrontSettings?.bannerHeadline || "",
+        bannerText: vendorProfile.storefrontSettings?.bannerText || "",
+        announcementText:
+          vendorProfile.storefrontSettings?.announcementText || "",
+        announcementActive:
+          vendorProfile.storefrontSettings?.announcementActive !== false,
+        whatsappFabEnabled:
+          vendorProfile.storefrontSettings?.whatsappFabEnabled !== false,
         businessType: vendorProfile.businessType || "unselected",
         category: vendorProfile.category || "fashion",
       });
@@ -198,7 +219,8 @@ export default function StorefrontDashboardPage() {
   }, [vendorProfile]);
 
   const handle = vendorProfile?.handle || authVendor?.handle || "";
-  const businessName = vendorProfile?.businessName || authVendor?.businessName || "Your Boutique";
+  const businessName =
+    vendorProfile?.businessName || authVendor?.businessName || "Your Boutique";
   const plan = vendorProfile?.subscriptionPlan || "free";
   const isDrapePlus = hasMinPlan(plan, "drape");
 
@@ -211,7 +233,9 @@ export default function StorefrontDashboardPage() {
   const isTypeSelected = appearanceForm.businessType !== "unselected";
   const isDemandModel = appearanceForm.businessType === "demand";
   const hasMinCatalog = isDemandModel ? true : activeProducts.length >= 2;
-  const hasContact = Boolean(vendorProfile?.socials?.whatsapp || vendorProfile?.phone);
+  const hasContact = Boolean(
+    vendorProfile?.socials?.whatsapp || vendorProfile?.phone,
+  );
   const hasDeliveryRates = deliveryRates.length > 0;
 
   const isEligibleToPublish = isTypeSelected && hasMinCatalog && hasContact;
@@ -238,7 +262,9 @@ export default function StorefrontDashboardPage() {
         return;
       }
       if (!hasMinCatalog) {
-        toast.error(`You need at least 2 active products in your catalog (currently ${activeProducts.length}/2).`);
+        toast.error(
+          `You need at least 2 active products in your catalog (currently ${activeProducts.length}/2).`,
+        );
         return;
       }
       if (!hasContact) {
@@ -260,7 +286,7 @@ export default function StorefrontDashboardPage() {
     });
   };
 
-  const handleSelectPalette = (palette: typeof FASHION_PALETTES[0]) => {
+  const handleSelectPalette = (palette: (typeof FASHION_PALETTES)[0]) => {
     setAppearanceForm((prev) => ({
       ...prev,
       themeColor: palette.theme,
@@ -284,6 +310,8 @@ export default function StorefrontDashboardPage() {
     updateSettings.mutate({
       themeColor: appearanceForm.themeColor,
       accentColor: appearanceForm.accentColor,
+      bannerHeadline: appearanceForm.bannerHeadline,
+      bannerText: appearanceForm.bannerText,
       announcementText: appearanceForm.announcementText,
       announcementActive: appearanceForm.announcementActive,
       whatsappFabEnabled: appearanceForm.whatsappFabEnabled,
@@ -315,7 +343,7 @@ export default function StorefrontDashboardPage() {
 
     const updated = [
       ...deliveryRates.filter(
-        (r) => r.state.toLowerCase() !== newRateState.toLowerCase()
+        (r) => r.state.toLowerCase() !== newRateState.toLowerCase(),
       ),
       { state: newRateState, fee: feeNum, areas: areasArray },
     ];
@@ -362,7 +390,11 @@ export default function StorefrontDashboardPage() {
                 onClick={handleCopyLink}
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl border border-stone-300 bg-white px-3 text-xs font-semibold text-stone-700 hover:bg-stone-50 shadow-2xs transition-colors"
               >
-                {copied ? <Check size={14} className="text-emerald-600" /> : <Copy size={14} />}
+                {copied ? (
+                  <Check size={14} className="text-emerald-600" />
+                ) : (
+                  <Copy size={14} />
+                )}
                 {copied ? "Copied" : "Copy Link"}
               </button>
 
@@ -372,8 +404,8 @@ export default function StorefrontDashboardPage() {
                 rel="noreferrer"
                 className="inline-flex h-9 items-center gap-1.5 rounded-xl bg-stone-900 px-3.5 text-xs font-semibold text-white hover:bg-stone-800 shadow-2xs transition-all"
               >
-                <Eye size={14} />
-                <span>Preview Store</span>
+                <Eye size={14} className="text-white" />
+                <span className="text-white">Preview Store</span>
               </Link>
             </div>
           ) : undefined
@@ -387,23 +419,27 @@ export default function StorefrontDashboardPage() {
             <div className="flex flex-wrap items-center gap-2.5">
               {isPublished && isEligibleToPublish ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-500/40">
-                  <span className="size-2 rounded-full bg-emerald-400 animate-pulse" />
-                  Live to Public (200 OK)
+                  {/* <span className="size-2 rounded-full bg-emerald-400 animate-pulse" /> */}
+                  Live to Public
                 </span>
               ) : isEligibleToPublish ? (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-blue-500/20 text-blue-300 border border-blue-500/40">
-                  <Sparkles size={13} className="text-blue-400" />
-                  Ready to Publish (Draft)
+                  {/* <Sparkles size={13} className="text-blue-400" /> */}
+                  Ready to Publish
                 </span>
               ) : (
                 <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-amber-500/20 text-amber-300 border border-amber-500/40">
-                  <ShieldAlert size={13} className="text-amber-400" />
-                  Inactive / Setup Required (404)
+                  {/* <ShieldAlert size={13} className="text-amber-400" /> */}
+                  Inactive / Setup Required
                 </span>
               )}
 
               <span className="text-xs text-stone-400 font-medium">
-                Tier: <strong className="text-amber-400 font-bold uppercase">{plan}</strong> ({isDrapePlus ? "Multi-Page" : "Single-Page"})
+                Tier:{" "}
+                <strong className="text-amber-400 font-bold uppercase">
+                  {plan}
+                </strong>{" "}
+                ({isDrapePlus ? "Multi-Page" : "Single-Page"})
               </span>
             </div>
 
@@ -415,8 +451,8 @@ export default function StorefrontDashboardPage() {
               {isPublished && isEligibleToPublish
                 ? "Your public storefront is live and taking customer orders and custom inquiries."
                 : isEligibleToPublish
-                ? "All requirements are met! Toggle your store live whenever you are ready."
-                : "Your public link shows a 404 until you select your business model and add at least 2 catalog products."}
+                  ? "All requirements are met! Toggle your store live whenever you are ready."
+                  : "Your public link shows a 404 until you select your business model and add at least 2 catalog products."}
             </p>
           </div>
 
@@ -429,26 +465,31 @@ export default function StorefrontDashboardPage() {
               <button
                 type="button"
                 onClick={handleTogglePublish}
-                disabled={updateSettings.isPending || (!isPublished && !isEligibleToPublish)}
+                disabled={
+                  updateSettings.isPending ||
+                  (!isPublished && !isEligibleToPublish)
+                }
                 className={`py-2 px-4 rounded-xl text-xs font-bold transition-all shadow-sm ${
                   isPublished
                     ? "bg-rose-600 hover:bg-rose-700 text-white"
                     : isEligibleToPublish
-                    ? "bg-emerald-500 hover:bg-emerald-600 text-stone-950 font-extrabold animate-pulse"
-                    : "bg-stone-700 text-stone-400 cursor-not-allowed"
+                      ? "bg-emerald-500 hover:bg-emerald-600 text-stone-950 font-extrabold animate-pulse"
+                      : "bg-stone-700 text-stone-400 cursor-not-allowed"
                 }`}
               >
                 {updateSettings.isPending
                   ? "Updating..."
                   : isPublished
-                  ? "Take Offline (Unpublish)"
-                  : "Publish Storefront Now"}
+                    ? "Take Offline (Unpublish)"
+                    : "Publish Storefront Now"}
               </button>
             </div>
 
             <div className="flex items-center gap-2 font-mono text-xs text-amber-200 bg-black/40 px-3 py-2 rounded-xl border border-white/10">
               <Globe size={13} className="text-amber-400 shrink-0" />
-              <span className="truncate max-w-[200px] sm:max-w-xs">{publicStoreUrl}</span>
+              <span className="truncate max-w-[200px] sm:max-w-xs">
+                {publicStoreUrl}
+              </span>
             </div>
           </div>
         </div>
@@ -464,11 +505,20 @@ export default function StorefrontDashboardPage() {
                 Storefront Launch Checklist
               </h3>
               <p className="text-xs text-stone-600">
-                Complete these quick prerequisites to activate your public boutique link.
+                Complete these quick prerequisites to activate your public
+                boutique link.
               </p>
             </div>
             <span className="text-xs font-bold text-amber-900 bg-amber-100 px-3 py-1 rounded-full">
-              {[isTypeSelected, hasMinCatalog, hasContact, hasDeliveryRates].filter(Boolean).length} / 4 Done
+              {
+                [
+                  isTypeSelected,
+                  hasMinCatalog,
+                  hasContact,
+                  hasDeliveryRates,
+                ].filter(Boolean).length
+              }{" "}
+              / 4 Done
             </span>
           </div>
 
@@ -476,16 +526,22 @@ export default function StorefrontDashboardPage() {
             {/* Step 1: Business Type */}
             <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Step 1</span>
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+                  Step 1
+                </span>
                 {isTypeSelected ? (
                   <CheckCircle2 size={16} className="text-emerald-600" />
                 ) : (
                   <AlertCircle size={16} className="text-amber-500" />
                 )}
               </div>
-              <h4 className="font-bold text-xs text-gray-950">Business Model</h4>
+              <h4 className="font-bold text-xs text-gray-950">
+                Business Model
+              </h4>
               <p className="text-[11px] text-stone-500">
-                {isTypeSelected ? appearanceForm.businessType.replace(/_/g, " ") : "Select RTW, Demand, or Hybrid"}
+                {isTypeSelected
+                  ? appearanceForm.businessType.replace(/_/g, " ")
+                  : "Select RTW, Demand, or Hybrid"}
               </p>
               <button
                 type="button"
@@ -499,14 +555,18 @@ export default function StorefrontDashboardPage() {
             {/* Step 2: Catalog Products */}
             <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Step 2</span>
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+                  Step 2
+                </span>
                 {hasMinCatalog ? (
                   <CheckCircle2 size={16} className="text-emerald-600" />
                 ) : (
                   <AlertCircle size={16} className="text-amber-500" />
                 )}
               </div>
-              <h4 className="font-bold text-xs text-gray-950">Catalog Readiness</h4>
+              <h4 className="font-bold text-xs text-gray-950">
+                Catalog Readiness
+              </h4>
               <p className="text-[11px] text-stone-500">
                 {isDemandModel
                   ? "Bespoke demand model ready"
@@ -523,14 +583,18 @@ export default function StorefrontDashboardPage() {
             {/* Step 3: Contact & WhatsApp */}
             <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Step 3</span>
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+                  Step 3
+                </span>
                 {hasContact ? (
                   <CheckCircle2 size={16} className="text-emerald-600" />
                 ) : (
                   <AlertCircle size={16} className="text-amber-500" />
                 )}
               </div>
-              <h4 className="font-bold text-xs text-gray-950">WhatsApp / Phone</h4>
+              <h4 className="font-bold text-xs text-gray-950">
+                WhatsApp / Phone
+              </h4>
               <p className="text-[11px] text-stone-500">
                 {hasContact ? "Direct chat enabled" : "Add phone number"}
               </p>
@@ -545,16 +609,22 @@ export default function StorefrontDashboardPage() {
             {/* Step 4: Delivery Fees */}
             <div className="p-4 rounded-2xl bg-white border border-stone-200 space-y-2">
               <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">Step 4</span>
+                <span className="text-xs font-bold text-stone-400 uppercase tracking-wider">
+                  Step 4
+                </span>
                 {hasDeliveryRates ? (
                   <CheckCircle2 size={16} className="text-emerald-600" />
                 ) : (
                   <AlertCircle size={16} className="text-amber-500" />
                 )}
               </div>
-              <h4 className="font-bold text-xs text-gray-950">Delivery Rates</h4>
+              <h4 className="font-bold text-xs text-gray-950">
+                Delivery Rates
+              </h4>
               <p className="text-[11px] text-stone-500">
-                {hasDeliveryRates ? `${deliveryRates.length} states configured` : "No rates set"}
+                {hasDeliveryRates
+                  ? `${deliveryRates.length} states configured`
+                  : "No rates set"}
               </p>
               <button
                 type="button"
@@ -626,7 +696,8 @@ export default function StorefrontDashboardPage() {
                 Choose Your Business Model
               </h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                This dictates your public storefront experience: shopping cart, lookbook, bespoke measurement forms, or both.
+                This dictates your public storefront experience: shopping cart,
+                lookbook, bespoke measurement forms, or both.
               </p>
             </div>
 
@@ -651,9 +722,12 @@ export default function StorefrontDashboardPage() {
                   )}
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-gray-950">Ready-to-Wear (RTW)</h4>
+                  <h4 className="font-bold text-sm text-gray-950">
+                    Ready-to-Wear (RTW)
+                  </h4>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    E-commerce catalog with sizes, colors, and live inventory. Shoppers add pieces to cart and checkout instantly.
+                    E-commerce catalog with sizes, colors, and live inventory.
+                    Shoppers add pieces to cart and checkout instantly.
                   </p>
                 </div>
                 <div className="pt-2 text-[11px] text-amber-800 font-semibold">
@@ -681,9 +755,12 @@ export default function StorefrontDashboardPage() {
                   )}
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-gray-950">Bespoke Tailor (Demand)</h4>
+                  <h4 className="font-bold text-sm text-gray-950">
+                    Bespoke Tailor (Demand)
+                  </h4>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    Made-to-measure tailoring. Showcase your signature style lookbook and receive custom measurement requests.
+                    Made-to-measure tailoring. Showcase your signature style
+                    lookbook and receive custom measurement requests.
                   </p>
                 </div>
                 <div className="pt-2 text-[11px] text-amber-800 font-semibold">
@@ -711,9 +788,12 @@ export default function StorefrontDashboardPage() {
                   )}
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-gray-950">Hybrid House</h4>
+                  <h4 className="font-bold text-sm text-gray-950">
+                    Hybrid House
+                  </h4>
                   <p className="text-xs text-stone-500 mt-1 leading-relaxed">
-                    The complete fashion house: sells stocked ready-to-wear pieces AND takes bespoke tailored requests.
+                    The complete fashion house: sells stocked ready-to-wear
+                    pieces AND takes bespoke tailored requests.
                   </p>
                 </div>
                 <div className="pt-2 text-[11px] text-amber-800 font-semibold">
@@ -731,7 +811,8 @@ export default function StorefrontDashboardPage() {
                   Live Brand Preview
                 </h3>
                 <p className="text-xs text-stone-500">
-                  Visual snapshot of your store's current palette, logo, and banner.
+                  Visual snapshot of your store's current palette, logo, and
+                  banner.
                 </p>
               </div>
               <button
@@ -763,6 +844,11 @@ export default function StorefrontDashboardPage() {
                   />
                 )}
                 <div className="relative z-10 space-y-2">
+                  {appearanceForm.bannerHeadline && (
+                    <span className="text-[9px] font-bold tracking-widest uppercase text-amber-300 block">
+                      {appearanceForm.bannerHeadline}
+                    </span>
+                  )}
                   {logoUrl ? (
                     <img
                       src={logoUrl}
@@ -774,15 +860,21 @@ export default function StorefrontDashboardPage() {
                       {businessName.charAt(0)}
                     </div>
                   )}
-                  <h4 className="font-serif font-bold text-lg">{businessName}</h4>
+                  <h4 className="font-serif font-bold text-lg">
+                    {businessName}
+                  </h4>
                   <p className="text-[11px] text-white/80 line-clamp-2 max-w-xs mx-auto">
-                    {bio || "Your curated fashion collections and bespoke tailoring."}
+                    {appearanceForm.bannerText ||
+                      bio ||
+                      "Your curated fashion collections and bespoke tailoring."}
                   </p>
                   <span
                     className="inline-block py-1 px-3 rounded-full text-[10px] font-bold text-white shadow-xs"
                     style={{ backgroundColor: appearanceForm.accentColor }}
                   >
-                    {appearanceForm.businessType.replace(/_/g, " ").toUpperCase()}
+                    {appearanceForm.businessType
+                      .replace(/_/g, " ")
+                      .toUpperCase()}
                   </span>
                 </div>
               </div>
@@ -790,7 +882,9 @@ export default function StorefrontDashboardPage() {
               {/* Simulated Content Body */}
               <div className="p-4 space-y-3">
                 <div className="flex items-center justify-between text-xs font-bold text-stone-700">
-                  <span>{isDemandModel ? "Signature Styles" : "Collection Pieces"}</span>
+                  <span>
+                    {isDemandModel ? "Signature Styles" : "Collection Pieces"}
+                  </span>
                   <span className="text-[10px] text-stone-400">View All</span>
                 </div>
                 <div className="grid grid-cols-2 gap-2">
@@ -814,14 +908,16 @@ export default function StorefrontDashboardPage() {
                   Curated Fashion Palettes
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Hand-crafted color pairings tailored for luxury Nigerian boutiques and ateliers.
+                  Hand-crafted color pairings tailored for luxury Nigerian
+                  boutiques and ateliers.
                 </p>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {FASHION_PALETTES.map((pal) => {
                   const isSelected =
-                    appearanceForm.themeColor.toLowerCase() === pal.theme.toLowerCase();
+                    appearanceForm.themeColor.toLowerCase() ===
+                    pal.theme.toLowerCase();
                   return (
                     <div
                       key={pal.name}
@@ -860,7 +956,8 @@ export default function StorefrontDashboardPage() {
                     Custom Hex Color Overrides
                   </h4>
                   <p className="text-xs text-stone-500 mt-0.5">
-                    Fine-tune exact brand hex colors for background and action buttons.
+                    Fine-tune exact brand hex colors for background and action
+                    buttons.
                   </p>
                 </div>
                 {!isDrapePlus && (
@@ -882,7 +979,10 @@ export default function StorefrontDashboardPage() {
                       disabled={!isDrapePlus}
                       value={appearanceForm.themeColor}
                       onChange={(e) =>
-                        setAppearanceForm({ ...appearanceForm, themeColor: e.target.value })
+                        setAppearanceForm({
+                          ...appearanceForm,
+                          themeColor: e.target.value,
+                        })
                       }
                       className="size-10 rounded-xl cursor-pointer border border-stone-300 p-0.5 disabled:opacity-50"
                     />
@@ -891,7 +991,10 @@ export default function StorefrontDashboardPage() {
                       disabled={!isDrapePlus}
                       value={appearanceForm.themeColor}
                       onChange={(e) =>
-                        setAppearanceForm({ ...appearanceForm, themeColor: e.target.value })
+                        setAppearanceForm({
+                          ...appearanceForm,
+                          themeColor: e.target.value,
+                        })
                       }
                       className="flex-1 px-3 py-2 border border-stone-300 rounded-xl text-xs font-mono disabled:bg-stone-50"
                     />
@@ -908,7 +1011,10 @@ export default function StorefrontDashboardPage() {
                       disabled={!isDrapePlus}
                       value={appearanceForm.accentColor}
                       onChange={(e) =>
-                        setAppearanceForm({ ...appearanceForm, accentColor: e.target.value })
+                        setAppearanceForm({
+                          ...appearanceForm,
+                          accentColor: e.target.value,
+                        })
                       }
                       className="size-10 rounded-xl cursor-pointer border border-stone-300 p-0.5 disabled:opacity-50"
                     />
@@ -917,7 +1023,10 @@ export default function StorefrontDashboardPage() {
                       disabled={!isDrapePlus}
                       value={appearanceForm.accentColor}
                       onChange={(e) =>
-                        setAppearanceForm({ ...appearanceForm, accentColor: e.target.value })
+                        setAppearanceForm({
+                          ...appearanceForm,
+                          accentColor: e.target.value,
+                        })
                       }
                       className="flex-1 px-3 py-2 border border-stone-300 rounded-xl text-xs font-mono disabled:bg-stone-50"
                     />
@@ -945,7 +1054,11 @@ export default function StorefrontDashboardPage() {
                 )}
                 <label className="cursor-pointer inline-flex items-center gap-2 py-2.5 px-4 rounded-xl border border-stone-300 hover:bg-stone-50 text-xs font-semibold text-stone-800 transition-colors">
                   <Upload size={14} />
-                  <span>{updateBanner.isPending ? "Uploading..." : "Upload New Banner"}</span>
+                  <span>
+                    {updateBanner.isPending
+                      ? "Uploading..."
+                      : "Upload New Banner"}
+                  </span>
                   <input
                     type="file"
                     accept="image/*"
@@ -956,6 +1069,64 @@ export default function StorefrontDashboardPage() {
               </div>
             </div>
 
+            {/* Custom Banner Text */}
+            <div className="pt-6 border-t border-stone-100 space-y-4">
+              <div>
+                <h4 className="text-xs font-bold uppercase tracking-wider text-stone-700">
+                  Custom Banner Text & Editorial Tagline
+                </h4>
+                <p className="text-xs text-stone-500 mt-0.5">
+                  Customize the eyebrow headline and promotional tagline that
+                  appear on your storefront's hero banner.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4">
+                <div>
+                  <label className="block text-xs font-bold text-stone-600 mb-1">
+                    Banner Eyebrow / Headline
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="e.g. Atelier Collection, Harmattan '25, Bespoke Haute Couture"
+                    value={appearanceForm.bannerHeadline}
+                    onChange={(e) =>
+                      setAppearanceForm({
+                        ...appearanceForm,
+                        bannerHeadline: e.target.value,
+                      })
+                    }
+                    className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-xs placeholder:text-stone-400 focus:outline-none focus:border-stone-900 transition-colors"
+                  />
+                  <p className="text-[11px] text-stone-400 mt-1">
+                    Displays in stylized tracking above your boutique name.
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-stone-600 mb-1">
+                    Banner Promotional Text / Subheading
+                  </label>
+                  <textarea
+                    rows={2}
+                    placeholder="e.g. Handcrafted bespoke luxury tailored to your exact silhouette. Available for Lagos delivery and nationwide express."
+                    value={appearanceForm.bannerText}
+                    onChange={(e) =>
+                      setAppearanceForm({
+                        ...appearanceForm,
+                        bannerText: e.target.value,
+                      })
+                    }
+                    className="w-full px-3.5 py-2.5 border border-stone-300 rounded-xl text-xs placeholder:text-stone-400 focus:outline-none focus:border-stone-900 transition-colors resize-none"
+                  />
+                  <p className="text-[11px] text-stone-400 mt-1">
+                    Overrides your general boutique bio on the main hero banner
+                    if provided.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             {/* WhatsApp Floating Button */}
             <div className="pt-6 border-t border-stone-100 flex items-center justify-between">
               <div>
@@ -963,7 +1134,8 @@ export default function StorefrontDashboardPage() {
                   WhatsApp Floating Chat Button (FAB)
                 </h4>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Display a quick chat button at the bottom right corner of your storefront.
+                  Display a quick chat button at the bottom right corner of your
+                  storefront.
                 </p>
               </div>
               <label className="flex items-center gap-2 text-xs font-medium cursor-pointer">
@@ -984,7 +1156,11 @@ export default function StorefrontDashboardPage() {
 
             {/* Save Button */}
             <div className="pt-4 border-t border-stone-100">
-              <Button type="submit" variant="primary" isLoading={updateSettings.isPending}>
+              <Button
+                type="submit"
+                variant="primary"
+                isLoading={updateSettings.isPending}
+              >
                 Save Appearance Settings
               </Button>
             </div>
@@ -1002,7 +1178,8 @@ export default function StorefrontDashboardPage() {
                   State & Regional Delivery Fees
                 </h3>
                 <p className="text-xs text-stone-500 mt-0.5">
-                  Configure delivery rates for Nigerian states. These populate your 2-step checkout automatically.
+                  Configure delivery rates for Nigerian states. These populate
+                  your 2-step checkout automatically.
                 </p>
               </div>
               <button
@@ -1090,7 +1267,8 @@ export default function StorefrontDashboardPage() {
               {deliveryRates.length === 0 ? (
                 <div className="p-8 text-center bg-stone-50 rounded-2xl border border-stone-200 space-y-2">
                   <p className="text-xs text-stone-500">
-                    No delivery rates configured yet. Shoppers will see "Calculated at confirmation".
+                    No delivery rates configured yet. Shoppers will see
+                    "Calculated at confirmation".
                   </p>
                   <button
                     type="button"
@@ -1108,7 +1286,9 @@ export default function StorefrontDashboardPage() {
                       className="p-3 sm:px-4 flex items-center justify-between text-xs"
                     >
                       <div>
-                        <span className="font-bold text-gray-950 mr-2">{rate.state}</span>
+                        <span className="font-bold text-gray-950 mr-2">
+                          {rate.state}
+                        </span>
                         <span className="text-amber-800 font-semibold">
                           {formatCurrency(rate.fee)}
                         </span>
@@ -1144,7 +1324,8 @@ export default function StorefrontDashboardPage() {
                 Notice Bar & Promo Discounts
               </h3>
               <p className="text-xs text-stone-500 mt-0.5">
-                Broadcast announcements across the top of your store and create coupon codes for holiday campaigns.
+                Broadcast announcements across the top of your store and create
+                coupon codes for holiday campaigns.
               </p>
             </div>
 
@@ -1175,7 +1356,7 @@ export default function StorefrontDashboardPage() {
                 </label>
               </div>
 
-              <div className="flex gap-3">
+              <div className="flex gap-3 flex-wrap">
                 <input
                   type="text"
                   placeholder="e.g. Free Lagos Delivery this weekend with code LAGOSFREE"
@@ -1197,7 +1378,7 @@ export default function StorefrontDashboardPage() {
                     })
                   }
                   disabled={updateSettings.isPending}
-                  className="py-2 px-4 rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-colors"
+                  className="py-2 px-4 w-full sm:w-auto rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-colors"
                 >
                   Save Notice
                 </button>
@@ -1222,7 +1403,9 @@ export default function StorefrontDashboardPage() {
                     type="text"
                     placeholder="e.g. SUMMER10"
                     value={newPromoCode}
-                    onChange={(e) => setNewPromoCode(e.target.value.toUpperCase())}
+                    onChange={(e) =>
+                      setNewPromoCode(e.target.value.toUpperCase())
+                    }
                     className="w-full px-3 py-2 border border-stone-300 rounded-xl text-xs uppercase font-mono bg-white"
                     required
                   />
@@ -1285,7 +1468,9 @@ export default function StorefrontDashboardPage() {
 
                 <button
                   type="submit"
-                  disabled={createDiscountMutation.isPending || !newPromoCode.trim()}
+                  disabled={
+                    createDiscountMutation.isPending || !newPromoCode.trim()
+                  }
                   className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl bg-stone-900 text-white text-xs font-bold hover:bg-stone-800 transition-colors disabled:opacity-50"
                 >
                   <Plus size={13} />
@@ -1301,7 +1486,9 @@ export default function StorefrontDashboardPage() {
               </h4>
 
               {discounts.length === 0 ? (
-                <p className="text-xs text-stone-400 italic">No promotional discounts created yet.</p>
+                <p className="text-xs text-stone-400 italic">
+                  No promotional discounts created yet.
+                </p>
               ) : (
                 <div className="divide-y divide-stone-100 border border-stone-200 rounded-2xl overflow-hidden bg-white">
                   {discounts.map((discount: any) => (
@@ -1322,7 +1509,8 @@ export default function StorefrontDashboardPage() {
                           </span>
                           {discount.minOrderAmount > 0 && (
                             <span className="text-stone-400 ml-2">
-                              (Min: ₦{discount.minOrderAmount.toLocaleString("en-NG")})
+                              (Min: ₦
+                              {discount.minOrderAmount.toLocaleString("en-NG")})
                             </span>
                           )}
                           {discount.showInAnnouncementBar && (
@@ -1339,7 +1527,11 @@ export default function StorefrontDashboardPage() {
                         </span>
                         <button
                           type="button"
-                          onClick={() => deleteDiscountMutation.mutate(discount._id || discount.code)}
+                          onClick={() =>
+                            deleteDiscountMutation.mutate(
+                              discount._id || discount.code,
+                            )
+                          }
                           className="text-stone-400 hover:text-rose-600 p-1"
                           aria-label="Delete coupon"
                         >

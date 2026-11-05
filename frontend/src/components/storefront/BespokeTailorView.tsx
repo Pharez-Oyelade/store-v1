@@ -53,7 +53,7 @@ export function BespokeTailorView({ vendor, handle }: BespokeTailorViewProps) {
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 space-y-6">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-100/80 text-amber-900 text-xs font-bold uppercase tracking-wider">
             <Scissors size={14} className="text-amber-700" />
-            <span>Bespoke Fashion House & Atelier</span>
+            <span>{vendor?.storefrontSettings?.bannerHeadline || "Bespoke Fashion House & Atelier"}</span>
           </div>
 
           <h1 className="text-4xl sm:text-5xl lg:text-6xl font-serif font-bold text-gray-950 tracking-tight leading-tight">
@@ -61,8 +61,7 @@ export function BespokeTailorView({ vendor, handle }: BespokeTailorViewProps) {
           </h1>
 
           <p className="text-base sm:text-lg text-stone-600 max-w-2xl mx-auto leading-relaxed">
-            {vendor?.bio ||
-              "Every stitch is intentional. We create custom, made-to-measure garments tailored to your personal aesthetic and precise measurements."}
+            {vendor?.storefrontSettings?.bannerText || vendor?.bio || "Every stitch is intentional. We create custom, made-to-measure garments tailored to your personal aesthetic and precise measurements."}
           </p>
 
           <div className="pt-4 flex flex-wrap items-center justify-center gap-4">
