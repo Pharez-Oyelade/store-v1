@@ -34,9 +34,10 @@ interface VendorData {
     whatsapp?: string;
   };
   subscriptionPlan?: string;
-  businessType?: "ready_to_wear" | "made_to_order" | "demand" | "hybrid";
+  businessType?: "unselected" | "ready_to_wear" | "made_to_order" | "demand" | "hybrid";
   category?: string;
   storefrontSettings?: {
+    isPublished?: boolean;
     themeColor?: string;
     accentColor?: string;
     bannerImage?: {
