@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { apiPost, apiGet } from "@/lib/api";
-import { useCartStore } from "@/store/cartStore";
+import { useVendorCart } from "@/store/cartStore";
 
 export default function StorefrontCheckout({
   params,
@@ -28,7 +28,7 @@ export default function StorefrontCheckout({
   const handle = unwrappedParams.handle;
   const router = useRouter();
 
-  const { items, getTotalPrice, removeItem, clearCart } = useCartStore();
+  const { items, getTotalPrice, removeItem, clearCart } = useVendorCart(handle);
 
   const [step, setStep] = useState<"details" | "payment">("details");
   const [loading, setLoading] = useState(false);

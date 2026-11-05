@@ -2,7 +2,7 @@
 
 import { useState, useMemo, useEffect } from "react";
 import toast from "react-hot-toast";
-import { useCartStore } from "@/store/cartStore";
+import { useVendorCart } from "@/store/cartStore";
 import { formatCurrency } from "@/lib/utils";
 import { ShoppingCart, Check } from "lucide-react";
 
@@ -83,7 +83,7 @@ export function ProductDetailsClient({
     product.variants?.[0];
   const selectedStock = getVariantStock(selectedVariant);
 
-  const addItem = useCartStore((state) => state.addItem);
+  const { addItem } = useVendorCart(handle);
 
   const handleAddToCart = () => {
     if (!selectedVariant) return;

@@ -79,12 +79,21 @@ const upload = multer({
  * Uploads a single buffer to Cloudinary.
  * Replicates the transformation config that was in CloudinaryStorage params.
  */
-export async function uploadToCloudinary(buffer) {
+export async function uploadToCloudinary(buffer, timeoutMs = 45000) {
   return new Promise((resolve, reject) => {
+    let isSettled = false;
+    const timer = setTimeout(() => {
+      if (!isSettled) {
+        isSettled = true;
+        reject(new Error("Image upload to Cloudinary timed out after 45 seconds"));
+      }
+    }, timeoutMs);
+
     const stream = cloudinary.uploader.upload_stream(
       {
         folder: "vendra/products",
         allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        timeout: timeoutMs,
         transformation: [
           {
             width: 1200,
@@ -95,6 +104,9 @@ export async function uploadToCloudinary(buffer) {
         ],
       },
       (error, result) => {
+        clearTimeout(timer);
+        if (isSettled) return;
+        isSettled = true;
         if (error) return reject(error);
         resolve(result);
       },

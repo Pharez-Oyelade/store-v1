@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { ShoppingBag, Sparkles, Scissors } from "lucide-react";
-import { useCartStore } from "@/store/cartStore";
+import { useVendorCart } from "@/store/cartStore";
 
 export function StorefrontNavbar({ vendor }: { vendor: any }) {
-  const totalItems = useCartStore((state) => state.getTotalItems());
-  const cartMounted = useCartStore((state) => state.items !== undefined);
+  const { totalItems } = useVendorCart(vendor?.handle);
 
   const logoUrl = vendor?.logo?.url || (typeof vendor?.logo === "string" ? vendor.logo : null);
   const businessType = vendor?.businessType || "hybrid"; // default to hybrid if not set
@@ -60,7 +59,7 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
                 aria-label="Shopping Cart"
               >
                 <ShoppingBag className="h-5 w-5 sm:h-6 sm:w-6" />
-                {cartMounted && totalItems > 0 && (
+                {totalItems > 0 && (
                   <span
                     className="absolute top-1 right-1 inline-flex items-center justify-center px-1.5 py-0.5 text-[10px] font-bold leading-none text-white transform translate-x-1/4 -translate-y-1/4 rounded-full shadow-xs"
                     style={{

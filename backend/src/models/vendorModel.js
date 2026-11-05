@@ -122,8 +122,8 @@ const vendorSchema = new mongoose.Schema(
     /* ── Business & Storefront Type ────────────────────── */
     businessType: {
       type: String,
-      enum: ["ready_to_wear", "made_to_order", "demand", "hybrid"],
-      default: "ready_to_wear",
+      enum: ["unselected", "ready_to_wear", "made_to_order", "demand", "hybrid"],
+      default: "unselected",
     },
 
     category: {
@@ -133,6 +133,7 @@ const vendorSchema = new mongoose.Schema(
 
     /* ── Storefront Settings ────────────────────────────── */
     storefrontSettings: {
+      isPublished: { type: Boolean, default: false },
       themeColor: { type: String, default: "#E2A03F" },
       accentColor: { type: String, default: "#E11D48" },
       bannerImage: {

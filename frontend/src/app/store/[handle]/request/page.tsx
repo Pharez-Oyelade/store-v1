@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, use } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, use } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import {
   Scissors,
@@ -12,10 +12,12 @@ import {
   Sparkles,
   CheckCircle2,
   Ruler,
+  Loader2,
 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/custom/Button";
 import { apiPost } from "@/lib/api";
+import { compressImages } from "@/lib/imageCompression";
 import toast from "react-hot-toast";
 
 export default function StorefrontBespokeRequestPage({
@@ -26,6 +28,10 @@ export default function StorefrontBespokeRequestPage({
   const unwrapped = use(params);
   const handle = unwrapped.handle;
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  const preStyleTitle = searchParams.get("styleTitle") || "";
+  const preStyleImage = searchParams.get("styleImage") || "";
 
   const [loading, setLoading] = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -34,9 +40,11 @@ export default function StorefrontBespokeRequestPage({
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
-  const [title, setTitle] = useState("");
+  const [title, setTitle] = useState(preStyleTitle);
   const [category, setCategory] = useState("clothing");
-  const [description, setDescription] = useState("");
+  const [description, setDescription] = useState(
+    preStyleTitle ? `Custom bespoke order for style: ${preStyleTitle}` : ""
+  );
   const [notes, setNotes] = useState("");
 
   // Optional measurements
@@ -53,22 +61,42 @@ export default function StorefrontBespokeRequestPage({
   // Reference images
   const [files, setFiles] = useState<File[]>([]);
   const [previews, setPreviews] = useState<string[]>([]);
+  const [compressing, setCompressing] = useState(false);
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const selected = Array.from(e.target.files);
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const selected: File[] = Array.from(e.target.files);
     if (files.length + selected.length > 5) {
       toast.error("Maximum 5 reference photos allowed");
       return;
     }
-    setFiles((prev) => [...prev, ...selected]);
-    setPreviews((prev) => [
-      ...prev,
-      ...selected.map((f) => URL.createObjectURL(f)),
-    ]);
+
+    try {
+      setCompressing(true);
+      const optimized: File[] = await compressImages(selected);
+      setFiles((prev: File[]) => [...prev, ...optimized]);
+      setPreviews((prev: string[]) => [
+        ...prev,
+        ...optimized.map((f: File) => URL.createObjectURL(f)),
+      ]);
+    } catch (err) {
+      console.error("[StorefrontRequest] Image compression failed:", err);
+      setFiles((prev: File[]) => [...prev, ...selected]);
+      setPreviews((prev: string[]) => [
+        ...prev,
+        ...selected.map((f: File) => URL.createObjectURL(f)),
+      ]);
+    } finally {
+      setCompressing(false);
+      e.target.value = "";
+    }
   };
 
   const removeFile = (idx: number) => {
+    const url = previews[idx];
+    if (url && url.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
     setFiles((prev) => prev.filter((_, i) => i !== idx));
     setPreviews((prev) => prev.filter((_, i) => i !== idx));
   };
@@ -77,6 +105,11 @@ export default function StorefrontBespokeRequestPage({
     e.preventDefault();
     if (!customerName || !customerPhone || !title) {
       toast.error("Please fill in your name, phone number, and style request");
+      return;
+    }
+
+    if (compressing) {
+      toast.error("Please wait while photos finish optimizing...");
       return;
     }
 
@@ -98,7 +131,9 @@ export default function StorefrontBespokeRequestPage({
       });
       formData.append("measurements", JSON.stringify(filledMeasurements));
 
-      files.forEach((file) => {
+      // Ensure images are compressed
+      const finalFiles = await compressImages(files);
+      finalFiles.forEach((file) => {
         formData.append("images", file);
       });
 
@@ -179,6 +214,28 @@ export default function StorefrontBespokeRequestPage({
             </p>
           </div>
 
+          {preStyleTitle && (
+            <div className="p-4 rounded-2xl bg-amber-50/80 border border-amber-200/80 flex items-center gap-4">
+              {preStyleImage && (
+                <img
+                  src={preStyleImage}
+                  alt={preStyleTitle}
+                  className="size-16 rounded-xl object-cover border border-amber-200 shrink-0"
+                />
+              )}
+              <div className="space-y-0.5">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800">
+                  Pre-selected Style from Lookbook
+                </span>
+                <h4 className="font-serif font-bold text-sm text-gray-950">
+                  {preStyleTitle}
+                </h4>
+                <p className="text-[11px] text-stone-500">
+                  Fill in your measurements below to order this bespoke piece.
+                </p>
+              </div>
+            </div>
+          )}
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Contact Details */}
@@ -288,21 +345,30 @@ export default function StorefrontBespokeRequestPage({
                     </div>
                   ))}
 
-                  {files.length < 5 && (
-                    <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-700 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-brand-50/50 transition-colors">
-                      <UploadCloud size={18} className="text-gray-400" />
-                      <span className="text-[10px] font-medium text-gray-500 mt-1">
-                        Add Photo
-                      </span>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        multiple
-                        onChange={handleFileChange}
-                        className="hidden"
-                      />
-                    </label>
-                  )}
+                {/* Compressing Indicator */}
+                {compressing && (
+                  <div className="w-20 h-20 rounded-xl border border-dashed border-brand-300 bg-brand-50/70 flex flex-col items-center justify-center p-2 text-center animate-pulse">
+                    <Loader2 size={16} className="text-brand-600 animate-spin mb-1" />
+                    <span className="text-[9px] font-semibold text-brand-700">Optimizing...</span>
+                  </div>
+                )}
+
+                {/* Upload Button */}
+                {!compressing && files.length < 5 && (
+                  <label className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-700 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-brand-50/50 transition-colors">
+                    <UploadCloud size={18} className="text-gray-400" />
+                    <span className="text-[10px] font-medium text-gray-500 mt-1">
+                      Add Photo
+                    </span>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleFileChange}
+                      className="hidden"
+                    />
+                  </label>
+                )}
                 </div>
               </div>
             </div>
@@ -359,7 +425,7 @@ export default function StorefrontBespokeRequestPage({
                 type="submit"
                 variant="primary"
                 size="large"
-                isLoading={loading}
+                isLoading={loading || compressing}
                 className="w-full justify-center"
               >
                 <MessageCircle size={18} className="mr-2" />

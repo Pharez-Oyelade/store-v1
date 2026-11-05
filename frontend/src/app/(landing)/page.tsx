@@ -9,6 +9,7 @@ import Testimonials from "./components/Testimonials";
 import FAQ from "./components/FAQ";
 import Newsletter from "./components/Newsletter";
 import CTA from "./components/CTA";
+import ScrollToTop from "@/components/layout/ScrollToTop";
 
 const page = () => {
   return (
@@ -23,6 +24,7 @@ const page = () => {
       <FAQ />
       {/* <Newsletter /> */}
       <CTA />
+      {/* <ScrollToTop /> */}
     </div>
   );
 };
