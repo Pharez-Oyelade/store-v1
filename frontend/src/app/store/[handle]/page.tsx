@@ -1,11 +1,7 @@
 import React from "react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import {
-  Sparkles,
-  ArrowRight,
-  Package,
-} from "lucide-react";
+import { Sparkles, ArrowRight, Package } from "lucide-react";
 import { getServerApiUrl } from "@/lib/api";
 import { formatCurrency } from "@/lib/utils";
 import { hasMinPlan } from "@/lib/subscriptionGating";
@@ -34,7 +30,12 @@ interface VendorData {
     whatsapp?: string;
   };
   subscriptionPlan?: string;
-  businessType?: "unselected" | "ready_to_wear" | "made_to_order" | "demand" | "hybrid";
+  businessType?:
+    | "unselected"
+    | "ready_to_wear"
+    | "made_to_order"
+    | "demand"
+    | "hybrid";
   category?: string;
   storefrontSettings?: {
     isPublished?: boolean;
@@ -90,9 +91,12 @@ async function getVendorInfo(handle: string): Promise<VendorData | null> {
 async function getVendorProducts(handle: string): Promise<ProductItem[]> {
   try {
     const apiUrl = getServerApiUrl();
-    const res = await fetch(`${apiUrl}/storefront/${handle}/products?limit=50`, {
-      next: { revalidate: 30 },
-    });
+    const res = await fetch(
+      `${apiUrl}/storefront/${handle}/products?limit=50`,
+      {
+        next: { revalidate: 30 },
+      },
+    );
     if (!res.ok) return [];
     const data = await res.json();
     return data.data?.products || [];
@@ -154,11 +158,13 @@ export default async function StorefrontPage({
     }
   });
 
-  const categoriesList = Array.from(categoriesMap.entries()).map(([name, data]) => ({
-    name,
-    count: data.count,
-    imageUrl: data.imageUrl,
-  }));
+  const categoriesList = Array.from(categoriesMap.entries()).map(
+    ([name, data]) => ({
+      name,
+      count: data.count,
+      imageUrl: data.imageUrl,
+    }),
+  );
 
   // Determine products to showcase on landing page:
   // Stitch plan: shows all products.
@@ -180,7 +186,8 @@ export default async function StorefrontPage({
             <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/40 to-black/20" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-6 text-white space-y-4 max-w-3xl mx-auto">
               <span className="text-xs font-semibold tracking-widest uppercase text-amber-300">
-                {vendor.storefrontSettings?.bannerHeadline || "Atelier Collection"}
+                {vendor.storefrontSettings?.bannerHeadline ||
+                  "Atelier Collection"}
               </span>
               <h1 className="text-3xl sm:text-5xl lg:text-6xl font-serif font-bold tracking-tight">
                 {vendor.businessName}
@@ -196,16 +203,16 @@ export default async function StorefrontPage({
                     href={`/store/${handle}/products`}
                     className="inline-flex items-center gap-2 py-3 px-7 rounded-xl bg-white hover:bg-stone-100 text-gray-950 font-bold text-xs sm:text-sm transition-all shadow-md active:scale-98"
                   >
-                    <span>Explore Full Catalog</span>
-                    <ArrowRight size={14} />
+                    <span className="text-gray-950">Explore Full Catalog</span>
+                    <ArrowRight size={14} className="text-gray-950" />
                   </Link>
                 ) : (
                   <a
                     href="#products-catalog"
                     className="inline-flex items-center gap-2 py-3 px-7 rounded-xl bg-white hover:bg-stone-100 text-gray-950 font-bold text-xs sm:text-sm transition-all shadow-md active:scale-98"
                   >
-                    <span>View Collection</span>
-                    <ArrowRight size={14} />
+                    <span className="text-gray-950">View Collection</span>
+                    <ArrowRight size={14} className="text-gray-950" />
                   </a>
                 )}
               </div>
@@ -216,7 +223,8 @@ export default async function StorefrontPage({
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-16 sm:py-24 text-center space-y-6">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-stone-200/70 text-stone-800 text-[11px] font-bold uppercase tracking-wider">
               <Sparkles size={13} className="text-amber-600" />
-              {vendor.storefrontSettings?.bannerHeadline || "Fashion House & Boutique"}
+              {vendor.storefrontSettings?.bannerHeadline ||
+                "Fashion House & Boutique"}
             </span>
 
             <h1 className="text-4xl sm:text-6xl font-serif font-bold text-gray-950 tracking-tight leading-tight">
@@ -235,16 +243,16 @@ export default async function StorefrontPage({
                   href={`/store/${handle}/products`}
                   className="inline-flex items-center gap-2 py-3.5 px-8 rounded-xl bg-gray-950 hover:bg-stone-800 text-white font-bold text-xs sm:text-sm transition-all shadow-md active:scale-98"
                 >
-                  <span>Explore Catalog</span>
-                  <ArrowRight size={15} />
+                  <span className="text-white">Explore Catalog</span>
+                  <ArrowRight size={15} className="text-white" />
                 </Link>
               ) : (
                 <a
                   href="#products-catalog"
                   className="inline-flex items-center gap-2 py-3.5 px-8 rounded-xl bg-gray-950 hover:bg-stone-800 text-white font-bold text-xs sm:text-sm transition-all shadow-md active:scale-98"
                 >
-                  <span>View Collection</span>
-                  <ArrowRight size={15} />
+                  <span className="text-white">View Collection</span>
+                  <ArrowRight size={15} className="text-white" />
                 </a>
               )}
 
