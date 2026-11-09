@@ -9,6 +9,8 @@ import {
   updatePayoutSettings,
   updateStorefrontSettings,
   updateStorefrontBanner,
+  verifyCustomDomain,
+  removeCustomDomain,
   getDiscounts,
   createDiscount,
   deleteDiscount,
@@ -43,6 +45,16 @@ vendorRouter.put(
   requireRole("owner", "manager"),
   uploadSingle,
   updateStorefrontBanner,
+);
+vendorRouter.post(
+  "/custom-domain/verify",
+  requireRole("owner", "manager"),
+  verifyCustomDomain,
+);
+vendorRouter.delete(
+  "/custom-domain",
+  requireRole("owner", "manager"),
+  removeCustomDomain,
 );
 
 /* ── Promotional Discounts & Campaigns ──────────────────────────── */

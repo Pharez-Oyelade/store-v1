@@ -255,6 +255,9 @@ export interface Vendor {
     bannerHeadline?: string;
     bannerText?: string;
     customDomain?: string;
+    customDomainStatus?: "none" | "pending" | "active" | "error";
+    customDomainVerifiedAt?: string;
+    customDomainError?: string;
     customCss?: string;
     announcementText?: string;
     announcementActive?: boolean;

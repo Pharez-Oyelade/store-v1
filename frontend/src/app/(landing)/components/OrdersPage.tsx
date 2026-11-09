@@ -8,6 +8,7 @@ import {
   Trash2,
   Scissors,
   ShoppingBag,
+  MapPin,
 } from "lucide-react";
 import {
   EmptyState,
@@ -381,6 +382,22 @@ function OrderCard({
           <p className="text-xs text-gray-500 mt-0.5">
             {order.customerSnapshot.phone} • {formatDate(order.createdAt)}
           </p>
+          {(order.deliveryAddress?.city ||
+            order.deliveryAddress?.state ||
+            order.deliveryAddress?.street) && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-md px-2 py-1">
+              <MapPin className="size-3 text-brand-600 shrink-0" />
+              <span className="truncate">
+                {[
+                  order.deliveryAddress.street,
+                  order.deliveryAddress.city,
+                  order.deliveryAddress.state,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </span>
+            </div>
+          )}
         </div>
         {order.isPendingSync || (order._id && order._id.startsWith("temp_")) ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
@@ -556,6 +573,27 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
           )}
         </div>
         <p className="text-xs text-gray-500">{order.customerSnapshot.phone}</p>
+        {(order.deliveryAddress?.city ||
+          order.deliveryAddress?.state ||
+          order.deliveryAddress?.street) && (
+          <p
+            className="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5 font-normal truncate max-w-[220px]"
+            title={[
+              order.deliveryAddress.street,
+              order.deliveryAddress.city,
+              order.deliveryAddress.state,
+            ]
+              .filter(Boolean)
+              .join(", ")}
+          >
+            <MapPin className="size-3 text-brand-600 shrink-0" />
+            <span className="truncate">
+              {[order.deliveryAddress.city, order.deliveryAddress.state]
+                .filter(Boolean)
+                .join(", ") || order.deliveryAddress.street}
+            </span>
+          </p>
+        )}
       </td>
       <td className="px-4 py-3 text-gray-600">
         {order.isBespoke ? (

@@ -1,17 +1,37 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ShoppingBag, Sparkles, Scissors } from "lucide-react";
+import { ShoppingBag, Sparkles } from "lucide-react";
 import { useVendorCart } from "@/store/cartStore";
 
 export function StorefrontNavbar({ vendor }: { vendor: any }) {
   const { totalItems } = useVendorCart(vendor?.handle);
+
+  const [isSubdomainOrCustom, setIsSubdomainOrCustom] = useState(false);
+
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const host = window.location.host.split(":")[0].toLowerCase();
+      const isSubOrCustom =
+        host.endsWith(".localhost") ||
+        host.endsWith(".vendra.ng") ||
+        host.endsWith(".tryvendra.ng") ||
+        (!["localhost", "tryvendra.ng", "vendra.ng", "127.0.0.1"].includes(host) &&
+          !host.includes("vercel.app"));
+      setIsSubdomainOrCustom(isSubOrCustom);
+    }
+  }, []);
 
   const logoUrl = vendor?.logo?.url || (typeof vendor?.logo === "string" ? vendor.logo : null);
   const businessType = vendor?.businessType || "hybrid"; // default to hybrid if not set
 
   const showCart = businessType === "ready_to_wear" || businessType === "hybrid";
   const showCustomRequest = businessType === "demand" || businessType === "hybrid";
+
+  const homeHref = isSubdomainOrCustom ? "/" : `/store/${vendor?.handle}`;
+  const requestHref = isSubdomainOrCustom ? "/request" : `/store/${vendor?.handle}/request`;
+  const checkoutHref = isSubdomainOrCustom ? "/checkout" : `/store/${vendor?.handle}/checkout`;
 
   return (
     <nav className="bg-white/95 backdrop-blur-md border-b border-stone-200/80 sticky top-0 z-40 transition-colors">
@@ -20,7 +40,7 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
           {/* Logo or Store Name */}
           <div className="flex items-center">
             <Link
-              href={`/store/${vendor.handle}`}
+              href={homeHref}
               className="flex items-center gap-3 group"
             >
               {logoUrl ? (
@@ -42,7 +62,7 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
             {/* Custom Request Icon / CTA for Bespoke & Hybrid */}
             {showCustomRequest && (
               <Link
-                href={`/store/${vendor.handle}/request`}
+                href={requestHref}
                 className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl border border-stone-300 text-stone-800 hover:border-brand-700 hover:text-brand-800 hover:bg-brand-50/50 transition-all duration-150 active:scale-98 shadow-2xs"
                 title="Request Bespoke Garment Design"
               >
@@ -54,7 +74,7 @@ export function StorefrontNavbar({ vendor }: { vendor: any }) {
             {/* Shopping Cart Icon for RTW & Hybrid */}
             {showCart && (
               <Link
-                href={`/store/${vendor.handle}/checkout`}
+                href={checkoutHref}
                 className="relative p-2.5 rounded-xl text-stone-700 hover:text-stone-950 hover:bg-stone-100 transition-colors"
                 aria-label="Shopping Cart"
               >

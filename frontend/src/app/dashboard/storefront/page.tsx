@@ -28,6 +28,9 @@ import {
   AlertCircle,
   HelpCircle,
   Lock,
+  Link2,
+  Unlink,
+  RefreshCw,
 } from "lucide-react";
 import Button from "@/components/custom/Button";
 import { PageHeader } from "@/components/dashboard/DashboardPrimitives";
@@ -38,11 +41,13 @@ import {
   useVendorDiscounts,
   useCreateDiscount,
   useDeleteDiscount,
+  useVerifyCustomDomain,
+  useRemoveCustomDomain,
 } from "@/hooks/useVendorProfile";
 import { useProducts } from "@/hooks/useProducts";
 import { useAuthStore } from "@/store/authStore";
 import { formatCurrency } from "@/lib/utils";
-import { hasMinPlan } from "@/lib/subscriptionGating";
+import { hasMinPlan, getPlanDisplayName } from "@/lib/subscriptionGating";
 import toast from "react-hot-toast";
 
 // 6 Curated Fashion Editorial Palettes
@@ -162,9 +167,13 @@ export default function StorefrontDashboardPage() {
   const createDiscountMutation = useCreateDiscount();
   const deleteDiscountMutation = useDeleteDiscount();
 
+  const verifyDomainMutation = useVerifyCustomDomain();
+  const removeDomainMutation = useRemoveCustomDomain();
+
   const [activeTab, setActiveTab] = useState<
-    "overview" | "appearance" | "delivery" | "campaigns"
+    "overview" | "appearance" | "domains" | "delivery" | "campaigns"
   >("overview");
+  const [domainInput, setDomainInput] = useState("");
   const [copied, setCopied] = useState(false);
 
   // Appearance Form State
@@ -215,6 +224,7 @@ export default function StorefrontDashboardPage() {
         category: vendorProfile.category || "fashion",
       });
       setDeliveryRates(vendorProfile.storefrontSettings?.deliveryRates || []);
+      setDomainInput(vendorProfile.storefrontSettings?.customDomain || "");
     }
   }, [vendorProfile]);
 
@@ -223,6 +233,49 @@ export default function StorefrontDashboardPage() {
     vendorProfile?.businessName || authVendor?.businessName || "Your Boutique";
   const plan = vendorProfile?.subscriptionPlan || "free";
   const isDrapePlus = hasMinPlan(plan, "drape");
+  const isAtelierPlus = hasMinPlan(plan, "atelier");
+
+  const publicStoreUrl =
+    typeof window !== "undefined"
+      ? `${window.location.origin}/store/${handle}`
+      : `https://tryvendra.ng/store/${handle}`;
+
+  const previewStoreUrl = `${publicStoreUrl}?preview=true`;
+
+  const isLocalhost =
+    typeof window !== "undefined" && window.location.hostname.includes("localhost");
+
+  const subdomainUrl = isLocalhost
+    ? `http://${handle}.localhost:3000`
+    : `https://${handle}.vendra.ng`;
+
+  const customDomain = vendorProfile?.storefrontSettings?.customDomain || "";
+  const customDomainStatus =
+    vendorProfile?.storefrontSettings?.customDomainStatus || "none";
+  const customDomainVerifiedAt =
+    vendorProfile?.storefrontSettings?.customDomainVerifiedAt;
+  const customDomainError =
+    vendorProfile?.storefrontSettings?.customDomainError;
+
+  const customDomainUrl = customDomain ? `https://${customDomain}` : "";
+
+  const primaryBrandUrl =
+    customDomain && customDomainStatus === "active"
+      ? customDomainUrl
+      : isDrapePlus
+        ? subdomainUrl
+        : publicStoreUrl;
+
+  const handleSaveCustomDomain = (e?: React.FormEvent) => {
+    if (e) e.preventDefault();
+    if (!domainInput.trim()) {
+      updateSettings.mutate({ customDomain: "" });
+      return;
+    }
+    updateSettings.mutate({
+      customDomain: domainInput.trim(),
+    });
+  };
 
   const bio = vendorProfile?.bio;
   const logoUrl = vendorProfile?.logo?.url;
@@ -239,13 +292,6 @@ export default function StorefrontDashboardPage() {
   const hasDeliveryRates = deliveryRates.length > 0;
 
   const isEligibleToPublish = isTypeSelected && hasMinCatalog && hasContact;
-
-  const publicStoreUrl =
-    typeof window !== "undefined"
-      ? `${window.location.origin}/store/${handle}`
-      : `https://tryvendra.ng/store/${handle}`;
-
-  const previewStoreUrl = `${publicStoreUrl}?preview=true`;
 
   const handleCopyLink = () => {
     if (!handle) return;
@@ -488,8 +534,17 @@ export default function StorefrontDashboardPage() {
             <div className="flex items-center gap-2 font-mono text-xs text-amber-200 bg-black/40 px-3 py-2 rounded-xl border border-white/10">
               <Globe size={13} className="text-amber-400 shrink-0" />
               <span className="truncate max-w-[200px] sm:max-w-xs">
-                {publicStoreUrl}
+                {primaryBrandUrl}
               </span>
+              {customDomain && customDomainStatus === "active" ? (
+                <span className="text-[9px] font-sans font-bold uppercase bg-emerald-500/20 text-emerald-300 px-1.5 py-0.5 rounded border border-emerald-500/30">
+                  Custom Domain
+                </span>
+              ) : isDrapePlus ? (
+                <span className="text-[9px] font-sans font-bold uppercase bg-amber-400/20 text-amber-300 px-1.5 py-0.5 rounded border border-amber-400/30">
+                  Subdomain
+                </span>
+              ) : null}
             </div>
           </div>
         </div>
@@ -661,6 +716,22 @@ export default function StorefrontDashboardPage() {
           }`}
         >
           Branding & Palettes
+        </button>
+        <button
+          type="button"
+          onClick={() => setActiveTab("domains")}
+          className={`pb-3 transition-colors flex items-center gap-1.5 ${
+            activeTab === "domains"
+              ? "border-b-2 border-stone-950 text-stone-950 font-bold"
+              : "text-stone-500 hover:text-stone-800"
+          }`}
+        >
+          <span>Store Links & Domains</span>
+          {customDomain && customDomainStatus === "active" ? (
+            <span className="size-2 rounded-full bg-emerald-500" />
+          ) : isDrapePlus ? (
+            <span className="size-2 rounded-full bg-amber-500" />
+          ) : null}
         </button>
         <button
           type="button"
@@ -1166,6 +1237,364 @@ export default function StorefrontDashboardPage() {
             </div>
           </div>
         </form>
+      )}
+
+      {/* ── TAB: STORE LINKS & DOMAINS ───────────────────────── */}
+      {activeTab === "domains" && (
+        <div className="space-y-8">
+          {/* Header & Intro */}
+          <div className="bg-white rounded-3xl border border-stone-200/90 p-6 sm:p-8 shadow-xs space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <h3 className="text-lg font-serif font-bold text-gray-950 flex items-center gap-2">
+                  <Globe size={20} className="text-amber-700" />
+                  Store Links & Domain Architecture
+                </h3>
+                <p className="text-xs text-stone-500 mt-1">
+                  Connect and manage your public storefront addresses. Vendra automatically routes shoppers to your boutique across all active links.
+                </p>
+              </div>
+
+              <div className="flex items-center gap-2 bg-stone-50 px-3.5 py-1.5 rounded-xl border border-stone-200 shrink-0">
+                <span className="text-[11px] font-bold text-stone-500 uppercase tracking-wider">
+                  Active Tier:
+                </span>
+                <span className="text-xs font-bold text-amber-900 bg-amber-100 px-2.5 py-0.5 rounded-full capitalize">
+                  {getPlanDisplayName(plan)}
+                </span>
+              </div>
+            </div>
+          </div>
+
+          {/* 3 Link Cards */}
+          <div className="space-y-6">
+            {/* ── LEVEL 1: Standard Vendra Storefront Link ───────── */}
+            <div className="bg-white rounded-3xl border border-stone-200/90 p-6 sm:p-8 shadow-xs space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-3">
+                  <div className="size-10 rounded-xl bg-stone-100 text-stone-800 flex items-center justify-center font-bold">
+                    <Store size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-950 flex items-center gap-2">
+                      Standard Store Link
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded-full border border-emerald-200/60">
+                        Universal (All Tiers)
+                      </span>
+                    </h4>
+                    <p className="text-xs text-stone-500">
+                      Your default web address accessible to shoppers worldwide.
+                    </p>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 shrink-0">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      navigator.clipboard.writeText(publicStoreUrl);
+                      toast.success("Standard store link copied!");
+                    }}
+                    className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-xs font-semibold text-stone-800 transition-colors"
+                  >
+                    <Copy size={13} />
+                    <span>Copy</span>
+                  </button>
+                  <a
+                    href={publicStoreUrl}
+                    target="_blank"
+                    rel="noreferrer"
+                    className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-stone-900 hover:bg-stone-800 text-xs font-semibold text-white transition-colors"
+                  >
+                    <ExternalLink size={13} />
+                    <span>Visit</span>
+                  </a>
+                </div>
+              </div>
+
+              <div className="flex items-center gap-2 font-mono text-xs text-stone-800 bg-stone-50 px-3.5 py-2.5 rounded-xl border border-stone-200 break-all">
+                <Link2 size={14} className="text-stone-400 shrink-0" />
+                <span>{publicStoreUrl}</span>
+              </div>
+            </div>
+
+            {/* ── LEVEL 2: Branded Subdomain Link (The Drape+) ──── */}
+            <div className={`rounded-3xl border p-6 sm:p-8 shadow-xs space-y-4 transition-all ${
+              isDrapePlus
+                ? "bg-white border-stone-200/90"
+                : "bg-stone-50/70 border-stone-200 opacity-90"
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-3">
+                  <div className={`size-10 rounded-xl flex items-center justify-center font-bold ${
+                    isDrapePlus ? "bg-amber-100 text-amber-900" : "bg-stone-200 text-stone-600"
+                  }`}>
+                    <Sparkles size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-950 flex items-center gap-2">
+                      Branded Subdomain
+                      {isDrapePlus ? (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-amber-900 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-200/80">
+                          Active & Ready
+                        </span>
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Lock size={10} />
+                          Unlocked on The Drape+
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-stone-500">
+                      A sleek, memorable address with zero path prefixes (e.g. <strong className="text-stone-700">{handle}.vendra.ng</strong>).
+                    </p>
+                  </div>
+                </div>
+
+                {isDrapePlus ? (
+                  <div className="flex items-center gap-2 shrink-0">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard.writeText(subdomainUrl);
+                        toast.success("Branded subdomain copied!");
+                      }}
+                      className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl border border-stone-300 hover:bg-stone-50 text-xs font-semibold text-stone-800 transition-colors"
+                    >
+                      <Copy size={13} />
+                      <span>Copy</span>
+                    </button>
+                    <a
+                      href={subdomainUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                      className="inline-flex items-center gap-1.5 py-2 px-3.5 rounded-xl bg-amber-800 hover:bg-amber-900 text-xs font-semibold text-white transition-colors"
+                    >
+                      <ExternalLink size={13} />
+                      <span>Visit</span>
+                    </a>
+                  </div>
+                ) : (
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl bg-amber-800 hover:bg-amber-900 text-white text-xs font-bold transition-colors shrink-0 shadow-xs"
+                  >
+                    <span>Upgrade to The Drape</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                )}
+              </div>
+
+              <div className="flex items-center gap-2 font-mono text-xs text-stone-800 bg-stone-50 px-3.5 py-2.5 rounded-xl border border-stone-200 break-all">
+                <Globe size={14} className="text-amber-700 shrink-0" />
+                <span className="font-bold text-gray-950">{subdomainUrl}</span>
+              </div>
+
+              {!isDrapePlus && (
+                <p className="text-[11px] text-stone-500">
+                  Upgrade your atelier plan to eliminate the <code className="bg-stone-200/70 px-1 py-0.5 rounded text-stone-800 font-mono">/store/</code> prefix and give your brand a standalone flagship presence on Vendra.
+                </p>
+              )}
+            </div>
+
+            {/* ── LEVEL 3: White-Label Custom Domain (Atelier / Maison) ─ */}
+            <div className={`rounded-3xl border p-6 sm:p-8 shadow-xs space-y-6 transition-all ${
+              isAtelierPlus
+                ? "bg-white border-stone-200/90"
+                : "bg-stone-50/70 border-stone-200 opacity-90"
+            }`}>
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
+                <div className="flex items-center gap-3">
+                  <div className={`size-10 rounded-xl flex items-center justify-center font-bold ${
+                    isAtelierPlus ? "bg-stone-950 text-white" : "bg-stone-200 text-stone-600"
+                  }`}>
+                    <Globe size={20} />
+                  </div>
+                  <div>
+                    <h4 className="font-bold text-sm text-gray-950 flex items-center gap-2">
+                      Custom Domain Connection
+                      {isAtelierPlus ? (
+                        customDomainStatus === "active" ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded-full border border-emerald-300">
+                            Active & SSL Verified
+                          </span>
+                        ) : customDomain ? (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-amber-800 bg-amber-100 px-2 py-0.5 rounded-full border border-amber-300">
+                            Pending DNS
+                          </span>
+                        ) : (
+                          <span className="text-[10px] font-bold uppercase tracking-wider text-stone-700 bg-stone-100 px-2 py-0.5 rounded-full">
+                            Available on Your Plan
+                          </span>
+                        )
+                      ) : (
+                        <span className="text-[10px] font-bold uppercase tracking-wider text-stone-600 bg-stone-200 px-2 py-0.5 rounded-full flex items-center gap-1">
+                          <Lock size={10} />
+                          The Atelier & The Maison
+                        </span>
+                      )}
+                    </h4>
+                    <p className="text-xs text-stone-500">
+                      Connect your own custom domain (e.g. <strong className="text-stone-700">shop.yourbrand.com</strong> or <strong className="text-stone-700">yourbrand.ng</strong>) with automated SSL.
+                    </p>
+                  </div>
+                </div>
+
+                {!isAtelierPlus && (
+                  <Link
+                    href="/pricing"
+                    className="inline-flex items-center gap-1.5 py-2 px-4 rounded-xl bg-gray-950 hover:bg-stone-800 text-white text-xs font-bold transition-colors shrink-0 shadow-xs"
+                  >
+                    <span>Upgrade to The Atelier</span>
+                    <ArrowRight size={13} />
+                  </Link>
+                )}
+              </div>
+
+              {isAtelierPlus ? (
+                <div className="space-y-6">
+                  {/* Connect / Update Domain Form */}
+                  <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-4">
+                    <h5 className="font-bold text-xs uppercase tracking-wider text-stone-700">
+                      {customDomain ? "Connected Custom Domain" : "Connect New Domain"}
+                    </h5>
+
+                    <div className="flex flex-col sm:flex-row gap-3">
+                      <div className="relative flex-1">
+                        <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-xs font-mono text-stone-400">
+                          https://
+                        </span>
+                        <input
+                          type="text"
+                          placeholder="shop.yourboutique.com or yourboutique.ng"
+                          value={domainInput}
+                          onChange={(e) => setDomainInput(e.target.value.toLowerCase().trim())}
+                          className="w-full pl-20 pr-4 py-2.5 border border-stone-300 rounded-xl text-xs font-mono bg-white focus:outline-none focus:border-stone-900 transition-colors"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <Button
+                          type="button"
+                          variant="primary"
+                          onClick={handleSaveCustomDomain}
+                          isLoading={updateSettings.isPending}
+                        >
+                          {customDomain ? "Update Domain" : "Connect Domain"}
+                        </Button>
+
+                        {customDomain && (
+                          <button
+                            type="button"
+                            onClick={() => removeDomainMutation.mutate()}
+                            disabled={removeDomainMutation.isPending}
+                            className="p-2.5 text-stone-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl border border-stone-200 transition-colors"
+                            title="Disconnect Domain"
+                          >
+                            <Unlink size={16} />
+                          </button>
+                        )}
+                      </div>
+                    </div>
+
+                    {customDomainError && (
+                      <p className="text-[11px] text-rose-600 flex items-center gap-1.5 font-medium">
+                        <AlertCircle size={13} className="shrink-0" />
+                        <span>{customDomainError}</span>
+                      </p>
+                    )}
+                  </div>
+
+                  {/* DNS Instructions & Verification */}
+                  {customDomain && (
+                    <div className="bg-amber-50/60 rounded-2xl border border-amber-200/80 p-5 space-y-4">
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                        <div className="space-y-0.5">
+                          <h5 className="font-serif font-bold text-sm text-gray-950 flex items-center gap-2">
+                            <ShieldCheck size={16} className="text-amber-700" />
+                            Required DNS Configuration
+                          </h5>
+                          <p className="text-xs text-stone-600">
+                            Log in to your domain registrar (GoDaddy, Namecheap, Cloudflare, WhoGoHost) and add this record:
+                          </p>
+                        </div>
+
+                        <Button
+                          type="button"
+                          variant="secondary"
+                          onClick={() => verifyDomainMutation.mutate()}
+                          isLoading={verifyDomainMutation.isPending}
+                        >
+                          <RefreshCw size={13} className="mr-1.5" />
+                          Verify DNS Now
+                        </Button>
+                      </div>
+
+                      <div className="overflow-x-auto bg-white rounded-xl border border-stone-200">
+                        <table className="w-full text-left text-xs">
+                          <thead className="bg-stone-50 text-stone-500 font-bold uppercase text-[10px] tracking-wider border-b border-stone-200">
+                            <tr>
+                              <th className="py-2.5 px-4">Type</th>
+                              <th className="py-2.5 px-4">Host / Name</th>
+                              <th className="py-2.5 px-4">Value / Points To</th>
+                              <th className="py-2.5 px-4">TTL</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-stone-100 font-mono text-stone-800">
+                            <tr>
+                              <td className="py-2.5 px-4 font-bold text-amber-900">CNAME</td>
+                              <td className="py-2.5 px-4 font-bold">
+                                {customDomain.split(".").length > 2
+                                  ? customDomain.split(".")[0]
+                                  : "www"}
+                              </td>
+                              <td className="py-2.5 px-4 font-bold text-amber-900">
+                                cname.tryvendra.ng
+                              </td>
+                              <td className="py-2.5 px-4 text-stone-500 font-sans">Automatic / 3600</td>
+                            </tr>
+                          </tbody>
+                        </table>
+                      </div>
+
+                      {customDomainStatus === "active" && (
+                        <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200/80 text-xs text-emerald-800 font-medium flex items-center justify-between">
+                          <span className="flex items-center gap-1.5">
+                            <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
+                            DNS is fully propagated and verified with automated SSL.
+                          </span>
+                          <a
+                            href={`https://${customDomain}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="font-bold underline ml-2"
+                          >
+                            Open {customDomain} &rarr;
+                          </a>
+                        </div>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div className="space-y-3 text-xs text-stone-500">
+                  <p>
+                    Connect your own apex or subdomain (like <strong className="text-stone-700">shop.aminacouture.com</strong> or <strong className="text-stone-700">aminacouture.ng</strong>) with automated SSL certificates, zero Vendra branding, and high-performance CDN routing.
+                  </p>
+                  <div className="pt-1">
+                    <Link
+                      href="/pricing"
+                      className="text-amber-800 font-bold hover:underline inline-flex items-center gap-1"
+                    >
+                      <span>Explore The Atelier Plan Features</span>
+                      <ArrowRight size={12} />
+                    </Link>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
       )}
 
       {/* ── TAB 3: DELIVERY RATES ───────────────────────────── */}

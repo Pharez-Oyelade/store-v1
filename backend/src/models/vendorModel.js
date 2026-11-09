@@ -142,7 +142,25 @@ const vendorSchema = new mongoose.Schema(
       },
       bannerHeadline: { type: String, default: "" },
       bannerText: { type: String, default: "" },
-      customDomain: { type: String, default: "" },
+      customDomain: {
+        type: String,
+        default: "",
+        lowercase: true,
+        trim: true,
+      },
+      customDomainStatus: {
+        type: String,
+        enum: ["none", "pending", "active", "error"],
+        default: "none",
+      },
+      customDomainVerifiedAt: {
+        type: Date,
+        default: null,
+      },
+      customDomainError: {
+        type: String,
+        default: "",
+      },
       customCss: { type: String, default: "" },
       announcementText: { type: String, default: "" },
       announcementActive: { type: Boolean, default: true },
