@@ -105,3 +105,29 @@ export function useDeleteDiscount() {
     onError: (error: Error) => toast.error(error.message || "Failed to delete discount"),
   });
 }
+
+export function useVerifyCustomDomain() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => apiPost<any>("/vendor/custom-domain/verify", {}),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VENDOR_KEYS.profile });
+      toast.success("Domain verified and active!");
+    },
+    onError: (error: Error) => toast.error(error.message || "DNS verification failed"),
+  });
+}
+
+export function useRemoveCustomDomain() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: () => apiDelete<any>("/vendor/custom-domain"),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: VENDOR_KEYS.profile });
+      toast.success("Custom domain removed");
+    },
+    onError: (error: Error) => toast.error(error.message || "Failed to remove domain"),
+  });
+}

@@ -1,7 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
-import { X, ShoppingBag, Check, ArrowRight } from "lucide-react";
+import React, { useState, useEffect, useMemo } from "react";
+import { X, ShoppingBag, Check, ArrowRight, Minus, Plus } from "lucide-react";
 import { formatCurrency } from "@/lib/utils";
 import { useVendorCart } from "@/store/cartStore";
 import toast from "react-hot-toast";
@@ -25,11 +25,14 @@ export function QuickViewModal({
 
   const [selectedVariantId, setSelectedVariantId] = useState<string>("");
   const [activeImageIndex, setActiveImageIndex] = useState(0);
+  const [quantity, setQuantity] = useState(1);
 
   useEffect(() => {
     if (product?.variants && product.variants.length > 0) {
-      setSelectedVariantId(product.variants[0]._id);
+      const inStock = product.variants.find((v: any) => (v.quantity ?? 0) > 0);
+      setSelectedVariantId(inStock ? inStock._id : product.variants[0]._id);
       setActiveImageIndex(0);
+      setQuantity(1);
     }
   }, [product]);
 
@@ -40,6 +43,18 @@ export function QuickViewModal({
     product.variants?.[0];
   const stock = selectedVariant?.quantity ?? 0;
   const price = selectedVariant?.price || product.basePrice || 0;
+
+  const handleIncrement = () => {
+    if (quantity < stock) {
+      setQuantity((q) => q + 1);
+    } else {
+      toast.error(`Only ${stock} items available.`);
+    }
+  };
+
+  const handleDecrement = () => {
+    setQuantity((q) => Math.max(1, q - 1));
+  };
 
   const handleAdd = () => {
     if (!selectedVariant) return;
@@ -53,16 +68,21 @@ export function QuickViewModal({
       variantId: selectedVariant._id,
       name: product.name,
       price: selectedVariant.price,
-      quantity: 1,
-      image: product.images?.[0]?.url,
+      quantity,
+      image: product.images?.[activeImageIndex]?.url || product.images?.[0]?.url,
       variantLabel: selectedVariant.label,
     });
 
-    toast.success("Added to cart!");
+    toast.success(
+      quantity > 1 ? `Added ${quantity} items to your bag!` : "Added to cart!"
+    );
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in duration-200"
+      onClick={onClose}
+    >
       <div
         className="relative bg-white rounded-3xl max-w-2xl w-full overflow-hidden shadow-2xl border border-stone-200 flex flex-col md:flex-row max-h-[90vh]"
         onClick={(e) => e.stopPropagation()}
@@ -116,7 +136,13 @@ export function QuickViewModal({
         <div className="w-full md:w-1/2 p-6 flex flex-col justify-between overflow-y-auto space-y-4">
           <div className="space-y-2">
             {product.category && (
-              <span className="text-[10px] font-bold uppercase tracking-wider text-amber-700 bg-amber-50 px-2 py-0.5 rounded-md">
+              <span
+                className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md"
+                style={{
+                  backgroundColor: `${accentColor}14`,
+                  color: accentColor,
+                }}
+              >
                 {product.category}
               </span>
             )}
@@ -151,11 +177,12 @@ export function QuickViewModal({
                       disabled={vStock <= 0}
                       className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-between border transition-all ${
                         isSelected
-                          ? "bg-gray-950 text-white border-gray-950 shadow-2xs"
+                          ? "text-white shadow-2xs border-transparent"
                           : vStock <= 0
                           ? "bg-stone-50 text-stone-300 border-stone-200 line-through cursor-not-allowed"
                           : "bg-white text-stone-800 border-stone-200 hover:bg-stone-50"
                       }`}
+                      style={isSelected ? { backgroundColor: accentColor } : undefined}
                     >
                       <span className="truncate">{v.label}</span>
                       {isSelected && <Check size={12} className="ml-1 shrink-0" />}
@@ -166,8 +193,8 @@ export function QuickViewModal({
             </div>
           )}
 
-          {/* Stock Availability */}
-          <div className="text-xs">
+          {/* Quantity & Stock Availability */}
+          <div className="flex items-center justify-between pt-1 text-xs">
             {stock > 0 ? (
               <span className="text-emerald-700 font-medium flex items-center gap-1.5">
                 <span className="size-1.5 rounded-full bg-emerald-500 animate-pulse" />
@@ -175,6 +202,32 @@ export function QuickViewModal({
               </span>
             ) : (
               <span className="text-rose-600 font-medium">Out of stock</span>
+            )}
+
+            {stock > 0 && (
+              <div className="flex items-center border border-stone-300 rounded-lg bg-white overflow-hidden">
+                <button
+                  type="button"
+                  onClick={handleDecrement}
+                  disabled={quantity <= 1}
+                  className="px-2 py-1 text-stone-600 hover:bg-stone-50 disabled:opacity-40"
+                  aria-label="Decrease"
+                >
+                  <Minus size={12} />
+                </button>
+                <span className="px-2 text-xs font-bold text-gray-950">
+                  {quantity}
+                </span>
+                <button
+                  type="button"
+                  onClick={handleIncrement}
+                  disabled={quantity >= stock}
+                  className="px-2 py-1 text-stone-600 hover:bg-stone-50 disabled:opacity-40"
+                  aria-label="Increase"
+                >
+                  <Plus size={12} />
+                </button>
+              </div>
             )}
           </div>
 
@@ -184,10 +237,15 @@ export function QuickViewModal({
               type="button"
               onClick={handleAdd}
               disabled={stock <= 0}
-              className="w-full py-3 px-4 rounded-xl bg-gray-950 hover:bg-stone-800 text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
+              className="w-full py-3 px-4 rounded-xl text-white font-bold text-xs flex items-center justify-center gap-2 shadow-sm transition-all disabled:opacity-50"
+              style={{ backgroundColor: accentColor }}
             >
               <ShoppingBag size={15} />
-              <span>{stock <= 0 ? "Out of Stock" : "Add to Cart"}</span>
+              <span>
+                {stock <= 0
+                  ? "Out of Stock"
+                  : `Add to Cart • ${formatCurrency(price * quantity)}`}
+              </span>
             </button>
 
             <div className="flex items-center gap-2">
@@ -205,7 +263,7 @@ export function QuickViewModal({
                     onClose();
                     onOpenCheckout();
                   }}
-                  className="flex-1 py-2 px-3 rounded-xl bg-amber-500 hover:bg-amber-600 text-stone-950 text-xs font-bold flex items-center justify-center gap-1"
+                  className="flex-1 py-2 px-3 rounded-xl bg-stone-900 hover:bg-stone-800 text-white text-xs font-bold flex items-center justify-center gap-1"
                 >
                   <span>Checkout</span>
                   <ArrowRight size={13} />

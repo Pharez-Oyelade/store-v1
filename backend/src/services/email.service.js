@@ -322,5 +322,292 @@ export const sendStorePaymentNotificationEmail = async (vendorEmail, {
   return sendEmail({ to: vendorEmail, subject, html, text });
 };
 
+/**
+ * Notifies the store / merchant via email when a new order is placed on their storefront or dashboard.
+ */
+export const sendNewOrderNotificationEmail = async (vendorEmail, {
+  vendorName = "Merchant",
+  orderId,
+  orderNumber,
+  customerName = "Customer",
+  customerPhone = "",
+  customerEmail = "",
+  deliveryAddress = {},
+  deliveryFee = 0,
+  items = [],
+  subtotal = 0,
+  discountAmount = 0,
+  totalAmount = 0,
+  depositPaid = 0,
+  balanceOwed = 0,
+  paymentMethod = "whatsapp",
+  paymentReference = "",
+  status = "pending",
+  notes = "",
+  source = "Storefront",
+}) => {
+  const shortOrderId = orderNumber || String(orderId).slice(-6).toUpperCase();
+  const formattedTotal = `₦${Number(totalAmount || 0).toLocaleString("en-NG")}`;
+  const subject = `🛍️ New Order #${shortOrderId} received — ${formattedTotal} (${customerName})`;
+  const dashboardOrderUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard/orders/${orderId}`;
+
+  // Build items rows
+  const itemRowsHtml = (items || []).map((item) => `
+    <tr>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; color: #111827;">
+        <strong>${item.productName || item.name || "Product"}</strong>
+        ${item.variantLabel ? `<br><span style="font-size: 12px; color: #6b7280;">Option: ${item.variantLabel}</span>` : ""}
+      </td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; text-align: center; color: #374151;">
+        ${item.quantity}
+      </td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; text-align: right; color: #111827; font-weight: 500;">
+        ₦${Number(item.price || 0).toLocaleString("en-NG")}
+      </td>
+      <td style="padding: 10px 8px; border-bottom: 1px solid #f3f4f6; text-align: right; color: #111827; font-weight: 600;">
+        ₦${(Number(item.price || 0) * Number(item.quantity || 1)).toLocaleString("en-NG")}
+      </td>
+    </tr>
+  `).join("");
+
+  const hasDelivery = Boolean(deliveryAddress?.street || deliveryAddress?.city || deliveryAddress?.state);
+  const formattedAddress = hasDelivery
+    ? `${deliveryAddress.street || ""}${deliveryAddress.city ? `, ${deliveryAddress.city}` : ""}${deliveryAddress.state ? `, ${deliveryAddress.state}` : ""}`
+    : "No delivery address specified (In-store pickup / direct DM dispatch)";
+
+  const cleanPhone = customerPhone ? customerPhone.replace(/\D/g, "") : "";
+  const waLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("0") ? `234${cleanPhone.slice(1)}` : cleanPhone}` : "";
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: auto; padding: 28px; border: 1px solid #e5e7eb; border-radius: 14px; background-color: #ffffff; color: #111827;">
+      <div style="border-bottom: 2px solid #0D6B31; padding-bottom: 16px; margin-bottom: 24px;">
+        <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #0D6B31; background: #e8f5e9; padding: 4px 10px; border-radius: 4px; margin-bottom: 8px;">New Storefront Order</span>
+        <h2 style="color: #111827; margin: 0; font-size: 24px; font-weight: 700;">You've received a new order!</h2>
+        <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">Order <strong>#${shortOrderId}</strong> via ${source}</p>
+      </div>
+
+      <p style="font-size: 15px; line-height: 1.5; color: #374151;">
+        Hello <strong>${vendorName}</strong>,
+      </p>
+      <p style="font-size: 15px; line-height: 1.5; color: #374151;">
+        <strong>${customerName}</strong> just placed an order on your storefront. Here are the order and delivery details:
+      </p>
+
+      <!-- Customer & Delivery Box -->
+      <div style="background-color: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 18px; margin: 20px 0;">
+        <h3 style="margin: 0 0 12px 0; font-size: 13px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.05em;">
+          📍 Delivery & Customer Information
+        </h3>
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 5px 0; color: #6b7280; width: 35%;">Customer Name:</td>
+            <td style="padding: 5px 0; font-weight: 600; color: #111827;">${customerName}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: #6b7280;">Phone / WhatsApp:</td>
+            <td style="padding: 5px 0; font-weight: 600; color: #111827;">
+              ${customerPhone} ${waLink ? `(<a href="${waLink}" style="color: #0D6B31; text-decoration: underline;">Chat on WhatsApp</a>)` : ""}
+            </td>
+          </tr>
+          ${customerEmail ? `
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Email:</td>
+              <td style="padding: 5px 0; color: #111827;">${customerEmail}</td>
+            </tr>
+          ` : ""}
+          <tr>
+            <td style="padding: 5px 0; color: #6b7280; vertical-align: top;">Delivery Address:</td>
+            <td style="padding: 5px 0; font-weight: 600; color: #111827; line-height: 1.4;">
+              ${formattedAddress}
+            </td>
+          </tr>
+          ${deliveryFee > 0 ? `
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Delivery Fee:</td>
+              <td style="padding: 5px 0; font-weight: 600; color: #111827;">₦${Number(deliveryFee).toLocaleString("en-NG")}</td>
+            </tr>
+          ` : ""}
+          <tr>
+            <td style="padding: 5px 0; color: #6b7280;">Payment Method:</td>
+            <td style="padding: 5px 0; font-weight: 600; color: ${paymentMethod === 'paystack' ? '#0D6B31' : '#b45309'}; text-transform: uppercase;">
+              ${paymentMethod === 'paystack' ? 'Paystack Online (Paid)' : 'WhatsApp / Bank Transfer'}
+            </td>
+          </tr>
+          ${paymentReference ? `
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280;">Payment Ref:</td>
+              <td style="padding: 5px 0; font-family: monospace; font-size: 12px; color: #4b5563;">${paymentReference}</td>
+            </tr>
+          ` : ""}
+          ${notes ? `
+            <tr>
+              <td style="padding: 5px 0; color: #6b7280; vertical-align: top;">Order Notes:</td>
+              <td style="padding: 5px 0; color: #374151; font-style: italic;">"${notes}"</td>
+            </tr>
+          ` : ""}
+        </table>
+      </div>
+
+      <!-- Items Table -->
+      <h3 style="margin: 24px 0 10px 0; font-size: 13px; font-weight: 700; color: #111827; text-transform: uppercase; letter-spacing: 0.05em;">
+        👗 Ordered Pieces
+      </h3>
+      <table style="width: 100%; border-collapse: collapse; font-size: 14px; margin-bottom: 20px;">
+        <thead>
+          <tr style="background: #f9fafb; text-align: left; font-size: 12px; color: #6b7280; text-transform: uppercase;">
+            <th style="padding: 8px;">Item</th>
+            <th style="padding: 8px; text-align: center;">Qty</th>
+            <th style="padding: 8px; text-align: right;">Price</th>
+            <th style="padding: 8px; text-align: right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${itemRowsHtml}
+        </tbody>
+      </table>
+
+      <!-- Totals Table -->
+      <div style="background-color: #f9fafb; border-radius: 8px; padding: 14px 18px; margin-bottom: 24px;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          ${discountAmount > 0 ? `
+            <tr>
+              <td style="padding: 4px 0; color: #6b7280;">Subtotal:</td>
+              <td style="padding: 4px 0; text-align: right; color: #111827;">₦${Number(subtotal).toLocaleString("en-NG")}</td>
+            </tr>
+            <tr>
+              <td style="padding: 4px 0; color: #0D6B31;">Coupon Discount:</td>
+              <td style="padding: 4px 0; text-align: right; color: #0D6B31;">-₦${Number(discountAmount).toLocaleString("en-NG")}</td>
+            </tr>
+          ` : ""}
+          ${deliveryFee > 0 ? `
+            <tr>
+              <td style="padding: 4px 0; color: #6b7280;">Shipping / Delivery:</td>
+              <td style="padding: 4px 0; text-align: right; color: #111827;">₦${Number(deliveryFee).toLocaleString("en-NG")}</td>
+            </tr>
+          ` : ""}
+          <tr style="border-top: 1px solid #e5e7eb; font-size: 16px; font-weight: 700;">
+            <td style="padding: 10px 0 4px 0; color: #111827;">Total Amount:</td>
+            <td style="padding: 10px 0 4px 0; text-align: right; color: #0D6B31;">${formattedTotal}</td>
+          </tr>
+          <tr>
+            <td style="padding: 4px 0; color: #6b7280; font-size: 13px;">Amount Paid / Deposit:</td>
+            <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #111827; font-size: 13px;">₦${Number(depositPaid).toLocaleString("en-NG")}</td>
+          </tr>
+          ${balanceOwed > 0 ? `
+            <tr>
+              <td style="padding: 4px 0; color: #b91c1c; font-size: 13px; font-weight: 600;">Balance Outstanding:</td>
+              <td style="padding: 4px 0; text-align: right; font-weight: 700; color: #b91c1c; font-size: 13px;">₦${Number(balanceOwed).toLocaleString("en-NG")}</td>
+            </tr>
+          ` : `
+            <tr>
+              <td style="padding: 4px 0; color: #0D6B31; font-size: 13px;">Balance:</td>
+              <td style="padding: 4px 0; text-align: right; font-weight: 600; color: #0D6B31; font-size: 13px;">₦0 (Fully Paid)</td>
+            </tr>
+          `}
+        </table>
+      </div>
+
+      <!-- Action Button -->
+      <div style="text-align: center; margin: 30px 0 20px 0;">
+        <a href="${dashboardOrderUrl}" style="background-color: #0D6B31; color: #ffffff; padding: 13px 28px; text-decoration: none; border-radius: 8px; font-weight: 700; font-size: 14px; display: inline-block;">
+          Open Order in Dashboard
+        </a>
+      </div>
+
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 28px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        Vendra Fashion Commerce OS • Automated Order Notification
+      </p>
+    </div>
+  `;
+
+  const text = `New Storefront Order #${shortOrderId} received from ${customerName} (${customerPhone}) for ${formattedTotal}.\nDelivery: ${formattedAddress}\nView order: ${dashboardOrderUrl}`;
+  return sendEmail({ to: vendorEmail, subject, html, text });
+};
+
+/**
+ * Sends order confirmation receipt to the customer when they provide an email.
+ */
+export const sendCustomerOrderConfirmationEmail = async (customerEmail, {
+  storeName = "Boutique",
+  vendorPhone = "",
+  orderNumber,
+  customerName = "Customer",
+  deliveryAddress = {},
+  deliveryFee = 0,
+  items = [],
+  totalAmount = 0,
+  depositPaid = 0,
+  balanceOwed = 0,
+  paymentMethod = "whatsapp",
+  status = "pending",
+}) => {
+  const shortOrderId = orderNumber;
+  const formattedTotal = `₦${Number(totalAmount || 0).toLocaleString("en-NG")}`;
+  const subject = `Your Order #${shortOrderId} Confirmation — ${storeName}`;
+
+  const hasDelivery = Boolean(deliveryAddress?.street || deliveryAddress?.city || deliveryAddress?.state);
+  const formattedAddress = hasDelivery
+    ? `${deliveryAddress.street || ""}${deliveryAddress.city ? `, ${deliveryAddress.city}` : ""}${deliveryAddress.state ? `, ${deliveryAddress.state}` : ""}`
+    : "In-store pickup / direct merchant dispatch";
+
+  const cleanPhone = vendorPhone ? vendorPhone.replace(/\D/g, "") : "";
+  const merchantWaLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("0") ? `234${cleanPhone.slice(1)}` : cleanPhone}` : "";
+
+  const html = `
+    <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 600px; margin: auto; padding: 28px; border: 1px solid #e5e7eb; border-radius: 12px; background-color: #ffffff; color: #111827;">
+      <div style="border-bottom: 2px solid #0D6B31; padding-bottom: 16px; margin-bottom: 20px;">
+        <h2 style="color: #0D6B31; margin: 0; font-size: 22px;">${storeName}</h2>
+        <p style="color: #6b7280; margin: 4px 0 0 0; font-size: 13px;">Order Confirmation #${shortOrderId}</p>
+      </div>
+
+      <p style="font-size: 15px; color: #111827;">Hello <strong>${customerName}</strong>,</p>
+      <p style="font-size: 14px; color: #374151; line-height: 1.5;">
+        Thank you for your order! We have safely received your order and are preparing your pieces.
+      </p>
+
+      <div style="background-color: #f9fafb; border-radius: 8px; padding: 16px; margin: 20px 0; border: 1px solid #f3f4f6;">
+        <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280;">Order Number:</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #111827;">#${shortOrderId}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280;">Total Amount:</td>
+            <td style="padding: 6px 0; font-weight: 700; text-align: right; color: #0D6B31;">${formattedTotal}</td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280;">Payment Method:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827; text-transform: uppercase;">
+              ${paymentMethod === 'paystack' ? 'Paystack Online (Paid)' : 'WhatsApp / Bank Transfer'}
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 6px 0; color: #6b7280; vertical-align: top;">Delivery Destination:</td>
+            <td style="padding: 6px 0; font-weight: 600; text-align: right; color: #111827;">
+              ${formattedAddress}
+            </td>
+          </tr>
+        </table>
+      </div>
+
+      ${merchantWaLink ? `
+        <div style="margin: 24px 0; text-align: center;">
+          <a href="${merchantWaLink}" style="background-color: #25D366; color: white; padding: 12px 24px; text-decoration: none; border-radius: 8px; font-weight: bold; font-size: 14px; display: inline-block;">
+            Message ${storeName} on WhatsApp
+          </a>
+        </div>
+      ` : ""}
+
+      <p style="color: #9ca3af; font-size: 12px; text-align: center; margin-top: 24px; border-top: 1px solid #f3f4f6; padding-top: 16px;">
+        Powered by Vendra Fashion Commerce
+      </p>
+    </div>
+  `;
+
+  const text = `Order Confirmation #${shortOrderId} for ${formattedTotal}. Delivery: ${formattedAddress}. Thank you for shopping with ${storeName}!`;
+  return sendEmail({ to: customerEmail, subject, html, text });
+};
+
+
 
 

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { jwtVerify } from "jose";
-import { isPathAllowedForRole, getRoleHomePath } from "./src/lib/rbac";
+import { isPathAllowedForRole, getRoleHomePath } from "@/lib/rbac";
 
 /*
  * The name of the auth cookie set by our backend.
@@ -10,58 +10,159 @@ import { isPathAllowedForRole, getRoleHomePath } from "./src/lib/rbac";
 const AUTH_COOKIE = "access_token";
 
 /*
- * Routes that require authentication to access.
- * If the user is NOT authenticated and tries to access any of
- * these, they're redirected to /login.
+ * Routes that require authentication to access on the main platform.
  */
 const PROTECTED_PATHS = ["/dashboard", "/admin"];
 
 /*
  * Routes that should redirect AWAY if the user IS authenticated.
- * (No point showing the login page to someone already logged in)
  */
 const AUTH_PATHS = ["/login", "/register"];
 
 /*
  * Routes that require admin role specifically.
- * A vendor who is authenticated but NOT an admin will be redirected
- * to their dashboard when trying to access these.
  */
 const ADMIN_PATHS = ["/admin"];
 
-export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl;
+/*
+ * Reserved platform subdomains that should never be treated as vendor boutique handles.
+ */
+const RESERVED_SUBDOMAINS = new Set([
+  "www",
+  "api",
+  "admin",
+  "app",
+  "dashboard",
+  "mail",
+  "cdn",
+  "assets",
+  "static",
+  "dev",
+  "staging",
+  "auth",
+]);
 
-  /*
-   * request.cookies.get() reads a cookie from the request headers.
-   * In Next.js middleware, cookies are available before the page renders.
-   */
+/*
+ * Primary domains of the Vendra platform.
+ */
+const MAIN_DOMAINS = new Set([
+  "tryvendra.ng",
+  "vendra.ng",
+  "localhost",
+  "127.0.0.1",
+]);
+
+export async function middleware(request: NextRequest) {
+  const { pathname, search } = request.nextUrl;
+
+  // 1. Bypass internal Next.js assets, API routes, public static files, and inactive splash
+  if (
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname.startsWith("/static") ||
+    pathname === "/custom-domain-inactive" ||
+    pathname.includes(".")
+  ) {
+    return NextResponse.next();
+  }
+
+  // 2. Extract and analyze host header
+  const host = (
+    request.headers.get("x-forwarded-host") ||
+    request.headers.get("host") ||
+    ""
+  ).toLowerCase();
+  const hostname = host.split(":")[0];
+
+  let subdomain: string | null = null;
+  let isCustomDomain = false;
+
+  // Localhost Subdomain support: e.g. amina.localhost
+  if (hostname.endsWith(".localhost")) {
+    const sub = hostname.replace(/\.localhost$/, "");
+    if (!RESERVED_SUBDOMAINS.has(sub)) {
+      subdomain = sub;
+    }
+  } else if (hostname.endsWith(".tryvendra.ng") || hostname.endsWith(".vendra.ng")) {
+    const parts = hostname.split(".");
+    if (parts.length >= 3) {
+      const sub = parts[0];
+      if (!RESERVED_SUBDOMAINS.has(sub)) {
+        subdomain = sub;
+      }
+    }
+  } else if (!MAIN_DOMAINS.has(hostname) && !hostname.includes("vercel.app")) {
+    // External custom apex or subdomain (e.g. shop.aminacouture.com)
+    isCustomDomain = true;
+  }
+
+  // 3. Handle Vendor Subdomain Rewrites (e.g. amina.vendra.ng/products -> /store/amina/products)
+  if (subdomain) {
+    // Prevent accessing dashboard/admin via vendor subdomains
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL(`https://tryvendra.ng${pathname}`, request.url));
+    }
+
+    // If pathname already starts with /store/[subdomain], pass through
+    if (pathname.startsWith(`/store/${subdomain}`)) {
+      return NextResponse.next();
+    }
+
+    const url = request.nextUrl.clone();
+    url.pathname = `/store/${subdomain}${pathname === "/" ? "" : pathname}`;
+    return NextResponse.rewrite(url);
+  }
+
+  // 4. Handle Custom Domain Rewrites (e.g. shop.aminacouture.com/products -> /store/amina-couture/products)
+  if (isCustomDomain) {
+    if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
+      return NextResponse.redirect(new URL(`https://tryvendra.ng${pathname}`, request.url));
+    }
+
+    try {
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:5000/api";
+      const resolveRes = await fetch(
+        `${apiUrl}/storefront/resolve-domain?domain=${encodeURIComponent(hostname)}`,
+        { next: { revalidate: 60 } }
+      );
+
+      if (resolveRes.ok) {
+        const body = await resolveRes.json();
+        const vendorData = body?.data;
+        if (vendorData?.handle && vendorData?.canBeLive) {
+          const url = request.nextUrl.clone();
+          url.pathname = `/store/${vendorData.handle}${pathname === "/" ? "" : pathname}`;
+          return NextResponse.rewrite(url);
+        }
+      }
+    } catch (e) {
+      console.error("[Middleware] Custom domain resolution failed:", e);
+    }
+
+    // If unverified, inactive, or not found, rewrite to inactive domain splash
+    const splashUrl = request.nextUrl.clone();
+    splashUrl.pathname = "/custom-domain-inactive";
+    splashUrl.searchParams.set("domain", hostname);
+    return NextResponse.rewrite(splashUrl);
+  }
+
+  // 5. Standard Platform Auth & RBAC Guards (Runs on main domains)
   const token = request.cookies.get(AUTH_COOKIE);
   const isAuthenticated = Boolean(token?.value);
 
-  // Check if the current path starts with any protected routes
   const isProtectedRoute = PROTECTED_PATHS.some((path) =>
-    pathname.startsWith(path),
+    pathname.startsWith(path)
   );
-
-  // Check if it's an auth route (login/register)
   const isAuthRoute = AUTH_PATHS.some((path) => pathname.startsWith(path));
-
-  // Check if it's an admin-only route
   const isAdminRoute = ADMIN_PATHS.some((path) => pathname.startsWith(path));
 
   if (isProtectedRoute && !isAuthenticated) {
-    console.warn(
-      `[Middleware] Unauthenticated redirect from ${pathname} to /login (missing '${AUTH_COOKIE}' cookie)`,
-    );
     const loginUrl = new URL("/login", request.url);
     loginUrl.searchParams.set("from", pathname);
     return NextResponse.redirect(loginUrl);
   }
 
   if (isAuthRoute && isAuthenticated) {
-    // Authenticated user visiting /login or /register
-    // If admin, send to /admin; otherwise send to their role workspace home
     const jwtSecret = process.env.JWT_SECRET;
     if (jwtSecret && token?.value) {
       try {
@@ -74,33 +175,20 @@ export async function middleware(request: NextRequest) {
           (payload.role as string) ||
           (payload.isTeamMember ? "tailor" : "owner");
         return NextResponse.redirect(
-          new URL(getRoleHomePath(userRole), request.url),
+          new URL(getRoleHomePath(userRole), request.url)
         );
       } catch {
-        // Token is invalid or expired — purge the stale cookie and let them view login/register
         const response = NextResponse.next();
         response.cookies.delete(AUTH_COOKIE);
         return response;
       }
     }
-    // If no jwtSecret, allow the auth route to render normally
     return NextResponse.next();
   }
 
-  /*
-   * Role-based check for admin routes.
-   *
-   * We decode the JWT using `jose` (Edge Runtime compatible — already
-   * installed in the project). This is a server-side guard that runs
-   * BEFORE the page renders, complementing the client-side AdminGuard.
-   *
-   * If decoding fails (malformed token) or role !== "admin",
-   * redirect to /dashboard with an ?unauthorized flag.
-   */
   if (isAdminRoute && isAuthenticated && token?.value) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error("[Middleware] JWT_SECRET environment variable is missing.");
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
@@ -116,10 +204,6 @@ export async function middleware(request: NextRequest) {
         return NextResponse.redirect(dashboardUrl);
       }
     } catch {
-      /*
-       * Token is invalid or expired — treat as unauthenticated.
-       * Purge invalid cookie and redirect to login.
-       */
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       loginUrl.searchParams.set("expired", "1");
@@ -129,18 +213,9 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  /*
-   * Role-based check for dashboard routes (Team seats & staff access control)
-   *
-   * Verifies that the authenticated role is authorized to access the requested
-   * dashboard section. If unauthorized, immediately redirects to their allowed
-   * workspace home (e.g. tailor -> /dashboard/demands, sales -> /dashboard/orders)
-   * with an ?unauthorized=<role> query parameter before any unauthorized page loads.
-   */
   if (pathname.startsWith("/dashboard") && isAuthenticated && token?.value) {
     const jwtSecret = process.env.JWT_SECRET;
     if (!jwtSecret) {
-      console.error("[Middleware] JWT_SECRET environment variable is missing.");
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
       return NextResponse.redirect(loginUrl);
@@ -156,8 +231,6 @@ export async function middleware(request: NextRequest) {
       if (!isPathAllowedForRole(pathname, userRole)) {
         const homePath = getRoleHomePath(userRole);
         const redirectUrl = new URL(homePath, request.url);
-        // Only tag with ?unauthorized if the user deliberately navigated to a specific forbidden section (e.g. /dashboard/settings)
-        // Accessing the root /dashboard portal should seamlessly route to their workspace home without an error alert
         if (pathname !== "/dashboard") {
           redirectUrl.searchParams.set("unauthorized", userRole);
           redirectUrl.searchParams.set("from", pathname);
@@ -167,7 +240,7 @@ export async function middleware(request: NextRequest) {
     } catch (err: any) {
       console.error(
         `[Middleware] Dashboard JWT verification failed for ${pathname}:`,
-        err?.message || err,
+        err?.message || err
       );
       const loginUrl = new URL("/login", request.url);
       loginUrl.searchParams.set("from", pathname);
@@ -178,36 +251,11 @@ export async function middleware(request: NextRequest) {
     }
   }
 
-  /*
-   * NextResponse.next() passes the request to the next handler
-   * (i.e., the page component or API route).
-   * Always return something from middleware — never return undefined.
-   */
   return NextResponse.next();
 }
 
-/*
- * config.matcher — KEEP THIS MINIMAL.
- *
- * Next.js middleware runs on the Edge Runtime and is compiled
- * differently from normal Node.js code. Complex regex patterns
- * in the matcher can cause a "Cannot find middleware module" error
- * at startup because they fail to compile in the Edge environment.
- *
- * Rule: only list the specific route prefixes you actually need.
- * The middleware function itself already handles all cases via
- * NextResponse.next() for anything that doesn't match our checks.
- *
- * DO NOT add catch-all patterns like /((?!_next).*) — they break
- * Next.js middleware compilation.
- */
 export const config = {
   matcher: [
-    "/dashboard/:path*",
-    "/admin/:path*",
-    "/login",
-    "/register",
-    "/forgot-password",
-    "/reset-password",
+    "/((?!api|_next/static|_next/image|favicon.ico|manifest.webmanifest|icon.svg).*)",
   ],
 };

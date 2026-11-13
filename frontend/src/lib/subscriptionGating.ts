@@ -66,4 +66,8 @@ export const SubscriptionPermissions = {
 
   // Team
   canInviteTeam: (plan: string | undefined | null) => hasMinPlan(plan, "drape"),
+
+  // Store Links & Domains
+  hasBrandedSubdomain: (plan: string | undefined | null) => hasMinPlan(plan, "drape"),
+  hasCustomDomain: (plan: string | undefined | null) => hasMinPlan(plan, "atelier"),
 };
