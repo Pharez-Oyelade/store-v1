@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
-import { Plus, Save, Trash2, UserPlus, Users, WifiOff } from "lucide-react";
+import { MapPin, Plus, Save, Trash2, UserPlus, Users, WifiOff } from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -50,6 +50,10 @@ export default function OrderForm() {
   const [customerName, setCustomerName] = useState("");
   const [customerPhone, setCustomerPhone] = useState("");
   const [customerEmail, setCustomerEmail] = useState("");
+  const [deliveryStreet, setDeliveryStreet] = useState("");
+  const [deliveryCity, setDeliveryCity] = useState("");
+  const [deliveryState, setDeliveryState] = useState("");
+  const [deliveryFee, setDeliveryFee] = useState<number | "">("");
   const [depositPaid, setDepositPaid] = useState<number | "">("");
   const [source, setSource] = useState<OrderSource>(OrderSource.DM);
   const [notes, setNotes] = useState("");
@@ -59,7 +63,7 @@ export default function OrderForm() {
   const customerList = customers.data?.customers ?? [];
   const isExistingCustomer = selectedCustomerId !== "";
 
-  const total = useMemo(
+  const itemsSubtotal = useMemo(
     () =>
       items.reduce(
         (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
@@ -67,6 +71,8 @@ export default function OrderForm() {
       ),
     [items],
   );
+  const parsedDeliveryFee = Number(deliveryFee) || 0;
+  const total = itemsSubtotal + parsedDeliveryFee;
   const balance = Math.max(0, total - (Number(depositPaid) || 0));
 
   function handleCustomerSelect(customerId: string) {
@@ -76,6 +82,9 @@ export default function OrderForm() {
       setCustomerName("");
       setCustomerPhone("");
       setCustomerEmail("");
+      setDeliveryStreet("");
+      setDeliveryCity("");
+      setDeliveryState("");
       return;
     }
     const customer = customerList.find((c) => c._id === customerId);
@@ -83,6 +92,11 @@ export default function OrderForm() {
       setCustomerName(customer.name);
       setCustomerPhone(customer.phone);
       setCustomerEmail(customer.email ?? "");
+      if (customer.deliveryAddress) {
+        setDeliveryStreet(customer.deliveryAddress.street || "");
+        setDeliveryCity(customer.deliveryAddress.city || "");
+        setDeliveryState(customer.deliveryAddress.state || "");
+      }
     }
   }
 
@@ -144,6 +158,15 @@ export default function OrderForm() {
         phone: customerPhone,
         email: customerEmail,
       },
+      deliveryAddress:
+        deliveryStreet.trim() || deliveryCity.trim() || deliveryState.trim()
+          ? {
+              street: deliveryStreet.trim(),
+              city: deliveryCity.trim(),
+              state: deliveryState.trim(),
+            }
+          : undefined,
+      deliveryFee: parsedDeliveryFee,
       totalAmount: total,
       balanceOwed: balance,
       status: "pending",
@@ -155,11 +178,22 @@ export default function OrderForm() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    const hasDelivery = Boolean(
+      deliveryStreet.trim() || deliveryCity.trim() || deliveryState.trim(),
+    );
     const orderPayload = {
       customerName,
       customerPhone,
       customerEmail,
       depositPaid: Number(depositPaid) || 0,
+      deliveryFee: parsedDeliveryFee,
+      deliveryAddress: hasDelivery
+        ? {
+            street: deliveryStreet.trim(),
+            city: deliveryCity.trim(),
+            state: deliveryState.trim(),
+          }
+        : undefined,
       source,
       notes,
       items: items.map((item) => {
@@ -294,6 +328,38 @@ export default function OrderForm() {
             </NativeSelect>
           </div>
         </div>
+
+        {/* ── Delivery details (Optional) ────────────────────────── */}
+        <div className="border-t border-gray-100 pt-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <h3 className="text-sm font-semibold text-gray-900 flex items-center gap-1.5">
+              <MapPin className="size-4 text-brand-600" />
+              <span>Delivery Information</span>
+            </h3>
+            <span className="text-xs text-gray-400">Optional for pickup / walk-in</span>
+          </div>
+          <Input
+            label="Street address"
+            placeholder="e.g. 14 Admiralty Way, Lekki Phase 1"
+            value={deliveryStreet}
+            onChange={(event) => setDeliveryStreet(event.target.value)}
+          />
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Input
+              label="City / Town"
+              placeholder="e.g. Lekki"
+              value={deliveryCity}
+              onChange={(event) => setDeliveryCity(event.target.value)}
+            />
+            <Input
+              label="State"
+              placeholder="e.g. Lagos"
+              value={deliveryState}
+              onChange={(event) => setDeliveryState(event.target.value)}
+            />
+          </div>
+        </div>
+
         <div className="space-y-1.5">
           <FieldLabel>Notes</FieldLabel>
           <TextArea
@@ -469,7 +535,19 @@ export default function OrderForm() {
       </section>
 
       <aside className="space-y-4 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
-        <h2 className="text-base font-semibold text-gray-950">Payment</h2>
+        <h2 className="text-base font-semibold text-gray-950">Payment & Pricing</h2>
+        <Input
+          label="Delivery fee (optional)"
+          type="number"
+          min={0}
+          placeholder="0"
+          value={deliveryFee}
+          onChange={(event) =>
+            setDeliveryFee(
+              event.target.value === "" ? "" : Number(event.target.value),
+            )
+          }
+        />
         <Input
           label="Deposit paid"
           type="number"
@@ -483,15 +561,37 @@ export default function OrderForm() {
           }
         />
 
-        <div className="space-y-3 rounded-lg bg-gray-50 p-4 text-sm">
+        <div className="space-y-2.5 rounded-lg bg-gray-50 p-4 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-500">Total</span>
+            <span className="text-gray-500">Items Subtotal</span>
+            <span className="font-medium text-gray-950">
+              {formatCurrency(itemsSubtotal)}
+            </span>
+          </div>
+          {parsedDeliveryFee > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Delivery Fee</span>
+              <span className="font-medium text-gray-950">
+                +{formatCurrency(parsedDeliveryFee)}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-gray-200/60 pt-2">
+            <span className="font-medium text-gray-700">Total</span>
             <span className="font-semibold text-gray-950">
               {formatCurrency(total)}
             </span>
           </div>
-          <div className="flex justify-between">
-            <span className="text-gray-500">Balance</span>
+          {Number(depositPaid) > 0 && (
+            <div className="flex justify-between">
+              <span className="text-gray-500">Deposit Paid</span>
+              <span className="text-gray-950">
+                {formatCurrency(Number(depositPaid))}
+              </span>
+            </div>
+          )}
+          <div className="flex justify-between border-t border-gray-200/60 pt-2">
+            <span className="font-medium text-gray-700">Balance Owed</span>
             <span className="font-semibold text-accent-700">
               {formatCurrency(balance)}
             </span>

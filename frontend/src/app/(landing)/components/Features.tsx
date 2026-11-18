@@ -153,7 +153,7 @@ const Features = () => {
 
         <Link
           href="/features"
-          className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white transition-all bg-brand-600 rounded-full hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-500/25 mt-4"
+          className="group inline-flex items-center justify-center gap-2 px-8 py-4 text-base font-semibold text-white transition-all bg-brand-600 rounded-md hover:bg-brand-700 hover:shadow-lg hover:shadow-brand-500/25 mt-4"
         >
           <span className="text-white">Explore All Features</span>
           <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1 text-white" />

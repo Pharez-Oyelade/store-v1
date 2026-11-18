@@ -122,8 +122,8 @@ const vendorSchema = new mongoose.Schema(
     /* ── Business & Storefront Type ────────────────────── */
     businessType: {
       type: String,
-      enum: ["ready_to_wear", "made_to_order", "demand", "hybrid"],
-      default: "ready_to_wear",
+      enum: ["unselected", "ready_to_wear", "made_to_order", "demand", "hybrid"],
+      default: "unselected",
     },
 
     category: {
@@ -133,13 +133,34 @@ const vendorSchema = new mongoose.Schema(
 
     /* ── Storefront Settings ────────────────────────────── */
     storefrontSettings: {
+      isPublished: { type: Boolean, default: false },
       themeColor: { type: String, default: "#E2A03F" },
       accentColor: { type: String, default: "#E11D48" },
       bannerImage: {
         url: { type: String, default: "" },
         publicId: { type: String, default: "" },
       },
-      customDomain: { type: String, default: "" },
+      bannerHeadline: { type: String, default: "" },
+      bannerText: { type: String, default: "" },
+      customDomain: {
+        type: String,
+        default: "",
+        lowercase: true,
+        trim: true,
+      },
+      customDomainStatus: {
+        type: String,
+        enum: ["none", "pending", "active", "error"],
+        default: "none",
+      },
+      customDomainVerifiedAt: {
+        type: Date,
+        default: null,
+      },
+      customDomainError: {
+        type: String,
+        default: "",
+      },
       customCss: { type: String, default: "" },
       announcementText: { type: String, default: "" },
       announcementActive: { type: Boolean, default: true },

@@ -1,4 +1,6 @@
+import dns from "dns/promises";
 import Vendor from "../models/vendorModel.js";
+import Product from "../models/productModel.js";
 import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { deleteImage } from "../services/cloudinary.service.js";
@@ -17,8 +19,18 @@ export const getProfile = asyncHandler(async (req, res) => {
 
 /* ── PUT /api/vendor/profile ────────────────────────────────────── */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { businessName, bio, state, city, area, instagram, whatsapp, email, socialMessaging } =
-    req.body;
+  const {
+    businessName,
+    bio,
+    state,
+    city,
+    area,
+    instagram,
+    whatsapp,
+    email,
+    socialMessaging,
+    businessType,
+  } = req.body;
 
   const vendor = await Vendor.findById(req.vendor._id);
 
@@ -26,6 +38,14 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (bio !== undefined) vendor.bio = bio;
   if (email !== undefined)
     vendor.email = email?.toLowerCase().trim() || undefined;
+
+  // Business Type
+  if (
+    businessType !== undefined &&
+    ["ready_to_wear", "demand", "hybrid", "made_to_order", "unselected"].includes(businessType)
+  ) {
+    vendor.businessType = businessType;
+  }
 
   // Location fields (update individual sub-fields)
   if (state !== undefined) vendor.location.state = state;
@@ -165,6 +185,8 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
   const {
     themeColor,
     accentColor,
+    bannerHeadline,
+    bannerText,
     announcementText,
     announcementActive,
     whatsappFabEnabled,
@@ -174,6 +196,7 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
     category,
     deliveryRates,
     featuredProductIds,
+    isPublished,
   } = req.body;
 
   const vendor = await Vendor.findById(req.vendor._id);
@@ -184,11 +207,77 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
 
   if (themeColor !== undefined) vendor.storefrontSettings.themeColor = themeColor;
   if (accentColor !== undefined) vendor.storefrontSettings.accentColor = accentColor;
+  if (bannerHeadline !== undefined) vendor.storefrontSettings.bannerHeadline = bannerHeadline;
+  if (bannerText !== undefined) vendor.storefrontSettings.bannerText = bannerText;
   if (announcementText !== undefined) vendor.storefrontSettings.announcementText = announcementText;
   if (announcementActive !== undefined) vendor.storefrontSettings.announcementActive = Boolean(announcementActive);
   if (whatsappFabEnabled !== undefined) vendor.storefrontSettings.whatsappFabEnabled = Boolean(whatsappFabEnabled);
   if (customCss !== undefined) vendor.storefrontSettings.customCss = customCss;
-  if (customDomain !== undefined) vendor.storefrontSettings.customDomain = customDomain.toLowerCase().trim();
+  if (customDomain !== undefined) {
+    const rawDomain = (customDomain || "").toLowerCase().trim();
+    if (rawDomain && rawDomain !== vendor.storefrontSettings?.customDomain) {
+      // Check tier permission: only atelier and maison can configure a custom domain
+      const plan = (vendor.subscriptionPlan || "free").toLowerCase();
+      const hasCustomDomainPrivilege = ["atelier", "maison"].includes(plan);
+      if (!hasCustomDomainPrivilege) {
+        return sendError(
+          res,
+          "Custom domains require The Atelier or The Maison subscription plan",
+          403
+        );
+      }
+
+      // Sanitize domain: strip http://, https://, trailing slashes
+      const sanitized = rawDomain
+        .replace(/^https?:\/\//, "")
+        .replace(/\/+$/, "")
+        .split("/")[0];
+
+      // Validate domain format (FQDN pattern: e.g. shop.domain.com or brand.ng)
+      const domainRegex = /^(?!:\/\/)([a-zA-Z0-9-_]+\.)+[a-zA-Z]{2,}$/;
+      if (!domainRegex.test(sanitized)) {
+        return sendError(
+          res,
+          "Please provide a valid domain name (e.g. shop.yourboutique.com)",
+          400
+        );
+      }
+
+      // Prevent using internal or reserved Vendra domains
+      const reservedBase = ["vendra.ng", "tryvendra.ng", "localhost"];
+      if (reservedBase.some((r) => sanitized === r || sanitized.endsWith(`.${r}`))) {
+        return sendError(
+          res,
+          "Cannot use internal Vendra domain names as a custom domain",
+          400
+        );
+      }
+
+      // Check if domain is already claimed by another vendor
+      const existingVendor = await Vendor.findOne({
+        _id: { $ne: vendor._id },
+        "storefrontSettings.customDomain": sanitized,
+      });
+      if (existingVendor) {
+        return sendError(
+          res,
+          "This domain is already registered to another boutique on Vendra",
+          409
+        );
+      }
+
+      vendor.storefrontSettings.customDomain = sanitized;
+      vendor.storefrontSettings.customDomainStatus = "pending";
+      vendor.storefrontSettings.customDomainVerifiedAt = null;
+      vendor.storefrontSettings.customDomainError = "";
+    } else if (!rawDomain) {
+      // If cleared, reset domain fields
+      vendor.storefrontSettings.customDomain = "";
+      vendor.storefrontSettings.customDomainStatus = "none";
+      vendor.storefrontSettings.customDomainVerifiedAt = null;
+      vendor.storefrontSettings.customDomainError = "";
+    }
+  }
   if (deliveryRates !== undefined && Array.isArray(deliveryRates)) {
     vendor.storefrontSettings.deliveryRates = deliveryRates;
   }
@@ -199,7 +288,49 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
   if (businessType !== undefined) vendor.businessType = businessType;
   if (category !== undefined) vendor.category = category;
 
+  // Validate publish prerequisites if vendor is attempting to publish
+  if (isPublished !== undefined) {
+    if (isPublished) {
+      if (!vendor.businessType || vendor.businessType === "unselected") {
+        return sendError(res, "Please select your business model before publishing your storefront", 400);
+      }
+      if (vendor.businessType === "demand") {
+        const hasContact = Boolean(vendor.socials?.whatsapp || vendor.phone);
+        if (!hasContact) {
+          return sendError(res, "Please provide a WhatsApp or contact phone number for customer inquiries before publishing", 400);
+        }
+      } else {
+        const activeProductCount = await Product.countDocuments({
+          vendor: vendor._id,
+          status: "active",
+        });
+        if (activeProductCount < 2) {
+          return sendError(
+            res,
+            `Catalog requires at least 2 active products to publish your storefront (currently ${activeProductCount}/2)`,
+            400
+          );
+        }
+      }
+      vendor.storefrontSettings.isPublished = true;
+    } else {
+      vendor.storefrontSettings.isPublished = false;
+    }
+  }
+
   await vendor.save();
+
+  // Return readiness stats for dashboard
+  const activeProductCount = await Product.countDocuments({
+    vendor: vendor._id,
+    status: "active",
+  });
+
+  const isEligible =
+    vendor.businessType !== "unselected" &&
+    (vendor.businessType === "demand"
+      ? Boolean(vendor.socials?.whatsapp || vendor.phone)
+      : activeProductCount >= 2);
 
   return sendSuccess(
     res,
@@ -207,6 +338,9 @@ export const updateStorefrontSettings = asyncHandler(async (req, res) => {
       storefrontSettings: vendor.storefrontSettings,
       businessType: vendor.businessType,
       category: vendor.category,
+      activeProductCount,
+      isEligible,
+      isPublished: Boolean(vendor.storefrontSettings?.isPublished),
     },
     "Storefront settings updated successfully"
   );
@@ -302,5 +436,99 @@ export const deleteDiscount = asyncHandler(async (req, res) => {
 
   await vendor.save();
   return sendSuccess(res, vendor.discounts, "Discount removed successfully");
+});
+
+/* ── POST /api/vendor/custom-domain/verify ────────────────────────── */
+export const verifyCustomDomain = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findById(req.vendor._id);
+  const customDomain = vendor?.storefrontSettings?.customDomain;
+
+  if (!customDomain) {
+    return sendError(res, "No custom domain configured to verify", 400);
+  }
+
+  const plan = (vendor.subscriptionPlan || "free").toLowerCase();
+  if (!["atelier", "maison"].includes(plan)) {
+    return sendError(res, "Custom domains require The Atelier or The Maison plan", 403);
+  }
+
+  const EXPECTED_CNAME = process.env.VENDRA_CNAME_TARGET || "cname.tryvendra.ng";
+  const EXPECTED_A = process.env.VENDRA_SERVER_IP || "";
+
+  let verified = false;
+  let verificationDetails = "";
+
+  try {
+    // 1. Try CNAME resolution
+    try {
+      const cnames = await dns.resolveCname(customDomain);
+      if (
+        cnames &&
+        cnames.some(
+          (c) =>
+            c.toLowerCase().includes("vendra.ng") ||
+            c.toLowerCase() === EXPECTED_CNAME.toLowerCase()
+        )
+      ) {
+        verified = true;
+        verificationDetails = `CNAME successfully resolved to ${cnames.join(", ")}`;
+      } else {
+        verificationDetails = `CNAME points to ${cnames.join(", ")}, expected ${EXPECTED_CNAME}`;
+      }
+    } catch {
+      // CNAME resolution failed or not found, try A record resolution if IP is configured
+      if (EXPECTED_A) {
+        try {
+          const aRecords = await dns.resolve4(customDomain);
+          if (aRecords && aRecords.includes(EXPECTED_A)) {
+            verified = true;
+            verificationDetails = `A record successfully resolved to ${EXPECTED_A}`;
+          } else {
+            verificationDetails = `A record points to ${aRecords.join(", ")}, expected ${EXPECTED_A}`;
+          }
+        } catch {
+          verificationDetails = "No valid CNAME or A record found for this domain yet";
+        }
+      } else {
+        verificationDetails = `No CNAME record found pointing to ${EXPECTED_CNAME}`;
+      }
+    }
+
+    if (verified) {
+      vendor.storefrontSettings.customDomainStatus = "active";
+      vendor.storefrontSettings.customDomainVerifiedAt = new Date();
+      vendor.storefrontSettings.customDomainError = "";
+      await vendor.save();
+      return sendSuccess(res, vendor.storefrontSettings, "Domain verified and active!");
+    } else {
+      vendor.storefrontSettings.customDomainStatus = "pending";
+      vendor.storefrontSettings.customDomainError = verificationDetails;
+      await vendor.save();
+      return sendError(
+        res,
+        verificationDetails || "DNS records not yet propagated. Please allow a few minutes.",
+        400
+      );
+    }
+  } catch (err) {
+    vendor.storefrontSettings.customDomainStatus = "error";
+    vendor.storefrontSettings.customDomainError = err.message || "DNS lookup failed";
+    await vendor.save();
+    return sendError(res, `Failed to verify DNS: ${err.message || "Unknown error"}`, 500);
+  }
+});
+
+/* ── DELETE /api/vendor/custom-domain ─────────────────────────────── */
+export const removeCustomDomain = asyncHandler(async (req, res) => {
+  const vendor = await Vendor.findById(req.vendor._id);
+  if (!vendor.storefrontSettings) {
+    vendor.storefrontSettings = {};
+  }
+  vendor.storefrontSettings.customDomain = "";
+  vendor.storefrontSettings.customDomainStatus = "none";
+  vendor.storefrontSettings.customDomainVerifiedAt = null;
+  vendor.storefrontSettings.customDomainError = "";
+  await vendor.save();
+  return sendSuccess(res, vendor.storefrontSettings, "Custom domain disconnected successfully");
 });
 

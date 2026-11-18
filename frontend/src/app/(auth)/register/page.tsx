@@ -14,6 +14,10 @@ import {
   MapPin,
   Lock,
   Subtitles,
+  Package,
+  Scissors,
+  Sparkles,
+  Check,
 } from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
@@ -42,6 +46,9 @@ const registerSchema = z
         /^[a-z0-9_-]+$/,
         "Handle can only contain lowercase letters, numbers, hyphens, and underscores",
       ),
+    businessType: z
+      .enum(["ready_to_wear", "demand", "hybrid"])
+      .default("ready_to_wear"),
     phone: z
       .string()
       .trim()
@@ -79,11 +86,12 @@ const registerSchema = z
     }
   });
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type RegisterFormValues = z.input<typeof registerSchema>;
+type RegisterFormOutput = z.output<typeof registerSchema>;
 
 // step definition - assigning foelds to steps
 const stepFields: Record<number, (keyof RegisterFormValues)[]> = {
-  1: ["businessName", "handle", "phone", "email"],
+  1: ["businessName", "handle", "businessType", "phone", "email"],
   2: ["state", "city", "area"],
   3: ["password", "confirmPassword"],
 };
@@ -151,10 +159,15 @@ export default function RegisterPage() {
     setError,
     watch, //read a field's value in real time
     formState: { errors, isSubmitting },
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<
+  RegisterFormValues,
+  any,
+  RegisterFormOutput
+>({
+  resolver: zodResolver(registerSchema),
     mode: "onTouched",
     defaultValues: {
+      businessType: "ready_to_wear",
       email: "",
       area: "",
     },
@@ -162,6 +175,7 @@ export default function RegisterPage() {
 
   // Auto generate handle from businessName
   const businessName = watch("businessName");
+  const watchBusinessType = watch("businessType") || "ready_to_wear";
   const handleAutoGenerate = () => {
     if (businessName) {
       setValue("handle", generateSlug(businessName), { shouldValidate: true });
@@ -176,7 +190,7 @@ export default function RegisterPage() {
     if (valid) setCurrentStep((s) => s + 1);
   };
 
-  const onSubmit = async (data: RegisterFormValues) => {
+  const onSubmit = async (data: RegisterFormOutput) => {
     try {
       const cleanPhone = data.phone.replace(/[\s\-()]/g, "");
       const cleanEmail = data.email?.trim() || undefined;
@@ -184,6 +198,7 @@ export default function RegisterPage() {
       await registerMutation.mutateAsync({
         businessName: data.businessName.trim(),
         handle: data.handle.toLowerCase().trim(),
+        businessType: data.businessType,
         phone: cleanPhone,
         email: cleanEmail,
         password: data.password,
@@ -285,6 +300,128 @@ export default function RegisterPage() {
               >
                 Auto generate from business name
               </button>
+            </div>
+
+            {/* Business Type Option Cards */}
+            <div className="space-y-1">
+              <label className="text-xs font-semibold text-gray-700 block">
+                Business Type
+              </label>
+              <div className="grid grid-cols-3 gap-2">
+                {/* RTW / Made-to-order */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue("businessType", "ready_to_wear", {
+                      shouldValidate: true,
+                    })
+                  }
+                  className={`p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    watchBusinessType === "ready_to_wear"
+                      ? "border-brand-600 bg-brand-50/70 text-brand-950 shadow-2xs ring-1 ring-brand-600/30"
+                      : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span
+                      className={`p-1 rounded-md ${
+                        watchBusinessType === "ready_to_wear"
+                          ? "bg-brand-600 text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      <Package size={13} />
+                    </span>
+                    {watchBusinessType === "ready_to_wear" && (
+                      <span className="size-3.5 rounded-full bg-brand-600 text-white flex items-center justify-center">
+                        <Check size={9} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold leading-tight">RTW / MTO</p>
+                    <p className="text-[9px] text-gray-500 leading-tight mt-0.5 line-clamp-1">
+                      Catalog & cart
+                    </p>
+                  </div>
+                </button>
+
+                {/* Bespoke */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue("businessType", "demand", {
+                      shouldValidate: true,
+                    })
+                  }
+                  className={`p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    watchBusinessType === "demand"
+                      ? "border-brand-600 bg-brand-50/70 text-brand-950 shadow-2xs ring-1 ring-brand-600/30"
+                      : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span
+                      className={`p-1 rounded-md ${
+                        watchBusinessType === "demand"
+                          ? "bg-brand-600 text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      <Scissors size={13} />
+                    </span>
+                    {watchBusinessType === "demand" && (
+                      <span className="size-3.5 rounded-full bg-brand-600 text-white flex items-center justify-center">
+                        <Check size={9} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold leading-tight">Bespoke</p>
+                    <p className="text-[9px] text-gray-500 leading-tight mt-0.5 line-clamp-1">
+                      Tailor & measures
+                    </p>
+                  </div>
+                </button>
+
+                {/* Hybrid */}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setValue("businessType", "hybrid", {
+                      shouldValidate: true,
+                    })
+                  }
+                  className={`p-2 rounded-xl border text-left transition-all relative flex flex-col justify-between ${
+                    watchBusinessType === "hybrid"
+                      ? "border-brand-600 bg-brand-50/70 text-brand-950 shadow-2xs ring-1 ring-brand-600/30"
+                      : "border-gray-200 bg-white hover:border-gray-300 text-gray-700"
+                  }`}
+                >
+                  <div className="flex items-center justify-between w-full mb-1">
+                    <span
+                      className={`p-1 rounded-md ${
+                        watchBusinessType === "hybrid"
+                          ? "bg-brand-600 text-white"
+                          : "bg-gray-100 text-gray-600"
+                      }`}
+                    >
+                      <Sparkles size={13} />
+                    </span>
+                    {watchBusinessType === "hybrid" && (
+                      <span className="size-3.5 rounded-full bg-brand-600 text-white flex items-center justify-center">
+                        <Check size={9} strokeWidth={3} />
+                      </span>
+                    )}
+                  </div>
+                  <div>
+                    <p className="text-[11px] font-bold leading-tight">Hybrid</p>
+                    <p className="text-[9px] text-gray-500 leading-tight mt-0.5 line-clamp-1">
+                      Catalog & custom
+                    </p>
+                  </div>
+                </button>
+              </div>
             </div>
 
             <Input

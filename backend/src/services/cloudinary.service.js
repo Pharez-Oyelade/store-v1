@@ -32,11 +32,14 @@ export async function uploadMultipleImages(files = []) {
   const uploaded = [];
 
   try {
-    for (const file of files) {
+    const uploadPromises = files.map(async (file) => {
       const result = await uploadToCloudinary(file.buffer);
-      uploaded.push({ url: result.secure_url, publicId: result.public_id });
-    }
-    return uploaded;
+      const record = { url: result.secure_url, publicId: result.public_id };
+      uploaded.push(record);
+      return record;
+    });
+
+    return await Promise.all(uploadPromises);
   } catch (err) {
     // Clean up any images that succeeded before failure occurred
     if (uploaded.length > 0) {

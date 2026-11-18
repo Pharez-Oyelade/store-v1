@@ -9,21 +9,125 @@ import { normalizeOrderItems, depleteInventory } from "./order.controller.js";
 import { createNotification } from "../services/notification.service.js";
 import { uploadMultipleImages } from "../services/cloudinary.service.js";
 import { buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
-import { verifyTransaction } from "../services/paystack.service.js";
+import { verifyTransaction, initializeTransaction } from "../services/paystack.service.js";
+import {
+  sendNewOrderNotificationEmail,
+  sendCustomerOrderConfirmationEmail,
+} from "../services/email.service.js";
+
+/* ── Helper: Evaluate Storefront Readiness ──────────────────────── */
+export async function checkStorefrontEligibility(vendor) {
+  const isTypeChosen = vendor.businessType && vendor.businessType !== "unselected";
+  const activeProductCount = await Product.countDocuments({
+    vendor: vendor._id,
+    status: "active",
+  });
+
+  const isEligible =
+    Boolean(isTypeChosen) &&
+    (vendor.businessType === "demand"
+      ? Boolean(vendor.socials?.whatsapp || vendor.phone)
+      : activeProductCount >= 2);
+
+  const isPublished = Boolean(vendor.storefrontSettings?.isPublished);
+
+  return {
+    isTypeChosen: Boolean(isTypeChosen),
+    activeProductCount,
+    isEligible,
+    isPublished,
+    canBeLive: isEligible && isPublished,
+  };
+}
+
+/* ── GET /api/storefront/resolve-domain ───────────────────────────── */
+export const resolveStorefrontDomain = asyncHandler(async (req, res) => {
+  const domainQuery = (req.query.domain || "").toLowerCase().trim();
+
+  if (!domainQuery) {
+    return sendError(res, "Domain query parameter is required", 400);
+  }
+
+  // Clean domain string: strip port if present
+  const domain = domainQuery.split(":")[0];
+
+  // Search by custom domain
+  let vendor = await Vendor.findOne({
+    "storefrontSettings.customDomain": domain,
+    isActive: true,
+  }).select(
+    "businessName handle subscriptionPlan businessType storefrontSettings phone socials"
+  );
+
+  // If not found by customDomain, check if query matched a handle directly (for subdomain lookup fallback)
+  if (!vendor) {
+    vendor = await Vendor.findOne({
+      handle: domain,
+      isActive: true,
+    }).select(
+      "businessName handle subscriptionPlan businessType storefrontSettings phone socials"
+    );
+  }
+
+  if (!vendor) {
+    return sendError(res, "No vendor associated with this domain", 404);
+  }
+
+  const plan = (vendor.subscriptionPlan || "free").toLowerCase();
+  const isCustomDomainMatch = vendor.storefrontSettings?.customDomain === domain;
+
+  // If matched via custom domain, verify tier eligibility: only atelier and maison can use custom domains
+  if (isCustomDomainMatch) {
+    const hasCustomDomainPrivilege = ["atelier", "maison"].includes(plan);
+    if (!hasCustomDomainPrivilege) {
+      return sendError(
+        res,
+        "Vendor's current subscription tier does not support custom domains",
+        403
+      );
+    }
+  }
+
+  const { isEligible, isPublished, canBeLive } = await checkStorefrontEligibility(vendor);
+
+  res.setHeader("Cache-Control", "public, s-maxage=60, stale-while-revalidate=300");
+
+  return sendSuccess(res, {
+    handle: vendor.handle,
+    businessName: vendor.businessName,
+    businessType: vendor.businessType,
+    subscriptionPlan: plan,
+    isPublished,
+    isEligible,
+    canBeLive,
+    customDomain: vendor.storefrontSettings?.customDomain || "",
+    customDomainStatus: vendor.storefrontSettings?.customDomainStatus || "none",
+  });
+});
 
 /* ── GET /api/storefront/:handle ────────────────────────────────── */
 export const getVendorStorefront = asyncHandler(async (req, res) => {
   const { handle } = req.params;
+  const { preview } = req.query;
+  const isPreview = preview === "true";
 
   const vendor = await Vendor.findOne({
     handle: handle.toLowerCase(),
     isActive: true,
   }).select(
-    "businessName handle bio logo location socials subscriptionPlan businessType category storefrontSettings discounts payoutAccount"
+    "businessName handle phone bio logo location socials subscriptionPlan businessType category storefrontSettings discounts payoutAccount"
   );
 
   if (!vendor) {
     return sendError(res, "Store not found", 404);
+  }
+
+  const { activeProductCount, isEligible, isPublished, canBeLive } =
+    await checkStorefrontEligibility(vendor);
+
+  // If public visitor (not authenticated dashboard preview) and store is not published or eligible, return 404
+  if (!isPreview && !canBeLive) {
+    return sendError(res, "Store not found or not yet published", 404);
   }
 
   const vendorObj = vendor.toObject();
@@ -52,21 +156,45 @@ export const getVendorStorefront = asyncHandler(async (req, res) => {
   vendorObj.hasOnlinePayment = Boolean(vendorObj.payoutAccount?.isVerified);
   delete vendorObj.payoutAccount;
 
+  // Add activation & tier metadata
+  const plan = (vendorObj.subscriptionPlan || "free").toLowerCase();
+  const isSinglePage = ["free", "stitch"].includes(plan);
+
+  vendorObj.isPublished = isPublished;
+  vendorObj.isEligible = isEligible;
+  vendorObj.activeProductCount = activeProductCount;
+  vendorObj.isSinglePage = isSinglePage;
+  vendorObj.tierCapabilities = {
+    plan,
+    isSinglePage,
+    hasCustomColors: !["free", "stitch"].includes(plan),
+    hasNoticeBar: !["free", "stitch"].includes(plan),
+    hasCustomDomain: ["atelier", "maison"].includes(plan),
+    canRemoveWatermark: ["atelier", "maison"].includes(plan),
+  };
+
   return sendSuccess(res, vendorObj);
 });
 
 /* ── GET /api/storefront/:handle/products ───────────────────────── */
 export const getStorefrontProducts = asyncHandler(async (req, res) => {
   const { handle } = req.params;
-  const { page = 1, limit = 20, category } = req.query;
+  const { page = 1, limit = 20, category, preview } = req.query;
 
   const vendor = await Vendor.findOne({
     handle: handle.toLowerCase(),
     isActive: true,
-  }).select("_id");
+  }).select("_id businessName socials businessType storefrontSettings phone");
 
   if (!vendor) {
     return sendError(res, "Store not found", 404);
+  }
+
+  if (preview !== "true") {
+    const { canBeLive } = await checkStorefrontEligibility(vendor);
+    if (!canBeLive) {
+      return sendError(res, "Store not found or not yet published", 404);
+    }
   }
 
   const filter = {
@@ -115,14 +243,22 @@ export const getStorefrontProducts = asyncHandler(async (req, res) => {
 /* ── GET /api/storefront/:handle/products/:productId ────────────── */
 export const getStorefrontProduct = asyncHandler(async (req, res) => {
   const { handle, productId } = req.params;
+  const { preview } = req.query;
 
   const vendor = await Vendor.findOne({
     handle: handle.toLowerCase(),
     isActive: true,
-  }).select("_id businessName socials");
+  }).select("_id businessName socials businessType storefrontSettings phone");
 
   if (!vendor) {
     return sendError(res, "Store not found", 404);
+  }
+
+  if (preview !== "true") {
+    const { canBeLive } = await checkStorefrontEligibility(vendor);
+    if (!canBeLive) {
+      return sendError(res, "Store not found or not yet published", 404);
+    }
   }
 
   const product = await Product.findOne({
@@ -149,7 +285,12 @@ export const getStorefrontProduct = asyncHandler(async (req, res) => {
     product: sanitizedProduct,
     vendor: {
       businessName: vendor.businessName,
-      whatsapp: vendor.socials?.whatsapp,
+      whatsapp: vendor.socials?.whatsapp || vendor.phone,
+      phone: vendor.phone,
+      themeColor: vendor.storefrontSettings?.themeColor || "#C88A2C",
+      accentColor: vendor.storefrontSettings?.accentColor || "#E11D48",
+      deliveryRates: vendor.storefrontSettings?.deliveryRates || [],
+      businessType: vendor.businessType,
     },
   });
 });
@@ -216,6 +357,79 @@ export const validateCoupon = asyncHandler(async (req, res) => {
     },
     "Coupon applied successfully"
   );
+});
+
+/* ── POST /api/storefront/:handle/initialize-paystack ────────────── */
+export const initializeStorefrontPaystack = asyncHandler(async (req, res) => {
+  const { handle } = req.params;
+  const {
+    customerName,
+    customerPhone,
+    customerEmail,
+    deliveryAddress = {},
+    deliveryFee = 0,
+    items = [],
+    couponCode = "",
+    notes = "",
+  } = req.body;
+
+  const vendor = await Vendor.findOne({ handle: handle.toLowerCase(), isActive: true });
+  if (!vendor) return sendError(res, "Store not found", 404);
+
+  // Validate items
+  const normalizedItems = await normalizeOrderItems(items, vendor._id);
+  if (normalizedItems.error) return sendError(res, normalizedItems.error, 400);
+
+  const subtotal = normalizedItems.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  // Compute discount
+  let discountAmount = 0;
+  if (couponCode) {
+    const cleanCode = couponCode.trim().toUpperCase();
+    const coupon = (vendor.discounts || []).find((d) => d.code === cleanCode && d.isActive);
+    if (coupon) {
+      if (coupon.type === "percentage") {
+        discountAmount = Math.round((subtotal * coupon.value) / 100);
+      } else {
+        discountAmount = Math.min(coupon.value, subtotal);
+      }
+    }
+  }
+
+  const deliveryFeeNum = Math.max(0, Number(deliveryFee) || 0);
+  const totalAmount = Math.max(0, subtotal - discountAmount + deliveryFeeNum);
+  const amountInKobo = Math.round(totalAmount * 100);
+
+  if (amountInKobo <= 0) {
+    return sendError(res, "Order total must be greater than zero", 400);
+  }
+
+  const reference = `VEN_${Date.now()}_${Math.floor(1000 + Math.random() * 9000)}`;
+  const cleanPhoneDigits = customerPhone ? customerPhone.replace(/\D/g, "") : Date.now().toString();
+  const email = (customerEmail && customerEmail.trim()) || `customer_${cleanPhoneDigits}@tryvendra.ng`;
+
+  const frontendUrl = process.env.FRONTEND_URL || "http://localhost:3000";
+  const callbackUrl = `${frontendUrl}/store/${handle}/checkout?paystack_ref=${reference}`;
+
+  const paystackData = await initializeTransaction({
+    email,
+    amount: amountInKobo,
+    reference,
+    callback_url: callbackUrl,
+    metadata: {
+      custom_fields: [
+        { display_name: "Customer Name", variable_name: "customer_name", value: customerName },
+        { display_name: "Store Handle", variable_name: "store_handle", value: handle },
+      ],
+    },
+  });
+
+  return sendSuccess(res, {
+    ...paystackData,
+    reference,
+    amount: totalAmount,
+    amountInKobo,
+  });
 });
 
 /* ── POST /api/storefront/:handle/orders ────────────────────────── */
@@ -377,6 +591,61 @@ export const createStorefrontOrder = asyncHandler(async (req, res) => {
     type: "order_status",
     actionUrl: `/dashboard/orders/${order._id}`,
   });
+
+  // 6. Send instant email notification to vendor
+  try {
+    if (vendor.email) {
+      sendNewOrderNotificationEmail(vendor.email, {
+        vendorName: vendor.businessName || vendor.name || "Vendor",
+        orderId: order._id.toString(),
+        orderNumber: order._id.toString().slice(-6).toUpperCase(),
+        customerName,
+        customerPhone,
+        customerEmail,
+        deliveryAddress: order.deliveryAddress,
+        deliveryFee: deliveryFeeNum,
+        items: normalizedItems,
+        subtotal,
+        discountAmount,
+        totalAmount,
+        depositPaid,
+        balanceOwed: Math.max(0, totalAmount - depositPaid),
+        paymentMethod,
+        paymentReference,
+        status: order.status,
+        notes,
+        source: "Storefront",
+      }).catch((emailErr) => {
+        console.error("❌ [Storefront Vendor Email Error]:", emailErr.message);
+      });
+    }
+  } catch (err) {
+    console.error("❌ [Storefront Email Dispatch Error]:", err.message);
+  }
+
+  // 7. Send customer order confirmation receipt if valid email was provided
+  try {
+    if (customerEmail && customerEmail.includes("@") && !customerEmail.endsWith("@tryvendra.ng")) {
+      sendCustomerOrderConfirmationEmail(customerEmail, {
+        storeName: vendor.businessName || "Boutique",
+        vendorPhone: vendor.phone || vendor.socials?.whatsapp || "",
+        orderNumber: order._id.toString().slice(-6).toUpperCase(),
+        customerName,
+        deliveryAddress: order.deliveryAddress,
+        deliveryFee: deliveryFeeNum,
+        items: normalizedItems,
+        totalAmount,
+        depositPaid,
+        balanceOwed: Math.max(0, totalAmount - depositPaid),
+        paymentMethod,
+        status: order.status,
+      }).catch((custEmailErr) => {
+        console.error("❌ [Customer Order Email Error]:", custEmailErr.message);
+      });
+    }
+  } catch (err) {
+    console.error("❌ [Customer Order Email Dispatch Error]:", err.message);
+  }
 
   return sendSuccess(
     res,

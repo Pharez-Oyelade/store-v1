@@ -24,38 +24,32 @@ async function getVendorStorefront(handle: string) {
   }
 }
 
-// Storefront is guarded in production by default unless explicitly enabled via environment flag
-const isStorefrontGuardedInProd =
-  process.env.NODE_ENV === "production" &&
-  process.env.ENABLE_STOREFRONT !== "true" &&
-  process.env.NEXT_PUBLIC_ENABLE_STOREFRONT !== "true";
-
 // Generate dynamic SEO metadata
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ handle: string }>;
 }): Promise<Metadata> {
-  if (isStorefrontGuardedInProd) {
-    return { title: "Coming Soon" };
-  }
-
   const { handle } = await params;
   const vendor = await getVendorStorefront(handle);
 
   if (!vendor) {
-    return { title: "Store Not Found" };
+    return { title: "Store Not Found | Vendra" };
   }
 
-  const description = vendor.bio || `Shop products and request bespoke designs from ${vendor.businessName} on Vendra.`;
+  const description =
+    vendor.bio ||
+    `Shop luxury collections and bespoke designs from ${vendor.businessName} on Vendra.`;
 
   return {
-    title: vendor.businessName,
+    title: `${vendor.businessName} | Official Storefront`,
     description,
     openGraph: {
       title: vendor.businessName,
       description,
-      images: vendor.logo?.url ? [{ url: vendor.logo.url, width: 400, height: 400, alt: vendor.businessName }] : [{ url: "/og-image.png" }],
+      images: vendor.logo?.url
+        ? [{ url: vendor.logo.url, width: 400, height: 400, alt: vendor.businessName }]
+        : [{ url: "/og-image.png" }],
       type: "website",
     },
   };
@@ -73,12 +67,6 @@ export default async function StorefrontLayout({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
-  
-  // Guard storefront access in production by default until the feature is fully released
-  if (isStorefrontGuardedInProd) {
-    notFound();
-  }
-
   const vendor = await getVendorStorefront(handle);
 
   if (!vendor) {

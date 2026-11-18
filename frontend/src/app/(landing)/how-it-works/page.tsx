@@ -139,7 +139,7 @@ export default function HowItWorksPage() {
 
       {/* Hero Header */}
       <section className="relative px-4 md:px-15 pt-20 pb-16 md:py-24 max-w-7xl mx-auto text-center space-y-6">
-        <motion.div
+        {/* <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
@@ -149,7 +149,7 @@ export default function HowItWorksPage() {
           <span className="text-brand-700 text-xs md:text-sm font-semibold uppercase tracking-wider">
             Simple, Seamless, Smart
           </span>
-        </motion.div>
+        </motion.div> */}
 
         <motion.h1
           initial={{ opacity: 0, y: 20 }}
@@ -236,7 +236,7 @@ export default function HowItWorksPage() {
                         alt={step.title}
                         className="absolute inset-0 w-full h-full object-cover object-center"
                       />
-                      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/50 pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/30 pointer-events-none" />
 
                       <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/50 pointer-events-none transition-opacity duration-300" />
 

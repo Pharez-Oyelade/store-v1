@@ -245,13 +245,19 @@ export interface Vendor {
     orderDispatchedTemplate?: string;
     orderCompletedTemplate?: string;
   };
-  businessType?: "ready_to_wear" | "made_to_order" | "demand" | "hybrid";
+  businessType?: "unselected" | "ready_to_wear" | "made_to_order" | "demand" | "hybrid";
   category?: string;
   storefrontSettings?: {
+    isPublished?: boolean;
     themeColor?: string;
     accentColor?: string;
     bannerImage?: CloudinaryImage;
+    bannerHeadline?: string;
+    bannerText?: string;
     customDomain?: string;
+    customDomainStatus?: "none" | "pending" | "active" | "error";
+    customDomainVerifiedAt?: string;
+    customDomainError?: string;
     customCss?: string;
     announcementText?: string;
     announcementActive?: boolean;
@@ -516,6 +522,7 @@ export interface RegisterPayload {
   phone: string;
   email?: string;
   password: string;
+  businessType?: "ready_to_wear" | "demand" | "hybrid" | "made_to_order";
   location?: {
     state: string;
     city: string;
@@ -541,6 +548,7 @@ export type AuthUser = Pick<
   | "subscriptionPlan"
   | "subscriptionStatus"
   | "role"
+  | "businessType"
 > & {
   user?: {
     _id: string;

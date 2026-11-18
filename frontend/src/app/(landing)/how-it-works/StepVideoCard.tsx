@@ -99,7 +99,7 @@ export default function StepVideoCard({
       )}
 
       {/* Contrast vignette overlay: preserves crisp legibility for overlaid badges */}
-      <div className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/15 to-black/50 pointer-events-none transition-opacity duration-300" />
+      <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-black/30 pointer-events-none transition-opacity duration-300" />
 
       {/* Top Header Row: Icon Badge & Giant Step Number */}
       <div className="relative z-10 flex justify-between items-start pointer-events-none">
@@ -125,12 +125,12 @@ export default function StepVideoCard({
       {/* Bottom Footer Row: Status Pill */}
       <div className="relative z-10 flex items-center justify-between pointer-events-none">
         {isActive && !isPaused ? (
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-medium shadow-md transition-all duration-300">
-            <span className="relative flex h-2 w-2">
+          <div className="sm:inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-black/60 backdrop-blur-md border border-white/20 text-white text-xs font-medium shadow-md transition-all duration-300 hidden">
+            {/* <span className="relative flex h-2 w-2">
               <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
               <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
-            </span>
-            <span>Live Demo</span>
+            </span> */}
+            <span>Demo</span>
           </div>
         ) : isActive && isPaused ? (
           <div className="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-black/75 backdrop-blur-md border border-white/25 text-white text-xs font-medium shadow-md transition-all duration-300">

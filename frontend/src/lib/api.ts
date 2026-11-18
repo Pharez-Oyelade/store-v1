@@ -11,7 +11,7 @@ const api = axios.create({
     "Content-Type": "application/json",
   },
 
-  timeout: 10000, //10 seconds - abort request if no response
+  timeout: 20000, // 20 seconds base timeout
 });
 
 // Request Interceptor
@@ -24,6 +24,11 @@ api.interceptors.request.use(
       } else if (config.headers) {
         delete (config.headers as any)["Content-Type"];
         delete (config.headers as any)["content-type"];
+      }
+
+      // Generous timeout for multipart/file uploads (2 minutes)
+      if (!config.timeout || config.timeout < 120000) {
+        config.timeout = 120000;
       }
     }
     return config;

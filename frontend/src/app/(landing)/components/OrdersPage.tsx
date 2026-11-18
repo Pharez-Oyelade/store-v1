@@ -8,6 +8,7 @@ import {
   Trash2,
   Scissors,
   ShoppingBag,
+  MapPin,
 } from "lucide-react";
 import {
   EmptyState,
@@ -37,6 +38,8 @@ const BESPOKE_STATUS_OPTIONS = [
 ];
 
 export default function OrdersPage() {
+  const vendor = useAuthStore((s) => s.vendor);
+  const isBespoke = vendor?.businessType === "demand";
   const searchParams = useSearchParams();
   const initialStatus = searchParams.get("status") || "all";
   const initialPayment = searchParams.get("payment") || "all";
@@ -89,22 +92,45 @@ export default function OrdersPage() {
         description="Track ready-made boutique sales, bespoke customer tailoring demands, deposits, and status."
         action={
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/demands/new"
-              prefetch={true}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
-            >
-              <Scissors className="size-3.5" />
-              <span>New Bespoke</span>
-            </Link>
-            <Link
-              href="/dashboard/orders/new"
-              prefetch={true}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
-            >
-              <Plus className="size-3.5 text-white" />
-              <span className="text-white">New Order</span>
-            </Link>
+            {isBespoke ? (
+              <>
+                <Link
+                  href="/dashboard/demands/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
+                >
+                  <Scissors className="size-3.5 text-white" />
+                  <span className="text-white">New Bespoke</span>
+                </Link>
+                <Link
+                  href="/dashboard/orders/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Plus className="size-3.5" />
+                  <span>New Order</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard/demands/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
+                >
+                  <Scissors className="size-3.5" />
+                  <span>New Bespoke</span>
+                </Link>
+                <Link
+                  href="/dashboard/orders/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
+                >
+                  <Plus className="size-3.5 text-white" />
+                  <span className="text-white">New Order</span>
+                </Link>
+              </>
+            )}
           </div>
         }
       />
@@ -381,6 +407,22 @@ function OrderCard({
           <p className="text-xs text-gray-500 mt-0.5">
             {order.customerSnapshot.phone} • {formatDate(order.createdAt)}
           </p>
+          {(order.deliveryAddress?.city ||
+            order.deliveryAddress?.state ||
+            order.deliveryAddress?.street) && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-xs text-gray-600 bg-gray-50 border border-gray-100 rounded-md px-2 py-1">
+              <MapPin className="size-3 text-brand-600 shrink-0" />
+              <span className="truncate">
+                {[
+                  order.deliveryAddress.street,
+                  order.deliveryAddress.city,
+                  order.deliveryAddress.state,
+                ]
+                  .filter(Boolean)
+                  .join(", ")}
+              </span>
+            </div>
+          )}
         </div>
         {order.isPendingSync || (order._id && order._id.startsWith("temp_")) ? (
           <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-300">
@@ -556,6 +598,27 @@ function OrderRow({ order, onDelete }: { order: Order; onDelete: () => void }) {
           )}
         </div>
         <p className="text-xs text-gray-500">{order.customerSnapshot.phone}</p>
+        {(order.deliveryAddress?.city ||
+          order.deliveryAddress?.state ||
+          order.deliveryAddress?.street) && (
+          <p
+            className="flex items-center gap-1 text-[11px] text-gray-500 mt-0.5 font-normal truncate max-w-[220px]"
+            title={[
+              order.deliveryAddress.street,
+              order.deliveryAddress.city,
+              order.deliveryAddress.state,
+            ]
+              .filter(Boolean)
+              .join(", ")}
+          >
+            <MapPin className="size-3 text-brand-600 shrink-0" />
+            <span className="truncate">
+              {[order.deliveryAddress.city, order.deliveryAddress.state]
+                .filter(Boolean)
+                .join(", ") || order.deliveryAddress.street}
+            </span>
+          </p>
+        )}
       </td>
       <td className="px-4 py-3 text-gray-600">
         {order.isBespoke ? (

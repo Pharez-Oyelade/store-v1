@@ -19,6 +19,7 @@ import {
   Layers,
   Ruler,
   WifiOff,
+  Loader2,
 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/custom/Button";
@@ -30,6 +31,7 @@ import { useTeamSummary } from "@/hooks/useTeam";
 import { useAuthStore } from "@/store/authStore";
 import { useOfflineMutation } from "@/hooks/useOfflineMutation";
 import { generateLocalId } from "@/lib/offline/outbox";
+import { compressImages } from "@/lib/imageCompression";
 import type { CustomRequest, CustomRequestMaterial } from "@/types";
 import toast from "react-hot-toast";
 import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
@@ -137,6 +139,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   // Reference images
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
+  const [isCompressing, setIsCompressing] = useState(false);
   const [existingImages, setExistingImages] = useState(
     initialData?.referenceImages || []
   );
@@ -216,13 +219,13 @@ export default function DemandForm({ initialData }: DemandFormProps) {
       (Number(depositPaidWatch) || 0)
   );
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (!e.target.files) return;
-    const files = Array.from(e.target.files);
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!e.target.files || e.target.files.length === 0) return;
+    const files: File[] = Array.from(e.target.files);
 
-    const oversized = files.filter((f) => f.size > 15 * 1024 * 1024);
+    const oversized = files.filter((f: File) => f.size > 20 * 1024 * 1024);
     if (oversized.length > 0) {
-      toast.error("One or more images exceed the 15MB limit. Please choose smaller files.");
+      toast.error("One or more images exceed the 20MB limit. Please choose smaller files.");
       return;
     }
 
@@ -232,13 +235,29 @@ export default function DemandForm({ initialData }: DemandFormProps) {
       return;
     }
 
-    setSelectedFiles((prev) => [...prev, ...files]);
-    const newPreviews = files.map((file) => URL.createObjectURL(file));
-    setPreviewUrls((prev) => [...prev, ...newPreviews]);
+    try {
+      setIsCompressing(true);
+      const optimizedFiles: File[] = await compressImages(files);
+      setSelectedFiles((prev: File[]) => [...prev, ...optimizedFiles]);
+      const newPreviews = optimizedFiles.map((file: File) => URL.createObjectURL(file));
+      setPreviewUrls((prev: string[]) => [...prev, ...newPreviews]);
+    } catch (err) {
+      console.error("[DemandForm] Image compression failed:", err);
+      setSelectedFiles((prev: File[]) => [...prev, ...files]);
+      const newPreviews = files.map((file: File) => URL.createObjectURL(file));
+      setPreviewUrls((prev: string[]) => [...prev, ...newPreviews]);
+    } finally {
+      setIsCompressing(false);
+      e.target.value = "";
+    }
   };
 
 
   const handleRemoveNewImage = (index: number) => {
+    const url = previewUrls[index];
+    if (url && url.startsWith("blob:")) {
+      URL.revokeObjectURL(url);
+    }
     setSelectedFiles((prev) => prev.filter((_, i) => i !== index));
     setPreviewUrls((prev) => prev.filter((_, i) => i !== index));
   };
@@ -249,6 +268,11 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   };
 
   const onSubmit = async (data: DemandFormSchema) => {
+    if (isCompressing) {
+      toast.error("Please wait while photos finish optimizing...");
+      return;
+    }
+
     const formData = new FormData();
     if (selectedCustomerId) {
       formData.append("customerId", selectedCustomerId);
@@ -275,8 +299,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     formData.append("measurements", JSON.stringify(measurements));
     formData.append("materials", JSON.stringify(materials));
 
-    // Images
-    selectedFiles.forEach((file) => {
+    // Images (double-check compression before uploading)
+    const finalFiles = await compressImages(selectedFiles);
+    finalFiles.forEach((file) => {
       formData.append("images", file);
     });
 
@@ -350,6 +375,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   };
 
   const isPending = createMutation.isPending || updateMutation.isPending;
+  const isSubmitting = isPending || isCompressing;
 
   return (
     <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12">
@@ -614,8 +640,16 @@ export default function DemandForm({ initialData }: DemandFormProps) {
                   </div>
                 ))}
 
+                {/* Compressing indicator */}
+                {isCompressing && (
+                  <div className="w-24 h-24 rounded-xl border border-dashed border-brand-300 bg-brand-50/70 flex flex-col items-center justify-center p-2 text-center animate-pulse">
+                    <Loader2 size={20} className="text-brand-600 animate-spin mb-1" />
+                    <span className="text-[10px] font-semibold text-brand-700">Optimizing...</span>
+                  </div>
+                )}
+
                 {/* Upload Button */}
-                {existingImages.length + selectedFiles.length < 5 && (
+                {!isCompressing && existingImages.length + selectedFiles.length < 5 && (
                   <label className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-700 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-brand-50/50 transition-colors">
                     <UploadCloud size={20} className="text-gray-400" />
                     <span className="text-[11px] font-medium text-gray-500 mt-1">
@@ -827,7 +861,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               type="submit"
               variant="primary"
               size="large"
-              isLoading={isPending}
+              isLoading={isSubmitting}
               leftIcon={!isOnline ? <WifiOff className="size-4" /> : undefined}
             >
               {!isOnline ? "Save Offline (Syncs Later)" : (initialData ? "Save Changes" : "Create Bespoke Request")}

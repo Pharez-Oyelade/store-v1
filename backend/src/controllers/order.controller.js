@@ -7,6 +7,7 @@ import asyncHandler from "../utils/asyncHandler.js";
 import { sendSuccess, sendError } from "../utils/apiResponse.js";
 import { buildDynamicWhatsAppLink, buildCustomRequestWhatsAppLink } from "../services/whatsapp.service.js";
 import { createNotification } from "../services/notification.service.js";
+import { sendNewOrderNotificationEmail } from "../services/email.service.js";
 import { escapeRegex } from "../utils/escapeRegex.js";
 
 /* ── GET /api/orders ────────────────────────────────────────────── */
@@ -181,6 +182,8 @@ export const getOrders = asyncHandler(async (req, res) => {
             vendor: 1,
             customer: 1,
             customerSnapshot: 1,
+            deliveryAddress: 1,
+            deliveryFee: 1,
             items: 1,
             totalAmount: 1,
             depositPaid: 1,
@@ -380,13 +383,26 @@ export const getOrder = asyncHandler(async (req, res) => {
   const order = await Order.findOne({
     _id: req.params.id,
     vendor: req.vendor._id,
-  }).populate("customer", "name phone email instagram tags");
+  }).populate("customer", "name phone email instagram tags deliveryAddress");
 
   if (!order) {
     return sendError(res, "Order not found", 404);
   }
 
   const orderObj = order.toObject();
+
+  // If order itself lacks delivery address but linked customer has one, provide it as fallback
+  if (
+    (!orderObj.deliveryAddress?.street && !orderObj.deliveryAddress?.city) &&
+    (order.customer?.deliveryAddress?.street || order.customer?.deliveryAddress?.city)
+  ) {
+    orderObj.deliveryAddress = {
+      street: order.customer.deliveryAddress.street || "",
+      city: order.customer.deliveryAddress.city || "",
+      state: order.customer.deliveryAddress.state || "",
+    };
+  }
+
   orderObj.whatsappLinks = {
     confirmed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderConfirmedTemplate"),
     dispatched: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderDispatchedTemplate"),
@@ -415,6 +431,8 @@ export const createOrder = asyncHandler(async (req, res) => {
     customerEmail = "",
     items,
     depositPaid = 0,
+    deliveryAddress = {},
+    deliveryFee = 0,
     notes = "",
     source = "dm",
   } = req.body;
@@ -424,6 +442,7 @@ export const createOrder = asyncHandler(async (req, res) => {
    * Customers are scoped per vendor (unique: vendor + phone).
    */
   let customer = await Customer.findOne({ vendor: vendorId, phone: customerPhone });
+  const hasDelivery = Boolean(deliveryAddress?.street || deliveryAddress?.city || deliveryAddress?.state);
 
   if (!customer) {
     customer = await Customer.create({
@@ -431,7 +450,19 @@ export const createOrder = asyncHandler(async (req, res) => {
       name: customerName,
       phone: customerPhone,
       email: customerEmail,
+      deliveryAddress: {
+        street: deliveryAddress.street || "",
+        city: deliveryAddress.city || "",
+        state: deliveryAddress.state || "",
+      },
     });
+  } else if (hasDelivery) {
+    customer.deliveryAddress = {
+      street: deliveryAddress.street || customer.deliveryAddress?.street || "",
+      city: deliveryAddress.city || customer.deliveryAddress?.city || "",
+      state: deliveryAddress.state || customer.deliveryAddress?.state || "",
+    };
+    await customer.save();
   }
 
   const normalizedItems = await normalizeOrderItems(items, vendorId);
@@ -440,11 +471,14 @@ export const createOrder = asyncHandler(async (req, res) => {
     return sendError(res, normalizedItems.error, 400);
   }
 
-  // Compute total from normalized item snapshots
-  const totalAmount = normalizedItems.reduce(
+  const deliveryFeeNum = Math.max(0, Number(deliveryFee) || 0);
+
+  // Compute total from normalized item snapshots + delivery fee
+  const itemsSubtotal = normalizedItems.reduce(
     (sum, item) => sum + item.price * item.quantity,
     0,
   );
+  const totalAmount = itemsSubtotal + deliveryFeeNum;
 
   let orderStatus = req.body.status || "pending";
   const numDeposit = Number(depositPaid || 0);
@@ -470,6 +504,12 @@ export const createOrder = asyncHandler(async (req, res) => {
       phone: customerPhone,
       email: customerEmail,
     },
+    deliveryAddress: {
+      street: deliveryAddress.street || "",
+      city: deliveryAddress.city || "",
+      state: deliveryAddress.state || "",
+    },
+    deliveryFee: deliveryFeeNum,
     items: normalizedItems,
     totalAmount,
     depositPaid: numDeposit,
@@ -502,12 +542,44 @@ export const createOrder = asyncHandler(async (req, res) => {
     completed: await buildDynamicWhatsAppLink(req.vendor, orderObj, "orderCompletedTemplate"),
   };
 
+  const addressSummary = deliveryAddress.street
+    ? ` (Delivery to: ${deliveryAddress.street}, ${deliveryAddress.city})`
+    : "";
+
   await createNotification(vendorId, {
     title: "New Order Created",
-    message: `Order #${order._id.toString().slice(-6).toUpperCase()} has been created for ${customerName} (Total: ₦${totalAmount.toLocaleString("en-NG")}).`,
+    message: `Order #${order._id.toString().slice(-6).toUpperCase()} has been created for ${customerName} (Total: ₦${totalAmount.toLocaleString("en-NG")})${addressSummary}.`,
     type: "order_status",
     actionUrl: `/dashboard/orders/${order._id}`,
   });
+
+  // Dispatch email notification to vendor
+  try {
+    if (req.vendor.email) {
+      sendNewOrderNotificationEmail(req.vendor.email, {
+        vendorName: req.vendor.businessName || req.vendor.name || "Vendor",
+        orderId: order._id.toString(),
+        orderNumber: order._id.toString().slice(-6).toUpperCase(),
+        customerName,
+        customerPhone,
+        customerEmail,
+        deliveryAddress: order.deliveryAddress,
+        deliveryFee: deliveryFeeNum,
+        items: normalizedItems,
+        subtotal: itemsSubtotal,
+        totalAmount,
+        depositPaid: numDeposit,
+        balanceOwed: Math.max(0, totalAmount - numDeposit),
+        status: order.status,
+        notes,
+        source: source || "Dashboard",
+      }).catch((emailErr) => {
+        console.error("❌ [Dashboard Order Email Error]:", emailErr.message);
+      });
+    }
+  } catch (err) {
+    console.error("❌ [Dashboard Email Dispatch Error]:", err.message);
+  }
 
   return sendSuccess(res, orderObj, "Order created successfully", 201);
 });
@@ -519,7 +591,7 @@ export const updateOrder = asyncHandler(async (req, res) => {
     vendor: req.vendor._id,
   });
 
-  const { status, depositPaid, notes, whatsappSent } = req.body;
+  const { status, depositPaid, notes, whatsappSent, deliveryAddress, deliveryFee } = req.body;
 
   // If not found in Order, check if it's a CustomRequest (Bespoke)
   if (!order) {
@@ -670,6 +742,16 @@ export const updateOrder = asyncHandler(async (req, res) => {
   if (depositPaid !== undefined) order.depositPaid = effectiveDeposit;
   if (notes !== undefined) order.notes = notes;
   if (whatsappSent !== undefined) order.whatsappSent = whatsappSent;
+  if (deliveryAddress && typeof deliveryAddress === "object") {
+    order.deliveryAddress = {
+      street: deliveryAddress.street !== undefined ? deliveryAddress.street : (order.deliveryAddress?.street || ""),
+      city: deliveryAddress.city !== undefined ? deliveryAddress.city : (order.deliveryAddress?.city || ""),
+      state: deliveryAddress.state !== undefined ? deliveryAddress.state : (order.deliveryAddress?.state || ""),
+    };
+  }
+  if (deliveryFee !== undefined) {
+    order.deliveryFee = Math.max(0, Number(deliveryFee) || 0);
+  }
   order.status = targetStatus;
 
   if (shouldDeplete) {

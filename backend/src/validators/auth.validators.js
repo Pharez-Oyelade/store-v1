@@ -63,6 +63,11 @@ export const registerValidators = [
     .withMessage("Enter a valid email address")
     .normalizeEmail(),
 
+  body("businessType")
+    .optional({ values: "falsy" })
+    .isIn(["ready_to_wear", "demand", "hybrid", "made_to_order"])
+    .withMessage("Please select a valid business type"),
+
   body("password")
     .isLength({ min: 8 })
     .withMessage("Password must be at least 8 characters")

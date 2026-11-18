@@ -11,71 +11,156 @@ export interface CartItem {
   variantLabel: string;
 }
 
-interface CartState {
+interface MultiVendorCartState {
+  // Scoped carts map: { "amina-couture": [CartItem, ...], "lekki-tailor": [...] }
+  carts: Record<string, CartItem[]>;
+
+  // Scoped mutations
+  addItem: (vendorHandle: string, item: CartItem) => void;
+  removeItem: (vendorHandle: string, productId: string, variantId: string) => void;
+  updateQuantity: (vendorHandle: string, productId: string, variantId: string, quantity: number) => void;
+  clearCart: (vendorHandle?: string) => void;
+
+  // Scoped queries
+  getItems: (vendorHandle?: string) => CartItem[];
+  getTotalItems: (vendorHandle?: string) => number;
+  getTotalPrice: (vendorHandle?: string) => number;
+
+  // Legacy fallback properties for components during migration
   items: CartItem[];
-  addItem: (item: CartItem) => void;
-  removeItem: (productId: string, variantId: string) => void;
-  updateQuantity: (productId: string, variantId: string, quantity: number) => void;
-  clearCart: () => void;
-  getTotalItems: () => number;
-  getTotalPrice: () => number;
 }
 
-export const useCartStore = create<CartState>()(
+export const useCartStore = create<MultiVendorCartState>()(
   persist(
     (set, get) => ({
-      items: [],
+      carts: {},
+      items: [], // Legacy fallback
 
-      addItem: (newItem) => {
+      addItem: (vendorHandle, newItem) => {
+        const handle = (vendorHandle || "default").toLowerCase().trim();
         set((state) => {
-          const existingItemIndex = state.items.findIndex(
+          const vendorItems = state.carts[handle] || [];
+          const existingItemIndex = vendorItems.findIndex(
             (item) => item.productId === newItem.productId && item.variantId === newItem.variantId
           );
 
+          let updatedVendorItems: CartItem[];
           if (existingItemIndex >= 0) {
-            // Update quantity if item already in cart
-            const updatedItems = [...state.items];
-            updatedItems[existingItemIndex].quantity += newItem.quantity;
-            return { items: updatedItems };
+            updatedVendorItems = [...vendorItems];
+            updatedVendorItems[existingItemIndex].quantity += newItem.quantity;
           } else {
-            // Add new item
-            return { items: [...state.items, newItem] };
+            updatedVendorItems = [...vendorItems, newItem];
           }
+
+          return {
+            carts: {
+              ...state.carts,
+              [handle]: updatedVendorItems,
+            },
+            items: updatedVendorItems, // Legacy mirror for current active
+          };
         });
       },
 
-      removeItem: (productId, variantId) => {
-        set((state) => ({
-          items: state.items.filter(
+      removeItem: (vendorHandle, productId, variantId) => {
+        const handle = (vendorHandle || "default").toLowerCase().trim();
+        set((state) => {
+          const vendorItems = state.carts[handle] || [];
+          const updatedVendorItems = vendorItems.filter(
             (item) => !(item.productId === productId && item.variantId === variantId)
-          ),
-        }));
+          );
+          return {
+            carts: {
+              ...state.carts,
+              [handle]: updatedVendorItems,
+            },
+            items: updatedVendorItems,
+          };
+        });
       },
 
-      updateQuantity: (productId, variantId, quantity) => {
-        set((state) => ({
-          items: state.items.map((item) =>
+      updateQuantity: (vendorHandle, productId, variantId, quantity) => {
+        const handle = (vendorHandle || "default").toLowerCase().trim();
+        set((state) => {
+          const vendorItems = state.carts[handle] || [];
+          const updatedVendorItems = vendorItems.map((item) =>
             item.productId === productId && item.variantId === variantId
               ? { ...item, quantity: Math.max(1, quantity) }
               : item
-          ),
-        }));
+          );
+          return {
+            carts: {
+              ...state.carts,
+              [handle]: updatedVendorItems,
+            },
+            items: updatedVendorItems,
+          };
+        });
       },
 
-      clearCart: () => set({ items: [] }),
-
-      getTotalItems: () => {
-        return get().items.reduce((total, item) => total + item.quantity, 0);
+      clearCart: (vendorHandle) => {
+        if (!vendorHandle) {
+          // Clear all carts
+          set({ carts: {}, items: [] });
+          return;
+        }
+        const handle = vendorHandle.toLowerCase().trim();
+        set((state) => {
+          const nextCarts = { ...state.carts };
+          delete nextCarts[handle];
+          return { carts: nextCarts, items: [] };
+        });
       },
 
-      getTotalPrice: () => {
-        return get().items.reduce((total, item) => total + item.price * item.quantity, 0);
+      getItems: (vendorHandle) => {
+        if (!vendorHandle) return get().items;
+        const handle = vendorHandle.toLowerCase().trim();
+        return get().carts[handle] || [];
+      },
+
+      getTotalItems: (vendorHandle) => {
+        const items = get().getItems(vendorHandle);
+        return items.reduce((total, item) => total + item.quantity, 0);
+      },
+
+      getTotalPrice: (vendorHandle) => {
+        const items = get().getItems(vendorHandle);
+        return items.reduce((total, item) => total + item.price * item.quantity, 0);
       },
     }),
     {
-      name: "vendra-cart", // key for local storage
+      name: "vendra-multivendor-cart",
       storage: createJSONStorage(() => localStorage),
     }
   )
 );
 
+/**
+ * Convenient React hook to consume a vendor-isolated cart.
+ * Automatically scopes cart operations, item counts, and totals to the given vendor handle.
+ */
+export function useVendorCart(vendorHandle?: string) {
+  const handle = (vendorHandle || "default").toLowerCase().trim();
+  const carts = useCartStore((s) => s.carts);
+  const addItemFn = useCartStore((s) => s.addItem);
+  const removeItemFn = useCartStore((s) => s.removeItem);
+  const updateQuantityFn = useCartStore((s) => s.updateQuantity);
+  const clearCartFn = useCartStore((s) => s.clearCart);
+
+  const items = carts[handle] || [];
+  const totalItems = items.reduce((sum, item) => sum + item.quantity, 0);
+  const totalPrice = items.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  return {
+    items,
+    totalItems,
+    totalPrice,
+    getTotalPrice: () => totalPrice,
+    getTotalItems: () => totalItems,
+    addItem: (item: CartItem) => addItemFn(handle, item),
+    removeItem: (productId: string, variantId: string) => removeItemFn(handle, productId, variantId),
+    updateQuantity: (productId: string, variantId: string, quantity: number) =>
+      updateQuantityFn(handle, productId, variantId, quantity),
+    clearCart: () => clearCartFn(handle),
+  };
+}

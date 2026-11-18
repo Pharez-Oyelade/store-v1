@@ -91,6 +91,7 @@ const buildAuthUserResponse = (vendor, user = null) => {
     },
     subscriptionPlan: vendor.subscriptionPlan,
     subscriptionStatus: vendor.subscriptionStatus,
+    businessType: vendor.businessType || "unselected",
     lastLogin: vendor.lastLogin,
     lastActiveAt: vendor.lastActiveAt,
   };
@@ -100,7 +101,7 @@ const buildAuthUserResponse = (vendor, user = null) => {
 
 /* Register -------------------------------- */
 export const register = asyncHandler(async (req, res) => {
-  const { businessName, handle, phone, email, password, location } = req.body;
+  const { businessName, handle, phone, email, password, location, businessType } = req.body;
 
   const cleanPhone = phone.trim();
   const altPhone = cleanPhone.startsWith("+234")
@@ -155,6 +156,7 @@ export const register = asyncHandler(async (req, res) => {
     phone: cleanPhone,
     email: email ? email.toLowerCase().trim() : undefined,
     password,
+    businessType: businessType || "ready_to_wear",
     location: location
       ? {
           state: location.state?.trim() || "",

@@ -236,9 +236,50 @@ export default function DashboardSidebar() {
 
   const userRole = (vendor?.user?.role || vendor?.role || "owner") as string;
   const roleHomePath = getRoleHomePath(userRole);
+
+  const isBespoke = vendor?.businessType === "demand";
+  const isHybrid = vendor?.businessType === "hybrid";
+
+  // Desktop sidebar order customization
+  // Bespoke: Overview → Demands → Invoices → Orders → Customers → Suppliers → Products → Analytics → Storefront → Settings
+  // Hybrid: Overview → Orders → Demands → Products → Invoices → Customers → Suppliers → Analytics → Storefront → Settings
+  // Default/RTW: standard NAV_ITEMS order
+  const bespokeOrder = [
+    "/dashboard",
+    "/dashboard/demands",
+    "/dashboard/invoices",
+    "/dashboard/orders",
+    "/dashboard/customers",
+    "/dashboard/suppliers",
+    "/dashboard/products",
+    "/dashboard/analytics",
+    "/dashboard/storefront",
+    "/dashboard/settings",
+  ];
+
+  const hybridOrder = [
+    "/dashboard",
+    "/dashboard/orders",
+    "/dashboard/demands",
+    "/dashboard/products",
+    "/dashboard/invoices",
+    "/dashboard/customers",
+    "/dashboard/suppliers",
+    "/dashboard/analytics",
+    "/dashboard/storefront",
+    "/dashboard/settings",
+  ];
+
+  const preferredOrder = isBespoke ? bespokeOrder : isHybrid ? hybridOrder : null;
+
   const visibleNavItems = NAV_ITEMS.filter((item) =>
     isPathAllowedForRole(item.href, userRole),
-  );
+  ).sort((a, b) => {
+    if (!preferredOrder) return 0;
+    const indexA = preferredOrder.indexOf(a.href);
+    const indexB = preferredOrder.indexOf(b.href);
+    return (indexA === -1 ? 99 : indexA) - (indexB === -1 ? 99 : indexB);
+  });
 
   const { badgeCounts } = useBadgeCounts();
 
