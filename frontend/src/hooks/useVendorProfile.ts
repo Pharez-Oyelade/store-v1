@@ -3,6 +3,7 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import toast from "react-hot-toast";
 import { apiGet, apiPut, apiPost, apiDelete } from "@/lib/api";
+import { useAuthStore } from "@/store/authStore";
 import type { Vendor } from "@/types";
 
 export const VENDOR_KEYS = {
@@ -18,6 +19,7 @@ export interface VendorProfilePayload {
   instagram?: string;
   whatsapp?: string;
   email?: string;
+  businessType?: "ready_to_wear" | "demand" | "hybrid" | "made_to_order" | "unselected";
   socialMessaging?: {
     orderConfirmedTemplate?: string;
     orderDispatchedTemplate?: string;
@@ -39,6 +41,15 @@ export function useUpdateVendorProfile() {
     mutationFn: (data: VendorProfilePayload) => apiPut<Vendor>("/vendor/profile", data),
     onSuccess: (vendor) => {
       queryClient.setQueryData(VENDOR_KEYS.profile, vendor);
+      const currentAuth = useAuthStore.getState().vendor;
+      if (currentAuth) {
+        useAuthStore.getState().setVendor({
+          ...currentAuth,
+          businessType: vendor.businessType,
+          businessName: vendor.businessName,
+          email: vendor.email ?? currentAuth.email,
+        });
+      }
       toast.success("Profile updated");
     },
     onError: (error: Error) => toast.error(error.message || "Failed to update profile"),

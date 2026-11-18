@@ -522,6 +522,7 @@ export interface RegisterPayload {
   phone: string;
   email?: string;
   password: string;
+  businessType?: "ready_to_wear" | "demand" | "hybrid" | "made_to_order";
   location?: {
     state: string;
     city: string;
@@ -547,6 +548,7 @@ export type AuthUser = Pick<
   | "subscriptionPlan"
   | "subscriptionStatus"
   | "role"
+  | "businessType"
 > & {
   user?: {
     _id: string;

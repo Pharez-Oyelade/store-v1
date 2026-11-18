@@ -38,6 +38,8 @@ const BESPOKE_STATUS_OPTIONS = [
 ];
 
 export default function OrdersPage() {
+  const vendor = useAuthStore((s) => s.vendor);
+  const isBespoke = vendor?.businessType === "demand";
   const searchParams = useSearchParams();
   const initialStatus = searchParams.get("status") || "all";
   const initialPayment = searchParams.get("payment") || "all";
@@ -90,22 +92,45 @@ export default function OrdersPage() {
         description="Track ready-made boutique sales, bespoke customer tailoring demands, deposits, and status."
         action={
           <div className="flex items-center gap-2">
-            <Link
-              href="/dashboard/demands/new"
-              prefetch={true}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
-            >
-              <Scissors className="size-3.5" />
-              <span>New Bespoke</span>
-            </Link>
-            <Link
-              href="/dashboard/orders/new"
-              prefetch={true}
-              className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
-            >
-              <Plus className="size-3.5 text-white" />
-              <span className="text-white">New Order</span>
-            </Link>
+            {isBespoke ? (
+              <>
+                <Link
+                  href="/dashboard/demands/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
+                >
+                  <Scissors className="size-3.5 text-white" />
+                  <span className="text-white">New Bespoke</span>
+                </Link>
+                <Link
+                  href="/dashboard/orders/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-gray-300 bg-white px-3 text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors"
+                >
+                  <Plus className="size-3.5" />
+                  <span>New Order</span>
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard/demands/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md border border-brand-700 bg-brand-50 px-3 text-xs font-semibold text-brand-700 hover:bg-brand-100 transition-colors"
+                >
+                  <Scissors className="size-3.5" />
+                  <span>New Bespoke</span>
+                </Link>
+                <Link
+                  href="/dashboard/orders/new"
+                  prefetch={true}
+                  className="inline-flex h-9 items-center gap-1.5 rounded-md bg-brand-700 px-3.5 text-xs font-semibold text-white hover:bg-brand-800 transition-colors shadow-xs"
+                >
+                  <Plus className="size-3.5 text-white" />
+                  <span className="text-white">New Order</span>
+                </Link>
+              </>
+            )}
           </div>
         }
       />

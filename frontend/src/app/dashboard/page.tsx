@@ -13,6 +13,7 @@ import {
   ShoppingCart,
   Users,
   TriangleAlert,
+  Scissors,
 } from "lucide-react";
 import {
   EmptyState,
@@ -30,6 +31,7 @@ import {
 import { useOrders } from "@/hooks/useOrders";
 import { useProducts } from "@/hooks/useProducts";
 import { useSupplierSummary } from "@/hooks/useSuppliers";
+import { useCustomRequests } from "@/hooks/useCustomRequests";
 import { useAuthStore } from "@/store/authStore";
 import { formatCurrency, formatDate } from "@/lib/utils";
 
@@ -53,6 +55,11 @@ export default function DashboardPage() {
   const topCustomers = useTopCustomers();
   const suppliers = useSupplierSummary();
 
+  const isBespoke = vendor?.businessType === "demand";
+  const isHybrid = vendor?.businessType === "hybrid";
+
+  const demands = useCustomRequests({ page: 1, limit: 5 });
+
   const productList = products.data?.products ?? [];
   const lowStockProducts = productList.filter((product) =>
     product.variants.some(
@@ -67,21 +74,59 @@ export default function DashboardPage() {
     <div className="mx-auto max-w-7xl">
       <PageHeader
         title="Dashboard"
-        description="Your inventory, orders, customers and supplier activity in one place."
+        description={
+          isBespoke
+            ? "Your bespoke tailoring demands, customer fittings, and billing in one place."
+            : "Your inventory, orders, customers and supplier activity in one place."
+        }
         action={
           <div className="flex gap-2">
-            <Link
-              href="/dashboard/orders/new"
-              className="inline-flex h-9 items-center rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
-            >
-              <span className="text-white">New order</span>
-            </Link>
-            <Link
-              href="/dashboard/products/new"
-              className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
-            >
-              Add product
-            </Link>
+            {isBespoke ? (
+              <>
+                <Link
+                  href="/dashboard/demands/new"
+                  className="inline-flex h-9 items-center rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
+                >
+                  <span className="text-white">New demand</span>
+                </Link>
+                <Link
+                  href="/dashboard/invoices/new"
+                  className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Create invoice
+                </Link>
+              </>
+            ) : isHybrid ? (
+              <>
+                <Link
+                  href="/dashboard/orders/new"
+                  className="inline-flex h-9 items-center rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
+                >
+                  <span className="text-white">New order</span>
+                </Link>
+                <Link
+                  href="/dashboard/demands/new"
+                  className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  New demand
+                </Link>
+              </>
+            ) : (
+              <>
+                <Link
+                  href="/dashboard/orders/new"
+                  className="inline-flex h-9 items-center rounded-md bg-brand-700 px-3 text-sm font-medium text-white hover:bg-brand-800"
+                >
+                  <span className="text-white">New order</span>
+                </Link>
+                <Link
+                  href="/dashboard/products/new"
+                  className="inline-flex h-9 items-center rounded-md border border-gray-300 bg-white px-3 text-sm font-medium text-gray-700 hover:bg-gray-50"
+                >
+                  Add product
+                </Link>
+              </>
+            )}
           </div>
         }
       />
@@ -189,26 +234,53 @@ export default function DashboardPage() {
             <Boxes className="size-4 text-gray-400" />
           </div>
           <div className="space-y-4">
-            <MiniMetric
-              label="Products tracked"
-              value={products.data?.pagination.total ?? 0}
-              icon={PackageCheck}
-            />
-            <MiniMetric
-              label="Low-stock products"
-              value={overview.data?.lowStockCount ?? lowStockProducts.length}
-              icon={AlertTriangle}
-            />
-            <MiniMetric
-              label="Customers"
-              value={topCustomers.data?.length ?? 0}
-              icon={Users}
-            />
-            <MiniMetric
-              label="Suppliers"
-              value={suppliers.data?.total ?? 0}
-              icon={ShoppingCart}
-            />
+            {isBespoke ? (
+              <>
+                <MiniMetric
+                  label="Active demands"
+                  value={overview.data?.activeDemandsCount ?? 0}
+                  icon={Scissors}
+                />
+                <MiniMetric
+                  label="Overdue / urgent demands"
+                  value={overview.data?.overdueDemandsCount ?? 0}
+                  icon={AlertTriangle}
+                />
+                <MiniMetric
+                  label="Customers"
+                  value={topCustomers.data?.length ?? 0}
+                  icon={Users}
+                />
+                <MiniMetric
+                  label="Suppliers"
+                  value={suppliers.data?.total ?? 0}
+                  icon={ShoppingCart}
+                />
+              </>
+            ) : (
+              <>
+                <MiniMetric
+                  label="Products tracked"
+                  value={products.data?.pagination.total ?? 0}
+                  icon={PackageCheck}
+                />
+                <MiniMetric
+                  label="Low-stock products"
+                  value={overview.data?.lowStockCount ?? lowStockProducts.length}
+                  icon={AlertTriangle}
+                />
+                <MiniMetric
+                  label="Customers"
+                  value={topCustomers.data?.length ?? 0}
+                  icon={Users}
+                />
+                <MiniMetric
+                  label="Suppliers"
+                  value={suppliers.data?.total ?? 0}
+                  icon={ShoppingCart}
+                />
+              </>
+            )}
           </div>
         </section>
       </div>
@@ -290,16 +362,53 @@ export default function DashboardPage() {
 
         <section>
           <div className="mb-3 flex items-center justify-between">
-            <h2 className="text-base font-semibold text-gray-950">Low stock</h2>
+            <h2 className="text-base font-semibold text-gray-950">
+              {isBespoke ? "Active Demands" : "Low stock"}
+            </h2>
             <Link
-              href="/dashboard/products"
+              href={isBespoke ? "/dashboard/demands" : "/dashboard/products"}
               className="text-sm font-medium text-brand-700"
             >
-              <span className="text-brand-700">Inventory</span>
+              <span className="text-brand-700">
+                {isBespoke ? "Demand board" : "Inventory"}
+              </span>
             </Link>
           </div>
           <div className="rounded-lg border border-gray-100 bg-white p-5 shadow-card">
-            {products.isLoading ? (
+            {isBespoke ? (
+              demands.isLoading ? (
+                <div className="space-y-3 animate-pulse">
+                  <div className="h-4 bg-gray-100 rounded w-3/4"></div>
+                  <div className="h-4 bg-gray-100 rounded w-1/2"></div>
+                  <div className="h-4 bg-gray-100 rounded w-2/3"></div>
+                </div>
+              ) : demands.data?.requests.length ? (
+                <div className="space-y-3">
+                  {demands.data.requests.slice(0, 5).map((req) => (
+                    <Link
+                      key={req._id}
+                      href={`/dashboard/demands/${req._id}`}
+                      className="flex items-center justify-between gap-3 hover:bg-gray-50 p-1.5 -mx-1.5 rounded-lg transition-colors"
+                    >
+                      <div className="min-w-0">
+                        <p className="text-sm font-medium text-gray-950 truncate">
+                          {req.title}
+                        </p>
+                        <p className="text-xs text-gray-500 truncate">
+                          {req.customerSnapshot?.name || "Customer"} &bull;{" "}
+                          {req.category || "Bespoke"}
+                        </p>
+                      </div>
+                      <StatusBadge value={req.status} />
+                    </Link>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-sm text-gray-500">
+                  No active custom demands at the moment.
+                </p>
+              )
+            ) : products.isLoading ? (
               <div className="space-y-3 animate-pulse">
                 <div className="h-4 bg-gray-100 rounded w-3/4"></div>
                 <div className="h-4 bg-gray-100 rounded w-1/2"></div>
