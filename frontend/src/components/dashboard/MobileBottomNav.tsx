@@ -78,9 +78,15 @@ export default function MobileBottomNav() {
     return null;
   };
 
+  const isBespoke = vendor?.businessType === "demand";
+  const isHybrid = vendor?.businessType === "hybrid";
+
   // Aggregated counts for actionable items inside the "More" Drawer
-  const moreBadgeTotal = (badgeCounts.invoices || 0) + (badgeCounts.demands || 0);
-  const hasUrgentMore = badgeCounts.demands > 0;
+  // For bespoke vendors, demands is on the bottom bar, so More drawer only tracks invoices & orders
+  const moreBadgeTotal = isBespoke
+    ? (badgeCounts.invoices || 0) + (badgeCounts.orders || 0)
+    : (badgeCounts.invoices || 0) + (badgeCounts.demands || 0);
+  const hasUrgentMore = isBespoke ? false : badgeCounts.demands > 0;
 
   const isActive = (href: string) => {
     if (href === "/dashboard") return pathname === "/dashboard";
@@ -93,12 +99,18 @@ export default function MobileBottomNav() {
     { label: "Orders", href: "/dashboard/orders", icon: ShoppingCart },
   ].filter((tab) => isPathAllowedForRole(tab.href, userRole));
 
-  const rightTabs = [
-    { label: "Products", href: "/dashboard/products", icon: Package },
-  ].filter((tab) => isPathAllowedForRole(tab.href, userRole));
+  // Bespoke vendors display Demands directly on bottom nav; RTW & Hybrid display Products
+  const rightTabs = (
+    isBespoke
+      ? [{ label: "Demands", href: "/dashboard/demands", icon: Scissors }]
+      : [{ label: "Products", href: "/dashboard/products", icon: Package }]
+  ).filter((tab) => isPathAllowedForRole(tab.href, userRole));
 
   // Tabs relegated to the "More" Drawer
-  const excludedFromMore = ["/dashboard", "/dashboard/orders", "/dashboard/products"];
+  // Bespoke vendors keep Products in More; RTW/Hybrid vendors keep Demands in More
+  const excludedFromMore = isBespoke
+    ? ["/dashboard", "/dashboard/orders", "/dashboard/demands"]
+    : ["/dashboard", "/dashboard/orders", "/dashboard/products"];
   const moreTabs = visibleNavItems.filter(
     (item) => !excludedFromMore.includes(item.href),
   );
@@ -109,6 +121,7 @@ export default function MobileBottomNav() {
   // Quick Create actions available to user
   const allQuickCreateActions = [
     {
+      id: "order",
       title: "New Order",
       subtitle: "Record a direct POS sale or customer order",
       href: "/dashboard/orders/new",
@@ -118,6 +131,7 @@ export default function MobileBottomNav() {
       theme: "brand",
     },
     {
+      id: "product",
       title: "Add Product",
       subtitle: "Upload new inventory, variants, colors & pricing",
       href: "/dashboard/products/new",
@@ -127,6 +141,7 @@ export default function MobileBottomNav() {
       theme: "emerald",
     },
     {
+      id: "invoice",
       title: "Create Invoice",
       subtitle: "Bill a customer with instant bank/online payment link",
       href: "/dashboard/invoices/new",
@@ -136,6 +151,7 @@ export default function MobileBottomNav() {
       theme: "blue",
     },
     {
+      id: "demand",
       title: "Custom Request",
       subtitle: "Record custom tailoring demand & measurements",
       href: "/dashboard/demands/new",
@@ -146,7 +162,21 @@ export default function MobileBottomNav() {
     },
   ];
 
-  const permittedQuickCreate = allQuickCreateActions.filter((action) =>
+  // Order priority based on business model:
+  // Bespoke: Demands (Tailoring) -> Invoices -> Orders -> Products
+  // Hybrid: Orders -> Demands -> Invoices -> Products
+  // RTW/Default: Orders -> Products -> Invoices -> Demands
+  const quickActionPriority: Record<string, number> = isBespoke
+    ? { demand: 1, invoice: 2, order: 3, product: 4 }
+    : isHybrid
+      ? { order: 1, demand: 2, invoice: 3, product: 4 }
+      : { order: 1, product: 2, invoice: 3, demand: 4 };
+
+  const sortedQuickCreateActions = [...allQuickCreateActions].sort(
+    (a, b) => (quickActionPriority[a.id] ?? 99) - (quickActionPriority[b.id] ?? 99),
+  );
+
+  const permittedQuickCreate = sortedQuickCreateActions.filter((action) =>
     isPathAllowedForRole(action.parentHref, userRole),
   );
 
@@ -343,10 +373,11 @@ export default function MobileBottomNav() {
             </Sheet>
           </div>
 
-          {/* Right Tab (Products) */}
+          {/* Right Tab (Products / Demands) */}
           {rightTabs.map((item) => {
             const Icon = item.icon;
             const active = isActive(item.href);
+            const actionBadge = getBadgeForItem(item.href);
             return (
               <Link
                 key={item.href}
@@ -359,7 +390,7 @@ export default function MobileBottomNav() {
               >
                 <div
                   className={cn(
-                    "flex items-center justify-center w-12 h-7 rounded-xl transition-all",
+                    "flex items-center justify-center w-12 h-7 rounded-xl transition-all relative",
                     active && "bg-brand-50 text-brand-600 font-semibold",
                   )}
                 >
@@ -369,6 +400,16 @@ export default function MobileBottomNav() {
                       active ? "text-brand-600 scale-105" : "text-gray-500 group-hover:text-gray-900",
                     )}
                   />
+                  {actionBadge && (
+                    <span
+                      className={cn(
+                        "absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full text-[10px] font-bold text-white shadow-xs",
+                        actionBadge.variant === "urgent" ? "bg-rose-600" : "bg-amber-500",
+                      )}
+                    >
+                      {actionBadge.count > 9 ? "9+" : actionBadge.count}
+                    </span>
+                  )}
                 </div>
                 <span
                   className={cn(

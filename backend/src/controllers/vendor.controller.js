@@ -19,8 +19,18 @@ export const getProfile = asyncHandler(async (req, res) => {
 
 /* ── PUT /api/vendor/profile ────────────────────────────────────── */
 export const updateProfile = asyncHandler(async (req, res) => {
-  const { businessName, bio, state, city, area, instagram, whatsapp, email, socialMessaging } =
-    req.body;
+  const {
+    businessName,
+    bio,
+    state,
+    city,
+    area,
+    instagram,
+    whatsapp,
+    email,
+    socialMessaging,
+    businessType,
+  } = req.body;
 
   const vendor = await Vendor.findById(req.vendor._id);
 
@@ -28,6 +38,14 @@ export const updateProfile = asyncHandler(async (req, res) => {
   if (bio !== undefined) vendor.bio = bio;
   if (email !== undefined)
     vendor.email = email?.toLowerCase().trim() || undefined;
+
+  // Business Type
+  if (
+    businessType !== undefined &&
+    ["ready_to_wear", "demand", "hybrid", "made_to_order", "unselected"].includes(businessType)
+  ) {
+    vendor.businessType = businessType;
+  }
 
   // Location fields (update individual sub-fields)
   if (state !== undefined) vendor.location.state = state;
