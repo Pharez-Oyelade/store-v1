@@ -86,7 +86,8 @@ const registerSchema = z
     }
   });
 
-type RegisterFormValues = z.infer<typeof registerSchema>;
+type RegisterFormValues = z.input<typeof registerSchema>;
+type RegisterFormOutput = z.output<typeof registerSchema>;
 
 // step definition - assigning foelds to steps
 const stepFields: Record<number, (keyof RegisterFormValues)[]> = {
@@ -158,8 +159,12 @@ export default function RegisterPage() {
     setError,
     watch, //read a field's value in real time
     formState: { errors, isSubmitting },
-  } = useForm<RegisterFormValues>({
-    resolver: zodResolver(registerSchema),
+  } = useForm<
+  RegisterFormValues,
+  any,
+  RegisterFormOutput
+>({
+  resolver: zodResolver(registerSchema),
     mode: "onTouched",
     defaultValues: {
       businessType: "ready_to_wear",
@@ -185,7 +190,7 @@ export default function RegisterPage() {
     if (valid) setCurrentStep((s) => s + 1);
   };
 
-  const onSubmit = async (data: RegisterFormValues) => {
+  const onSubmit = async (data: RegisterFormOutput) => {
     try {
       const cleanPhone = data.phone.replace(/[\s\-()]/g, "");
       const cleanEmail = data.email?.trim() || undefined;
