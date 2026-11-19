@@ -24,12 +24,22 @@ async function getVendorStorefront(handle: string) {
   }
 }
 
+// Storefront is guarded in production by default unless explicitly enabled via environment flag
+const isStorefrontGuardedInProd =
+  process.env.NODE_ENV === "production" &&
+  process.env.ENABLE_STOREFRONT !== "true" &&
+  process.env.NEXT_PUBLIC_ENABLE_STOREFRONT !== "true";
+
 // Generate dynamic SEO metadata
 export async function generateMetadata({
   params,
 }: {
   params: Promise<{ handle: string }>;
 }): Promise<Metadata> {
+  if (isStorefrontGuardedInProd) {
+    return { title: "Coming Soon" };
+  }
+
   const { handle } = await params;
   const vendor = await getVendorStorefront(handle);
 
@@ -67,6 +77,12 @@ export default async function StorefrontLayout({
   params: Promise<{ handle: string }>;
 }) {
   const { handle } = await params;
+
+  // Guard storefront access in production by default until the feature is fully released
+  if (isStorefrontGuardedInProd) {
+    notFound();
+  }
+
   const vendor = await getVendorStorefront(handle);
 
   if (!vendor) {
