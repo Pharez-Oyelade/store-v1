@@ -23,7 +23,8 @@ export default function NewDemandPage() {
           Record Bespoke Demand
         </h1>
         <p className="text-sm text-gray-500 mt-1">
-          Capture client design preferences, reference photos, custom body measurements, and fabric requirements.
+          Capture client design preferences, reference photos, custom body
+          measurements, and fabric requirements.
         </p>
       </div>
 
