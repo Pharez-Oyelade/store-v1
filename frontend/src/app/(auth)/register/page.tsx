@@ -239,19 +239,19 @@ export default function RegisterPage() {
   return (
     <div className="w-full">
       {/* progress bar + step title */}
-      <div className="flex flex-col items-center justify-center mb-2">
+      <div className="flex flex-col items-center justify-center mb-2 sm:mb-3">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-gray-900">
+          <h1 className="text-xl sm:text-2xl font-bold text-gray-900 tracking-tight">
             {stepTitles[currentStep - 1].title}
           </h1>
-          <p className="text-sm text-gray-500">
+          <p className="text-xs sm:text-sm text-gray-500 mt-0.5">
             {stepTitles[currentStep - 1].subtitle}
           </p>
         </div>
-        <span className="text-xs text-gray-400 font-medium mt-1">
+        <span className="text-[11px] sm:text-xs text-gray-400 font-medium mt-1">
           Step {currentStep} of {TOTAL_STEPS}
         </span>
-        <div className="w-48 py-2">
+        <div className="w-40 sm:w-48 py-1.5 sm:py-2">
           {/* progress bar */}
           <div className="flex gap-1.5">
             {Array.from({ length: TOTAL_STEPS }).map((_, i) => (
@@ -267,7 +267,7 @@ export default function RegisterPage() {
       <form
         onSubmit={handleSubmit(onSubmit)}
         noValidate
-        className="space-y-4 w-full"
+        className="space-y-3 sm:space-y-4 w-full"
       >
         {/* STEP 1 - Business Info */}
         {currentStep === 1 && (
@@ -532,7 +532,7 @@ export default function RegisterPage() {
         )}
 
         {/* NAV BUTTONS */}
-        <div className="flex gap-3 mt-6">
+        <div className="flex gap-3 mt-4 sm:mt-6">
           {currentStep > 1 && (
             <Button
               type="button"
@@ -568,7 +568,7 @@ export default function RegisterPage() {
         </div>
       </form>
 
-      <p className="text-center text-sm text-gray-500 mt-6">
+      <p className="text-center text-xs sm:text-sm text-gray-500 mt-4 sm:mt-6">
         Already have an account?{" "}
         <Link
           href="/login"

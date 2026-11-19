@@ -12,7 +12,7 @@ export default function AuthLayout({
       {/* Logo */}
       <Link
         href="/"
-        className="fixed top-0 left-0 w-full z-50 px-6 md:px-20 py-3 bg-white/50 backdrop-blur-sm font-bold text-2xl text-gray-900 mb-8 flex gap-2 items-center"
+        className="fixed top-0 left-0 w-full z-50 px-6 md:px-20 py-3 bg-white/85 backdrop-blur-md border-b border-gray-100/80 font-bold text-2xl text-gray-900 flex gap-2 items-center transition-all"
       >
         <Logo />
       </Link>
