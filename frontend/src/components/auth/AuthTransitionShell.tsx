@@ -71,7 +71,7 @@ export default function AuthTransitionShell({
 
       {/* Form Panel (Slides on Desktop, static full-width on Mobile) */}
       <motion.div
-        className="w-full md:w-1/2 h-full absolute top-0 bottom-0 left-0 md:left-1/2 z-10 overflow-y-auto flex items-center justify-center p-4 sm:p-8"
+        className="w-full md:w-1/2 h-full absolute top-0 bottom-0 left-0 md:left-1/2 z-10 overflow-y-auto flex flex-col justify-start md:justify-center items-center px-4 sm:px-8 pt-18 sm:pt-20 pb-10 sm:pb-12"
         initial={false}
         animate={{
           x: effectiveIsMobile ? "0%" : isRegisterState ? "-100%" : "0%",

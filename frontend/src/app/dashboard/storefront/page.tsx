@@ -182,7 +182,10 @@ export default function StorefrontDashboardPage() {
               Online Storefronts Are Rolling Out
             </h2>
             <p className="text-sm text-stone-600 leading-relaxed">
-              We are finalizing custom storefronts for fashion houses and bespoke tailors on Vendra. Once enabled, you will be able to customize your boutique&apos;s public link, theme colors, state delivery rates, and promotional discount campaigns right here.
+              We are finalizing custom storefronts for fashion houses and
+              bespoke tailors on Vendra. Once enabled, you will be able to
+              customize your boutique&apos;s public link, theme colors, state
+              delivery rates, and promotional discount campaigns right here.
             </p>
           </div>
 
@@ -192,9 +195,12 @@ export default function StorefrontDashboardPage() {
               <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
                 01
               </div>
-              <h4 className="font-semibold text-xs text-gray-950">Bespoke & RTW Catalog</h4>
+              <h4 className="font-semibold text-xs text-gray-950">
+                Bespoke & RTW Catalog
+              </h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Showcase your collections with automatic adaptation for ready-to-wear pieces and custom tailoring requests.
+                Showcase your collections with automatic adaptation for
+                ready-to-wear pieces and custom tailoring requests.
               </p>
             </div>
 
@@ -202,9 +208,12 @@ export default function StorefrontDashboardPage() {
               <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
                 02
               </div>
-              <h4 className="font-semibold text-xs text-gray-950">Rose Closet 2-Step Checkout</h4>
+              <h4 className="font-semibold text-xs text-gray-950">
+                Rose Closet 2-Step Checkout
+              </h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Frictionless 2-step checkout with delivery address collection, state-based shipping fees, and Paystack or WhatsApp orders.
+                Frictionless 2-step checkout with delivery address collection,
+                state-based shipping fees, and Paystack or WhatsApp orders.
               </p>
             </div>
 
@@ -212,9 +221,12 @@ export default function StorefrontDashboardPage() {
               <div className="size-8 rounded-xl bg-white border border-stone-200 flex items-center justify-center text-stone-800 font-bold text-xs shadow-xs">
                 03
               </div>
-              <h4 className="font-semibold text-xs text-gray-950">Campaigns & Custom Theme</h4>
+              <h4 className="font-semibold text-xs text-gray-950">
+                Campaigns & Custom Theme
+              </h4>
               <p className="text-[11px] text-stone-500 leading-relaxed">
-                Create coupon codes, broadcast notice bar announcements, and customize brand theme colors for your boutique.
+                Create coupon codes, broadcast notice bar announcements, and
+                customize brand theme colors for your boutique.
               </p>
             </div>
           </div>
@@ -225,8 +237,8 @@ export default function StorefrontDashboardPage() {
               href="/dashboard/products"
               className="w-full sm:w-auto px-5 py-2.5 rounded-xl bg-gray-950 hover:bg-gray-800 text-white text-xs font-semibold shadow-xs transition-colors flex items-center justify-center gap-2"
             >
-              <Package size={14} />
-              <span>Prepare Your Products</span>
+              <Package size={14} className="text-white" />
+              <span className="text-white">Prepare Your Products</span>
             </Link>
             <Link
               href="/dashboard"
@@ -332,7 +344,8 @@ export default function StorefrontDashboardPage() {
   const previewStoreUrl = `${publicStoreUrl}?preview=true`;
 
   const isLocalhost =
-    typeof window !== "undefined" && window.location.hostname.includes("localhost");
+    typeof window !== "undefined" &&
+    window.location.hostname.includes("localhost");
 
   const subdomainUrl = isLocalhost
     ? `http://${handle}.localhost:3000`
@@ -1340,7 +1353,9 @@ export default function StorefrontDashboardPage() {
                   Store Links & Domain Architecture
                 </h3>
                 <p className="text-xs text-stone-500 mt-1">
-                  Connect and manage your public storefront addresses. Vendra automatically routes shoppers to your boutique across all active links.
+                  Connect and manage your public storefront addresses. Vendra
+                  automatically routes shoppers to your boutique across all
+                  active links.
                 </p>
               </div>
 
@@ -1408,16 +1423,22 @@ export default function StorefrontDashboardPage() {
             </div>
 
             {/* ── LEVEL 2: Branded Subdomain Link (The Drape+) ──── */}
-            <div className={`rounded-3xl border p-6 sm:p-8 shadow-xs space-y-4 transition-all ${
-              isDrapePlus
-                ? "bg-white border-stone-200/90"
-                : "bg-stone-50/70 border-stone-200 opacity-90"
-            }`}>
+            <div
+              className={`rounded-3xl border p-6 sm:p-8 shadow-xs space-y-4 transition-all ${
+                isDrapePlus
+                  ? "bg-white border-stone-200/90"
+                  : "bg-stone-50/70 border-stone-200 opacity-90"
+              }`}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
                 <div className="flex items-center gap-3">
-                  <div className={`size-10 rounded-xl flex items-center justify-center font-bold ${
-                    isDrapePlus ? "bg-amber-100 text-amber-900" : "bg-stone-200 text-stone-600"
-                  }`}>
+                  <div
+                    className={`size-10 rounded-xl flex items-center justify-center font-bold ${
+                      isDrapePlus
+                        ? "bg-amber-100 text-amber-900"
+                        : "bg-stone-200 text-stone-600"
+                    }`}
+                  >
                     <Sparkles size={20} />
                   </div>
                   <div>
@@ -1435,7 +1456,11 @@ export default function StorefrontDashboardPage() {
                       )}
                     </h4>
                     <p className="text-xs text-stone-500">
-                      A sleek, memorable address with zero path prefixes (e.g. <strong className="text-stone-700">{handle}.vendra.ng</strong>).
+                      A sleek, memorable address with zero path prefixes (e.g.{" "}
+                      <strong className="text-stone-700">
+                        {handle}.vendra.ng
+                      </strong>
+                      ).
                     </p>
                   </div>
                 </div>
@@ -1481,22 +1506,33 @@ export default function StorefrontDashboardPage() {
 
               {!isDrapePlus && (
                 <p className="text-[11px] text-stone-500">
-                  Upgrade your atelier plan to eliminate the <code className="bg-stone-200/70 px-1 py-0.5 rounded text-stone-800 font-mono">/store/</code> prefix and give your brand a standalone flagship presence on Vendra.
+                  Upgrade your atelier plan to eliminate the{" "}
+                  <code className="bg-stone-200/70 px-1 py-0.5 rounded text-stone-800 font-mono">
+                    /store/
+                  </code>{" "}
+                  prefix and give your brand a standalone flagship presence on
+                  Vendra.
                 </p>
               )}
             </div>
 
             {/* ── LEVEL 3: White-Label Custom Domain (Atelier / Maison) ─ */}
-            <div className={`rounded-3xl border p-6 sm:p-8 shadow-xs space-y-6 transition-all ${
-              isAtelierPlus
-                ? "bg-white border-stone-200/90"
-                : "bg-stone-50/70 border-stone-200 opacity-90"
-            }`}>
+            <div
+              className={`rounded-3xl border p-6 sm:p-8 shadow-xs space-y-6 transition-all ${
+                isAtelierPlus
+                  ? "bg-white border-stone-200/90"
+                  : "bg-stone-50/70 border-stone-200 opacity-90"
+              }`}
+            >
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-stone-100">
                 <div className="flex items-center gap-3">
-                  <div className={`size-10 rounded-xl flex items-center justify-center font-bold ${
-                    isAtelierPlus ? "bg-stone-950 text-white" : "bg-stone-200 text-stone-600"
-                  }`}>
+                  <div
+                    className={`size-10 rounded-xl flex items-center justify-center font-bold ${
+                      isAtelierPlus
+                        ? "bg-stone-950 text-white"
+                        : "bg-stone-200 text-stone-600"
+                    }`}
+                  >
                     <Globe size={20} />
                   </div>
                   <div>
@@ -1524,7 +1560,13 @@ export default function StorefrontDashboardPage() {
                       )}
                     </h4>
                     <p className="text-xs text-stone-500">
-                      Connect your own custom domain (e.g. <strong className="text-stone-700">shop.yourbrand.com</strong> or <strong className="text-stone-700">yourbrand.ng</strong>) with automated SSL.
+                      Connect your own custom domain (e.g.{" "}
+                      <strong className="text-stone-700">
+                        shop.yourbrand.com
+                      </strong>{" "}
+                      or{" "}
+                      <strong className="text-stone-700">yourbrand.ng</strong>)
+                      with automated SSL.
                     </p>
                   </div>
                 </div>
@@ -1545,7 +1587,9 @@ export default function StorefrontDashboardPage() {
                   {/* Connect / Update Domain Form */}
                   <div className="bg-stone-50 p-5 rounded-2xl border border-stone-200 space-y-4">
                     <h5 className="font-bold text-xs uppercase tracking-wider text-stone-700">
-                      {customDomain ? "Connected Custom Domain" : "Connect New Domain"}
+                      {customDomain
+                        ? "Connected Custom Domain"
+                        : "Connect New Domain"}
                     </h5>
 
                     <div className="flex flex-col sm:flex-row gap-3">
@@ -1557,7 +1601,9 @@ export default function StorefrontDashboardPage() {
                           type="text"
                           placeholder="shop.yourboutique.com or yourboutique.ng"
                           value={domainInput}
-                          onChange={(e) => setDomainInput(e.target.value.toLowerCase().trim())}
+                          onChange={(e) =>
+                            setDomainInput(e.target.value.toLowerCase().trim())
+                          }
                           className="w-full pl-20 pr-4 py-2.5 border border-stone-300 rounded-xl text-xs font-mono bg-white focus:outline-none focus:border-stone-900 transition-colors"
                         />
                       </div>
@@ -1604,7 +1650,8 @@ export default function StorefrontDashboardPage() {
                             Required DNS Configuration
                           </h5>
                           <p className="text-xs text-stone-600">
-                            Log in to your domain registrar (GoDaddy, Namecheap, Cloudflare, WhoGoHost) and add this record:
+                            Log in to your domain registrar (GoDaddy, Namecheap,
+                            Cloudflare, WhoGoHost) and add this record:
                           </p>
                         </div>
 
@@ -1631,7 +1678,9 @@ export default function StorefrontDashboardPage() {
                           </thead>
                           <tbody className="divide-y divide-stone-100 font-mono text-stone-800">
                             <tr>
-                              <td className="py-2.5 px-4 font-bold text-amber-900">CNAME</td>
+                              <td className="py-2.5 px-4 font-bold text-amber-900">
+                                CNAME
+                              </td>
                               <td className="py-2.5 px-4 font-bold">
                                 {customDomain.split(".").length > 2
                                   ? customDomain.split(".")[0]
@@ -1640,7 +1689,9 @@ export default function StorefrontDashboardPage() {
                               <td className="py-2.5 px-4 font-bold text-amber-900">
                                 cname.tryvendra.ng
                               </td>
-                              <td className="py-2.5 px-4 text-stone-500 font-sans">Automatic / 3600</td>
+                              <td className="py-2.5 px-4 text-stone-500 font-sans">
+                                Automatic / 3600
+                              </td>
                             </tr>
                           </tbody>
                         </table>
@@ -1649,8 +1700,12 @@ export default function StorefrontDashboardPage() {
                       {customDomainStatus === "active" && (
                         <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-200/80 text-xs text-emerald-800 font-medium flex items-center justify-between">
                           <span className="flex items-center gap-1.5">
-                            <CheckCircle2 size={14} className="text-emerald-600 shrink-0" />
-                            DNS is fully propagated and verified with automated SSL.
+                            <CheckCircle2
+                              size={14}
+                              className="text-emerald-600 shrink-0"
+                            />
+                            DNS is fully propagated and verified with automated
+                            SSL.
                           </span>
                           <a
                             href={`https://${customDomain}`}
@@ -1668,7 +1723,14 @@ export default function StorefrontDashboardPage() {
               ) : (
                 <div className="space-y-3 text-xs text-stone-500">
                   <p>
-                    Connect your own apex or subdomain (like <strong className="text-stone-700">shop.aminacouture.com</strong> or <strong className="text-stone-700">aminacouture.ng</strong>) with automated SSL certificates, zero Vendra branding, and high-performance CDN routing.
+                    Connect your own apex or subdomain (like{" "}
+                    <strong className="text-stone-700">
+                      shop.aminacouture.com
+                    </strong>{" "}
+                    or{" "}
+                    <strong className="text-stone-700">aminacouture.ng</strong>)
+                    with automated SSL certificates, zero Vendra branding, and
+                    high-performance CDN routing.
                   </p>
                   <div className="pt-1">
                     <Link
