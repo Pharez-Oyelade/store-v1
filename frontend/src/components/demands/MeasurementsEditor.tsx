@@ -114,7 +114,8 @@ export default function MeasurementsEditor({
         </div>
       ) : (
         <p className="text-xs text-gray-400 italic py-2">
-          No measurements added yet. Click a preset above or add a custom field below.
+          No measurements added yet. Click a preset above or add a custom field
+          below.
         </p>
       )}
 
@@ -127,7 +128,7 @@ export default function MeasurementsEditor({
           onChange={(e) => setNewKey(e.target.value)}
           className="flex-1 px-3 py-2 text-sm border border-gray-200 rounded-xl focus:outline-none focus:border-brand-700"
         />
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-wrap">
           <input
             type="text"
             placeholder='Value (e.g. 12")'
@@ -138,14 +139,13 @@ export default function MeasurementsEditor({
           <button
             type="button"
             onClick={() => handleAdd(newKey, newValue)}
-            className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1 shrink-0"
+            className="px-4 py-2 bg-brand-700 hover:bg-brand-800 text-white rounded-xl text-sm font-medium transition-colors flex items-center justify-center gap-1 shrink-0 w-full sm:w-auto"
           >
             <Plus size={16} />
             Add
           </button>
         </div>
       </div>
-
     </div>
   );
 }

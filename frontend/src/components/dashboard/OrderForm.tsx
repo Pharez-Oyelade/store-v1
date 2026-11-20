@@ -3,7 +3,15 @@
 import { useMemo, useState } from "react";
 import type React from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Plus, Save, Trash2, UserPlus, Users, WifiOff } from "lucide-react";
+import {
+  MapPin,
+  Plus,
+  Save,
+  Trash2,
+  UserPlus,
+  Users,
+  WifiOff,
+} from "lucide-react";
 import Button from "@/components/custom/Button";
 import Input from "@/components/ui/Input";
 import {
@@ -66,7 +74,8 @@ export default function OrderForm() {
   const itemsSubtotal = useMemo(
     () =>
       items.reduce(
-        (sum, item) => sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
+        (sum, item) =>
+          sum + (Number(item.price) || 0) * (Number(item.quantity) || 0),
         0,
       ),
     [items],
@@ -120,7 +129,10 @@ export default function OrderForm() {
     const variant = product.variants[0];
     const maxQty = variant?.quantity;
     const currentQty = Number(items[index]?.quantity) || 1;
-    const newQty = maxQty !== undefined && maxQty > 0 && currentQty > maxQty ? maxQty : currentQty;
+    const newQty =
+      maxQty !== undefined && maxQty > 0 && currentQty > maxQty
+        ? maxQty
+        : currentQty;
     updateItem(index, {
       productId: product._id,
       productName: product.name,
@@ -140,8 +152,15 @@ export default function OrderForm() {
     );
     const maxQty = variant?.quantity;
     const currentQty = Number(items[index]?.quantity) || 1;
-    const newQty = maxQty !== undefined && maxQty > 0 && currentQty > maxQty ? maxQty : currentQty;
-    updateItem(index, { variantLabel, price: variant?.price ?? 0, quantity: newQty });
+    const newQty =
+      maxQty !== undefined && maxQty > 0 && currentQty > maxQty
+        ? maxQty
+        : currentQty;
+    updateItem(index, {
+      variantLabel,
+      price: variant?.price ?? 0,
+      quantity: newQty,
+    });
   }
 
   const { handleOfflineSave, isOnline } = useOfflineMutation({
@@ -240,11 +259,10 @@ export default function OrderForm() {
     }
   }
 
-
   return (
     <form
       onSubmit={handleSubmit}
-      className="grid gap-6 xl:grid-cols-[1.5fr_1fr]"
+      className="grid gap-6 xl:grid-cols-[1.5fr_1fr] items-start"
     >
       <section className="space-y-5 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
         {/* ── Customer selector ──────────────────────────────────── */}
@@ -336,7 +354,9 @@ export default function OrderForm() {
               <MapPin className="size-4 text-brand-600" />
               <span>Delivery Information</span>
             </h3>
-            <span className="text-xs text-gray-400">Optional for pickup / walk-in</span>
+            <span className="text-xs text-gray-400">
+              Optional for pickup / walk-in
+            </span>
           </div>
           <Input
             label="Street address"
@@ -456,7 +476,9 @@ export default function OrderForm() {
                       <FieldLabel>Variant</FieldLabel>
                       {product ? (
                         <NativeSelect
-                          value={item.variantLabel || selectedVariant?.label || ""}
+                          value={
+                            item.variantLabel || selectedVariant?.label || ""
+                          }
                           onChange={(event) =>
                             selectVariant(index, product, event.target.value)
                           }
@@ -497,13 +519,15 @@ export default function OrderForm() {
                     />
                     <Input
                       label={
-                        maxStock !== undefined
-                          ? `Qty (max ${maxStock})`
-                          : "Qty"
+                        maxStock !== undefined ? `Qty (max ${maxStock})` : "Qty"
                       }
                       type="number"
                       min={1}
-                      max={maxStock !== undefined ? Math.max(1, maxStock) : undefined}
+                      max={
+                        maxStock !== undefined
+                          ? Math.max(1, maxStock)
+                          : undefined
+                      }
                       placeholder="1"
                       value={item.quantity}
                       onChange={(event) => {
@@ -535,7 +559,9 @@ export default function OrderForm() {
       </section>
 
       <aside className="space-y-4 rounded-lg border border-gray-100 bg-white p-5 shadow-card">
-        <h2 className="text-base font-semibold text-gray-950">Payment & Pricing</h2>
+        <h2 className="text-base font-semibold text-gray-950">
+          Payment & Pricing
+        </h2>
         <Input
           label="Delivery fee (optional)"
           type="number"
@@ -600,7 +626,13 @@ export default function OrderForm() {
         <Button
           type="submit"
           isLoading={createOrder.isPending}
-          leftIcon={!isOnline ? <WifiOff className="size-4" /> : <Save className="size-4" />}
+          leftIcon={
+            !isOnline ? (
+              <WifiOff className="size-4" />
+            ) : (
+              <Save className="size-4" />
+            )
+          }
           className="w-full"
         >
           {!isOnline ? "Save Offline (Syncs Later)" : "Create order"}
@@ -625,7 +657,7 @@ export default function OrderForm() {
               : Math.max(
                   0,
                   (createdOrder.totalAmount || total) -
-                    (createdOrder.depositPaid || Number(depositPaid) || 0)
+                    (createdOrder.depositPaid || Number(depositPaid) || 0),
                 )
           }
           onDismiss={() => router.push("/dashboard/orders")}

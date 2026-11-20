@@ -572,7 +572,8 @@ export const createOrder = asyncHandler(async (req, res) => {
         balanceOwed: Math.max(0, totalAmount - numDeposit),
         status: order.status,
         notes,
-        source: source || "Dashboard",
+        source: source || "dm",
+        isStorefront: false,
       }).catch((emailErr) => {
         console.error("❌ [Dashboard Order Email Error]:", emailErr.message);
       });
