@@ -614,7 +614,8 @@ export const createStorefrontOrder = asyncHandler(async (req, res) => {
         paymentReference,
         status: order.status,
         notes,
-        source: "Storefront",
+        source: "storefront",
+        isStorefront: true,
       }).catch((emailErr) => {
         console.error("❌ [Storefront Vendor Email Error]:", emailErr.message);
       });

@@ -981,10 +981,12 @@ export default function NewInvoicePage() {
             <button
               type="button"
               onClick={addItem}
-              className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 text-xs font-bold transition-colors cursor-pointer"
+              className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg bg-brand-50 text-brand-700 hover:bg-brand-100 text-xs font-bold transition-colors cursor-pointer"
             >
               <Plus className="w-3.5 h-3.5" />
-              <span>Add Item</span>
+              <span>
+                Add <span className="hidden sm:inline-block">Item</span>
+              </span>
             </button>
           </div>
 

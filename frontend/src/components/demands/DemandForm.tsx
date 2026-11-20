@@ -20,12 +20,17 @@ import {
   Ruler,
   WifiOff,
   Loader2,
+  ArrowRight,
+  ArrowLeft,
 } from "lucide-react";
 import Input from "@/components/ui/Input";
 import Button from "@/components/custom/Button";
 import MeasurementsEditor from "./MeasurementsEditor";
 import MaterialsBuilder from "./MaterialsBuilder";
-import { useCreateCustomRequest, useUpdateCustomRequest } from "@/hooks/useCustomRequests";
+import {
+  useCreateCustomRequest,
+  useUpdateCustomRequest,
+} from "@/hooks/useCustomRequests";
 import { useCustomers } from "@/hooks/useCustomers";
 import { useTeamSummary } from "@/hooks/useTeam";
 import { useAuthStore } from "@/store/authStore";
@@ -37,11 +42,19 @@ import toast from "react-hot-toast";
 import PostCreationInvoiceModal from "@/components/dashboard/PostCreationInvoiceModal";
 
 const demandSchema = z.object({
-  title: z.string().min(2, "Title is required (e.g. Agbada Set in Navy Aso-Oke)"),
+  title: z
+    .string()
+    .min(2, "Title is required (e.g. Agbada Set in Navy Aso-Oke)"),
   customerName: z.string().min(2, "Customer name is required"),
   customerPhone: z.string().min(7, "Customer phone is required"),
   customerEmail: z.string().email("Invalid email").optional().or(z.literal("")),
-  category: z.enum(["clothing", "accessories", "alteration", "repair", "other"]),
+  category: z.enum([
+    "clothing",
+    "accessories",
+    "alteration",
+    "repair",
+    "other",
+  ]),
   description: z.string().optional(),
   estimatedPrice: z.number().min(0),
   agreedPrice: z.number().min(0),
@@ -54,8 +67,6 @@ const demandSchema = z.object({
 
 type DemandFormSchema = z.infer<typeof demandSchema>;
 
-
-
 interface DemandFormProps {
   initialData?: CustomRequest;
 }
@@ -63,14 +74,21 @@ interface DemandFormProps {
 export default function DemandForm({ initialData }: DemandFormProps) {
   const router = useRouter();
   const vendor = useAuthStore((s) => s.vendor);
-  const isTailor = Boolean(vendor?.user?.isTeamMember && vendor?.user?.role === "tailor");
+  const isTailor = Boolean(
+    vendor?.user?.isTeamMember && vendor?.user?.role === "tailor",
+  );
   const teamQuery = useTeamSummary();
-  const tailors = (teamQuery.data?.members || []).filter((m) => m.role === "tailor" && m.isActive);
+  const tailors = (teamQuery.data?.members || []).filter(
+    (m) => m.role === "tailor" && m.isActive,
+  );
 
   const defaultTailorId =
-    typeof initialData?.assignedTailor === "object" && initialData?.assignedTailor
+    typeof initialData?.assignedTailor === "object" &&
+    initialData?.assignedTailor
       ? initialData.assignedTailor._id
-      : (initialData?.assignedTailor as string) || (isTailor ? vendor?.user?._id : "") || "";
+      : (initialData?.assignedTailor as string) ||
+        (isTailor ? vendor?.user?._id : "") ||
+        "";
 
   const createMutation = useCreateCustomRequest();
   const updateMutation = useUpdateCustomRequest(initialData?._id || "");
@@ -119,21 +137,23 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const [selectedCustomerId, setSelectedCustomerId] = useState<string>(
     (typeof initialData?.customer === "object"
       ? (initialData?.customer as any)?._id
-      : initialData?.customer) || ""
+      : initialData?.customer) || "",
   );
   const [autoFilledInfo, setAutoFilledInfo] = useState<{
     name: string;
     measurementsCount: number;
   } | null>(null);
 
-  const [activeTab, setActiveTab] = useState<"details" | "measurements" | "materials" | "pricing">("details");
+  const [activeTab, setActiveTab] = useState<
+    "details" | "measurements" | "materials" | "pricing"
+  >("details");
 
   // Controlled state for custom editors
   const [measurements, setMeasurements] = useState<Record<string, string>>(
-    initialData?.measurements || {}
+    initialData?.measurements || {},
   );
   const [materials, setMaterials] = useState<CustomRequestMaterial[]>(
-    initialData?.materials || []
+    initialData?.materials || [],
   );
 
   // Reference images
@@ -141,7 +161,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const [previewUrls, setPreviewUrls] = useState<string[]>([]);
   const [isCompressing, setIsCompressing] = useState(false);
   const [existingImages, setExistingImages] = useState(
-    initialData?.referenceImages || []
+    initialData?.referenceImages || [],
   );
   const [removeImageIds, setRemoveImageIds] = useState<string[]>([]);
 
@@ -189,7 +209,11 @@ export default function DemandForm({ initialData }: DemandFormProps) {
       setValue("customerEmail", found.email || "");
 
       let count = 0;
-      if (found.measurements && typeof found.measurements === "object" && Object.keys(found.measurements).length > 0) {
+      if (
+        found.measurements &&
+        typeof found.measurements === "object" &&
+        Object.keys(found.measurements).length > 0
+      ) {
         setMeasurements((prev) => ({
           ...found.measurements,
           ...prev,
@@ -203,11 +227,10 @@ export default function DemandForm({ initialData }: DemandFormProps) {
       });
 
       toast.success(
-        `Auto-filled ${found.name}'s details${count > 0 ? ` & ${count} saved measurements` : ""}`
+        `Auto-filled ${found.name}'s details${count > 0 ? ` & ${count} saved measurements` : ""}`,
       );
     }
   };
-
 
   const estimatedPriceWatch = watch("estimatedPrice");
   const agreedPriceWatch = watch("agreedPrice");
@@ -215,8 +238,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
 
   const calculatedBalance = Math.max(
     0,
-    (Number(agreedPriceWatch) > 0 ? Number(agreedPriceWatch) : Number(estimatedPriceWatch)) -
-      (Number(depositPaidWatch) || 0)
+    (Number(agreedPriceWatch) > 0
+      ? Number(agreedPriceWatch)
+      : Number(estimatedPriceWatch)) - (Number(depositPaidWatch) || 0),
   );
 
   const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -225,11 +249,14 @@ export default function DemandForm({ initialData }: DemandFormProps) {
 
     const oversized = files.filter((f: File) => f.size > 20 * 1024 * 1024);
     if (oversized.length > 0) {
-      toast.error("One or more images exceed the 20MB limit. Please choose smaller files.");
+      toast.error(
+        "One or more images exceed the 20MB limit. Please choose smaller files.",
+      );
       return;
     }
 
-    const totalCount = existingImages.length + selectedFiles.length + files.length;
+    const totalCount =
+      existingImages.length + selectedFiles.length + files.length;
     if (totalCount > 5) {
       toast.error("Maximum 5 reference images allowed");
       return;
@@ -239,7 +266,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
       setIsCompressing(true);
       const optimizedFiles: File[] = await compressImages(files);
       setSelectedFiles((prev: File[]) => [...prev, ...optimizedFiles]);
-      const newPreviews = optimizedFiles.map((file: File) => URL.createObjectURL(file));
+      const newPreviews = optimizedFiles.map((file: File) =>
+        URL.createObjectURL(file),
+      );
       setPreviewUrls((prev: string[]) => [...prev, ...newPreviews]);
     } catch (err) {
       console.error("[DemandForm] Image compression failed:", err);
@@ -252,7 +281,6 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     }
   };
 
-
   const handleRemoveNewImage = (index: number) => {
     const url = previewUrls[index];
     if (url && url.startsWith("blob:")) {
@@ -263,7 +291,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   };
 
   const handleRemoveExistingImage = (publicId: string) => {
-    setExistingImages((prev) => prev.filter((img) => img.publicId !== publicId));
+    setExistingImages((prev) =>
+      prev.filter((img) => img.publicId !== publicId),
+    );
     setRemoveImageIds((prev) => [...prev, publicId]);
   };
 
@@ -280,7 +310,8 @@ export default function DemandForm({ initialData }: DemandFormProps) {
     formData.append("title", data.title);
     formData.append("customerName", data.customerName);
     formData.append("customerPhone", data.customerPhone);
-    if (data.customerEmail) formData.append("customerEmail", data.customerEmail);
+    if (data.customerEmail)
+      formData.append("customerEmail", data.customerEmail);
     formData.append("category", data.category);
     if (data.description) formData.append("description", data.description);
     formData.append("estimatedPrice", String(data.estimatedPrice));
@@ -343,7 +374,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
         await handleOfflineSave(
           generateLocalId("temp_demand"),
           demandPayload,
-          filePayloads.length > 0 ? filePayloads : undefined
+          filePayloads.length > 0 ? filePayloads : undefined,
         );
 
         router.push("/dashboard/demands");
@@ -363,11 +394,13 @@ export default function DemandForm({ initialData }: DemandFormProps) {
             await handleOfflineSave(
               generateLocalId("temp_demand"),
               demandPayload,
-              filePayloads.length > 0 ? filePayloads : undefined
+              filePayloads.length > 0 ? filePayloads : undefined,
             );
             router.push("/dashboard/demands");
           } else {
-            toast.error(err?.message || "Failed to create demand. Please try again.");
+            toast.error(
+              err?.message || "Failed to create demand. Please try again.",
+            );
           }
         },
       });
@@ -378,7 +411,10 @@ export default function DemandForm({ initialData }: DemandFormProps) {
   const isSubmitting = isPending || isCompressing;
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12">
+    <form
+      onSubmit={handleSubmit(onSubmit)}
+      className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-12"
+    >
       {/* Navigation Tabs */}
       <div className="flex border-b border-gray-200 overflow-x-auto gap-1 sm:gap-2 pb-1 scroll-smooth [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
         <button
@@ -472,7 +508,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
                     onChange={(e) => handleCustomerSelect(e.target.value)}
                     className="w-full rounded-xl border border-gray-200 pl-10 pr-4 py-2.5 text-sm bg-white focus:border-brand-700 focus:outline-none shadow-xs"
                   >
-                    <option value="">＋ Create New Customer (Enter details below)</option>
+                    <option value="">
+                      ＋ Create New Customer (Enter details below)
+                    </option>
                     {customerList.length > 0 && (
                       <optgroup label="Existing Customers">
                         {customerList.map((c) => {
@@ -482,7 +520,10 @@ export default function DemandForm({ initialData }: DemandFormProps) {
                               : 0;
                           return (
                             <option key={c._id} value={c._id}>
-                              {c.name} — {c.phone} {measCount > 0 ? `(${measCount} measurements saved)` : ""}
+                              {c.name} — {c.phone}{" "}
+                              {measCount > 0
+                                ? `(${measCount} measurements saved)`
+                                : ""}
                             </option>
                           );
                         })}
@@ -493,7 +534,10 @@ export default function DemandForm({ initialData }: DemandFormProps) {
 
                 {autoFilledInfo && (
                   <div className="flex items-center gap-2 text-xs text-emerald-800 bg-emerald-50 px-3 py-2 rounded-lg font-medium border border-emerald-200 mt-2">
-                    <CheckCircle2 size={15} className="text-emerald-600 shrink-0" />
+                    <CheckCircle2
+                      size={15}
+                      className="text-emerald-600 shrink-0"
+                    />
                     <span>
                       Loaded <strong>{autoFilledInfo.name}</strong>.
                       {autoFilledInfo.measurementsCount > 0
@@ -544,7 +588,6 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               </div>
             </div>
           </div>
-
 
           {/* Design Brief Card */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
@@ -643,27 +686,33 @@ export default function DemandForm({ initialData }: DemandFormProps) {
                 {/* Compressing indicator */}
                 {isCompressing && (
                   <div className="w-24 h-24 rounded-xl border border-dashed border-brand-300 bg-brand-50/70 flex flex-col items-center justify-center p-2 text-center animate-pulse">
-                    <Loader2 size={20} className="text-brand-600 animate-spin mb-1" />
-                    <span className="text-[10px] font-semibold text-brand-700">Optimizing...</span>
+                    <Loader2
+                      size={20}
+                      className="text-brand-600 animate-spin mb-1"
+                    />
+                    <span className="text-[10px] font-semibold text-brand-700">
+                      Optimizing...
+                    </span>
                   </div>
                 )}
 
                 {/* Upload Button */}
-                {!isCompressing && existingImages.length + selectedFiles.length < 5 && (
-                  <label className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-700 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-brand-50/50 transition-colors">
-                    <UploadCloud size={20} className="text-gray-400" />
-                    <span className="text-[11px] font-medium text-gray-500 mt-1">
-                      Add Photo
-                    </span>
-                    <input
-                      type="file"
-                      accept="image/*"
-                      multiple
-                      onChange={handleImageChange}
-                      className="hidden"
-                    />
-                  </label>
-                )}
+                {!isCompressing &&
+                  existingImages.length + selectedFiles.length < 5 && (
+                    <label className="w-24 h-24 rounded-xl border-2 border-dashed border-gray-300 hover:border-brand-700 flex flex-col items-center justify-center cursor-pointer bg-gray-50 hover:bg-brand-50/50 transition-colors">
+                      <UploadCloud size={20} className="text-gray-400" />
+                      <span className="text-[11px] font-medium text-gray-500 mt-1">
+                        Add Photo
+                      </span>
+                      <input
+                        type="file"
+                        accept="image/*"
+                        multiple
+                        onChange={handleImageChange}
+                        className="hidden"
+                      />
+                    </label>
+                  )}
               </div>
             </div>
           </div>
@@ -673,8 +722,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               type="button"
               variant="outline"
               onClick={() => setActiveTab("measurements")}
+              rightIcon={<ArrowRight size={16} className="shrink-0" />}
             >
-              Next: Measurements &rarr;
+              <span>Next: Measurements</span>
             </Button>
           </div>
         </div>
@@ -689,29 +739,29 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               Tailoring Measurements Snapshot
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              These measurements are locked to this specific garment request and automatically saved to the customer&apos;s CRM profile.
+              These measurements are locked to this specific garment request and
+              automatically saved to the customer's CRM profile.
             </p>
           </div>
 
-          <MeasurementsEditor
-            value={measurements}
-            onChange={setMeasurements}
-          />
+          <MeasurementsEditor value={measurements} onChange={setMeasurements} />
 
-          <div className="flex justify-between pt-4 border-t border-gray-100">
+          <div className="flex justify-between gap-2 pt-4 border-t border-gray-100">
             <Button
               type="button"
               variant="outline"
               onClick={() => setActiveTab("details")}
+              leftIcon={<ArrowLeft size={16} className="shrink-0" />}
             >
-              &larr; Back
+              Back
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setActiveTab("materials")}
+              rightIcon={<ArrowRight size={16} className="shrink-0" />}
             >
-              Next: Fabrics & Materials &rarr;
+              Next: Fabrics & Materials
             </Button>
           </div>
         </div>
@@ -726,29 +776,29 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               Fabrics, Trims & Sourcing Checklist
             </h3>
             <p className="text-xs text-gray-500 mt-0.5">
-              Track fabric yardage, lining, buttons, and supplier links for this piece.
+              Track fabric yardage, lining, buttons, and supplier links for this
+              piece.
             </p>
           </div>
 
-          <MaterialsBuilder
-            materials={materials}
-            onChange={setMaterials}
-          />
+          <MaterialsBuilder materials={materials} onChange={setMaterials} />
 
-          <div className="flex justify-between pt-4 border-t border-gray-100">
+          <div className="flex justify-between gap-2 pt-4 border-t border-gray-100">
             <Button
               type="button"
               variant="outline"
               onClick={() => setActiveTab("measurements")}
+              leftIcon={<ArrowLeft size={16} className="shrink-0" />}
             >
-              &larr; Back
+              Back
             </Button>
             <Button
               type="button"
               variant="outline"
               onClick={() => setActiveTab("pricing")}
+              rightIcon={<ArrowRight size={16} className="shrink-0" />}
             >
-              Next: Pricing & Deadline &rarr;
+              Next: Pricing & Deadline
             </Button>
           </div>
         </div>
@@ -787,7 +837,6 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               />
             </div>
 
-
             {/* Balance Calculation Pill */}
             <div className="p-4 bg-gray-50 rounded-xl border border-gray-200 flex items-center justify-between">
               <div>
@@ -799,7 +848,7 @@ export default function DemandForm({ initialData }: DemandFormProps) {
                 </p>
               </div>
               <span className="text-xs px-2.5 py-1 bg-amber-100 text-amber-800 rounded-full font-semibold">
-                Auto Calculated
+                Auto <span className="hidden sm:inline">Calculated</span>
               </span>
             </div>
 
@@ -819,7 +868,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1 flex items-center justify-between">
                   <span>Assigned Tailor</span>
-                  <span className="text-xs text-brand-700 font-normal">Turnaround Tracking</span>
+                  <span className="text-xs text-brand-700 font-normal">
+                    Turnaround Tracking
+                  </span>
                 </label>
                 <select
                   {...register("assignedTailor")}
@@ -853,8 +904,9 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               type="button"
               variant="outline"
               onClick={() => setActiveTab("materials")}
+              leftIcon={<ArrowLeft size={16} className="shrink-0" />}
             >
-              &larr; Back
+              Back
             </Button>
 
             <Button
@@ -864,7 +916,11 @@ export default function DemandForm({ initialData }: DemandFormProps) {
               isLoading={isSubmitting}
               leftIcon={!isOnline ? <WifiOff className="size-4" /> : undefined}
             >
-              {!isOnline ? "Save Offline (Syncs Later)" : (initialData ? "Save Changes" : "Create Bespoke Request")}
+              {!isOnline
+                ? "Save Offline (Syncs Later)"
+                : initialData
+                  ? "Save Changes"
+                  : "Create Bespoke Request"}
             </Button>
           </div>
         </div>
@@ -877,18 +933,23 @@ export default function DemandForm({ initialData }: DemandFormProps) {
           id={createdDemand._id}
           title={createdDemand.title}
           customerName={createdDemand.customerSnapshot?.name || ""}
-          totalAmount={createdDemand.agreedPrice || createdDemand.estimatedPrice || 0}
+          totalAmount={
+            createdDemand.agreedPrice || createdDemand.estimatedPrice || 0
+          }
           depositPaid={createdDemand.depositPaid || 0}
           balanceDue={
             createdDemand.balanceOwed !== undefined
               ? createdDemand.balanceOwed
               : Math.max(
                   0,
-                  (createdDemand.agreedPrice || createdDemand.estimatedPrice || 0) -
-                    (createdDemand.depositPaid || 0)
+                  (createdDemand.agreedPrice ||
+                    createdDemand.estimatedPrice ||
+                    0) - (createdDemand.depositPaid || 0),
                 )
           }
-          onDismiss={() => router.push(`/dashboard/demands/${createdDemand._id}`)}
+          onDismiss={() =>
+            router.push(`/dashboard/demands/${createdDemand._id}`)
+          }
         />
       )}
     </form>

@@ -64,19 +64,26 @@ export default function DemandDetailPage({
   const toggleMaterialMutation = useToggleMaterialAcquired(id);
 
   const vendor = useAuthStore((s) => s.vendor);
-  const isTailor = Boolean(vendor?.user?.isTeamMember && vendor?.user?.role === "tailor");
+  const isTailor = Boolean(
+    vendor?.user?.isTeamMember && vendor?.user?.role === "tailor",
+  );
   const isOwnerOrManager = Boolean(
-    !vendor?.user?.isTeamMember || vendor?.user?.role === "owner" || vendor?.user?.role === "manager"
+    !vendor?.user?.isTeamMember ||
+    vendor?.user?.role === "owner" ||
+    vendor?.user?.role === "manager",
   );
   const teamQuery = useTeamSummary();
-  const tailors = (teamQuery.data?.members || []).filter((m) => m.role === "tailor" && m.isActive);
+  const tailors = (teamQuery.data?.members || []).filter(
+    (m) => m.role === "tailor" && m.isActive,
+  );
 
   // Edit pricing inline state
   const [isEditingPayment, setIsEditingPayment] = useState(false);
   const [agreedPriceInput, setAgreedPriceInput] = useState<number | "">("");
   const [depositPaidInput, setDepositPaidInput] = useState<number | "">("");
-  const [activePreviewImage, setActivePreviewImage] = useState<string | null>(null);
-
+  const [activePreviewImage, setActivePreviewImage] = useState<string | null>(
+    null,
+  );
 
   if (isLoading) {
     return (
@@ -91,9 +98,12 @@ export default function DemandDetailPage({
     return (
       <div className="text-center py-20 bg-white rounded-2xl border border-gray-200 max-w-xl mx-auto">
         <AlertCircle size={36} className="text-red-500 mx-auto mb-3" />
-        <h2 className="text-xl font-bold text-gray-900 mb-2">Demand Not Found</h2>
+        <h2 className="text-xl font-bold text-gray-900 mb-2">
+          Demand Not Found
+        </h2>
         <p className="text-sm text-gray-500 mb-6">
-          The bespoke record you are looking for does not exist or has been deleted.
+          The bespoke record you are looking for does not exist or has been
+          deleted.
         </p>
         <Link href="/dashboard/demands">
           <Button variant="primary">Return to Demand Board</Button>
@@ -109,36 +119,48 @@ export default function DemandDetailPage({
   const handleSavePayment = () => {
     updateMutation.mutate(
       {
-        agreedPrice: agreedPriceInput === "" ? request.agreedPrice : Number(agreedPriceInput),
-        depositPaid: depositPaidInput === "" ? request.depositPaid : Number(depositPaidInput),
+        agreedPrice:
+          agreedPriceInput === ""
+            ? request.agreedPrice
+            : Number(agreedPriceInput),
+        depositPaid:
+          depositPaidInput === ""
+            ? request.depositPaid
+            : Number(depositPaidInput),
       },
       {
         onSuccess: () => setIsEditingPayment(false),
-      }
+      },
     );
   };
 
   const handleDelete = () => {
-    if (window.confirm("Are you sure you want to delete this custom request?")) {
+    if (
+      window.confirm("Are you sure you want to delete this custom request?")
+    ) {
       deleteMutation.mutate(id, {
         onSuccess: () => router.push("/dashboard/demands"),
       });
     }
   };
 
-  const targetPrice = request.agreedPrice > 0 ? request.agreedPrice : request.estimatedPrice;
+  const targetPrice =
+    request.agreedPrice > 0 ? request.agreedPrice : request.estimatedPrice;
   const currentStageIndex = STAGES.findIndex((s) => s.key === request.status);
 
   const assignedTailorObj =
-    typeof request.assignedTailor === "object" && request.assignedTailor !== null
+    typeof request.assignedTailor === "object" &&
+    request.assignedTailor !== null
       ? request.assignedTailor
       : null;
 
   const assignedTailorId =
-    assignedTailorObj?._id || (typeof request.assignedTailor === "string" ? request.assignedTailor : "");
+    assignedTailorObj?._id ||
+    (typeof request.assignedTailor === "string" ? request.assignedTailor : "");
 
-  const isCurrentTailorAssigned =
-    Boolean(isTailor && vendor?.user?._id && assignedTailorId === vendor.user._id);
+  const isCurrentTailorAssigned = Boolean(
+    isTailor && vendor?.user?._id && assignedTailorId === vendor.user._id,
+  );
 
   return (
     <div className="space-y-6 sm:space-y-8 max-w-5xl mx-auto pb-20 px-1 sm:px-0">
@@ -161,7 +183,12 @@ export default function DemandDetailPage({
             </span>
           </div>
           <p className="text-xs text-gray-400 mt-1">
-            Recorded {new Date(request.createdAt).toLocaleDateString("en-NG", { day: "numeric", month: "long", year: "numeric" })}
+            Recorded{" "}
+            {new Date(request.createdAt).toLocaleDateString("en-NG", {
+              day: "numeric",
+              month: "long",
+              year: "numeric",
+            })}
           </p>
         </div>
 
@@ -169,7 +196,11 @@ export default function DemandDetailPage({
           {request.invoice ? (
             <>
               <Link href={`/dashboard/invoices/${request.invoice._id}`}>
-                <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+                <Button
+                  variant="outline"
+                  size="small"
+                  leftIcon={<FileText size={14} />}
+                >
                   Invoice #{request.invoice.invoiceNumber}
                   {request.invoice.balanceDue > 0
                     ? ` (${formatCurrency(request.invoice.balanceDue)} left)`
@@ -192,13 +223,21 @@ export default function DemandDetailPage({
             </>
           ) : (
             <Link href={`/dashboard/invoices/new?demandId=${id}`}>
-              <Button variant="outline" size="small" leftIcon={<FileText size={14} />}>
+              <Button
+                variant="outline"
+                size="small"
+                leftIcon={<FileText size={14} />}
+              >
                 Generate Invoice
               </Button>
             </Link>
           )}
           <Link href={`/dashboard/demands/${id}/edit`}>
-            <Button variant="secondary" size="small" leftIcon={<Edit size={14} />}>
+            <Button
+              variant="secondary"
+              size="small"
+              leftIcon={<Edit size={14} />}
+            >
               Edit Demand
             </Button>
           </Link>
@@ -229,7 +268,8 @@ export default function DemandDetailPage({
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2">
           {STAGES.map((stage, idx) => {
             const isCurrent = request.status === stage.key;
-            const isCompleted = currentStageIndex > idx && request.status !== "cancelled";
+            const isCompleted =
+              currentStageIndex > idx && request.status !== "cancelled";
 
             return (
               <button
@@ -240,13 +280,17 @@ export default function DemandDetailPage({
                   isCurrent
                     ? "bg-brand-700 text-white border-brand-700 font-bold shadow-xs"
                     : isCompleted
-                    ? "bg-emerald-50 text-emerald-900 border-emerald-200 font-medium hover:bg-emerald-100"
-                    : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 font-medium"
+                      ? "bg-emerald-50 text-emerald-900 border-emerald-200 font-medium hover:bg-emerald-100"
+                      : "bg-gray-50 text-gray-600 border-gray-200 hover:bg-gray-100 font-medium"
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
-                  <span className="text-[10px] opacity-75">Step 0{idx + 1}</span>
-                  {isCompleted && <CheckCircle size={12} className="text-emerald-700" />}
+                  <span className="text-[10px] opacity-75">
+                    Step 0{idx + 1}
+                  </span>
+                  {isCompleted && (
+                    <CheckCircle size={12} className="text-emerald-700" />
+                  )}
                 </div>
                 <p className="text-xs truncate font-medium">{stage.label}</p>
               </button>
@@ -255,81 +299,89 @@ export default function DemandDetailPage({
         </div>
       </div>
 
-
-        {/* Main Grid: 2 Columns */}
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Left Column: Client, Brief, Inspiration, Measurements, Materials */}
-          <div className="lg:col-span-8 space-y-8">
-            {/* Design Brief Card */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                  <Scissors size={18} className="text-brand-700" />
-                  Design Brief & Style Notes
-                </h3>
-                <Link
-                  href={`/dashboard/demands/${id}/edit`}
-                  className="text-xs text-brand-700 hover:underline font-semibold flex items-center gap-1"
-                >
-                  <Edit size={12} /> Edit Brief
-                </Link>
-              </div>
-
-              {request.description ? (
-                <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
-                  {request.description}
-                </p>
-              ) : (
-                <p className="text-xs text-gray-400 italic">No description provided.</p>
-              )}
+      {/* Main Grid: 2 Columns */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Client, Brief, Inspiration, Measurements, Materials */}
+        <div className="lg:col-span-8 space-y-8">
+          {/* Design Brief Card */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Scissors size={18} className="text-brand-700" />
+                Design Brief & Style Notes
+              </h3>
+              <Link
+                href={`/dashboard/demands/${id}/edit`}
+                className="text-xs text-brand-700 hover:underline font-semibold flex items-center gap-1"
+              >
+                <Edit size={12} /> Edit Brief
+              </Link>
             </div>
 
-            {/* Inspiration & Reference Images Card */}
-            <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-              <div className="flex items-center justify-between">
-                <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
-                  <Sparkles size={18} className="text-purple-600" />
-                  Inspiration & Reference Images
-                </h3>
-                {request.referenceImages && request.referenceImages.length > 0 && (
+            {request.description ? (
+              <p className="text-sm text-gray-700 whitespace-pre-wrap leading-relaxed">
+                {request.description}
+              </p>
+            ) : (
+              <p className="text-xs text-gray-400 italic">
+                No description provided.
+              </p>
+            )}
+          </div>
+
+          {/* Inspiration & Reference Images Card */}
+          <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="text-base font-bold text-gray-900 flex items-center gap-2">
+                <Sparkles size={18} className="text-purple-600" />
+                Inspiration & Reference Images
+              </h3>
+              {request.referenceImages &&
+                request.referenceImages.length > 0 && (
                   <span className="text-xs font-semibold px-2.5 py-0.5 rounded-full bg-purple-50 text-purple-700 border border-purple-200">
-                    {request.referenceImages.length} Image{request.referenceImages.length !== 1 ? "s" : ""}
+                    {request.referenceImages.length} Image
+                    {request.referenceImages.length !== 1 ? "s" : ""}
                   </span>
                 )}
-              </div>
-
-              {request.referenceImages && request.referenceImages.length > 0 ? (
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-                  {request.referenceImages.map((img, i) => (
-                    <div
-                      key={i}
-                      onClick={() => setActivePreviewImage(img.url)}
-                      className="group relative aspect-4/3 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer shadow-xs hover:shadow-md transition-all"
-                    >
-                      <img
-                        src={img.url}
-                        alt={`Inspiration ${i + 1}`}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                      <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 text-white transition-opacity">
-                        <Maximize2 size={18} />
-                        <span className="text-xs font-semibold">View Full</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/60">
-                  <p className="text-xs text-gray-500 mb-2">No inspiration or reference photos attached to this demand.</p>
-                  <Link href={`/dashboard/demands/${id}/edit`}>
-                    <Button variant="secondary" size="small" leftIcon={<Edit size={14} />}>
-                      Upload Photos
-                    </Button>
-                  </Link>
-                </div>
-              )}
             </div>
 
+            {request.referenceImages && request.referenceImages.length > 0 ? (
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+                {request.referenceImages.map((img, i) => (
+                  <div
+                    key={i}
+                    onClick={() => setActivePreviewImage(img.url)}
+                    className="group relative aspect-4/3 rounded-2xl overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer shadow-xs hover:shadow-md transition-all"
+                  >
+                    <img
+                      src={img.url}
+                      alt={`Inspiration ${i + 1}`}
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                    <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center gap-2 text-white transition-opacity">
+                      <Maximize2 size={18} />
+                      <span className="text-xs font-semibold">View Full</span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <div className="border border-dashed border-gray-200 rounded-xl p-6 text-center bg-gray-50/60">
+                <p className="text-xs text-gray-500 mb-2">
+                  No inspiration or reference photos attached to this demand.
+                </p>
+                <Link href={`/dashboard/demands/${id}/edit`}>
+                  <Button
+                    variant="secondary"
+                    size="small"
+                    leftIcon={<Edit size={14} />}
+                  >
+                    Upload Photos
+                  </Button>
+                </Link>
+              </div>
+            )}
+          </div>
 
           {/* Measurements */}
           <div className="bg-white p-6 rounded-2xl border border-gray-200 shadow-sm space-y-4">
@@ -338,17 +390,25 @@ export default function DemandDetailPage({
               Customer Body Measurements
             </h3>
 
-            {request.measurements && Object.keys(request.measurements).length > 0 ? (
+            {request.measurements &&
+            Object.keys(request.measurements).length > 0 ? (
               <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {Object.entries(request.measurements).map(([k, v]) => (
-                  <div key={k} className="p-3 bg-gray-50 rounded-xl border border-gray-200">
+                  <div
+                    key={k}
+                    className="p-3 bg-gray-50 rounded-xl border border-gray-200"
+                  >
                     <p className="text-xs text-gray-500 font-medium">{k}</p>
-                    <p className="text-base font-bold text-gray-900 mt-0.5">{v || "—"}</p>
+                    <p className="text-base font-bold text-gray-900 mt-0.5">
+                      {v || "—"}
+                    </p>
                   </div>
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 italic">No measurements recorded for this piece.</p>
+              <p className="text-xs text-gray-400 italic">
+                No measurements recorded for this piece.
+              </p>
             )}
           </div>
 
@@ -383,7 +443,9 @@ export default function DemandDetailPage({
                         )}
                       </button>
                       <div>
-                        <p className={`font-semibold text-gray-900 ${m.acquired ? "line-through text-gray-500" : ""}`}>
+                        <p
+                          className={`font-semibold text-gray-900 ${m.acquired ? "line-through text-gray-500" : ""}`}
+                        >
                           {m.name}
                         </p>
                         <p className="text-xs text-gray-500">
@@ -404,7 +466,9 @@ export default function DemandDetailPage({
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-gray-400 italic">No materials added yet.</p>
+              <p className="text-xs text-gray-400 italic">
+                No materials added yet.
+              </p>
             )}
           </div>
         </div>
@@ -413,12 +477,20 @@ export default function DemandDetailPage({
         <div className="lg:col-span-4 space-y-6">
           {/* Customer Card */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
-            <h3 className="text-sm font-bold text-gray-900">Customer Profile</h3>
+            <h3 className="text-sm font-bold text-gray-900">
+              Customer Profile
+            </h3>
             <div>
-              <p className="text-base font-bold text-gray-900">{request.customerSnapshot.name}</p>
-              <p className="text-xs text-gray-500 font-mono mt-0.5">{request.customerSnapshot.phone}</p>
+              <p className="text-base font-bold text-gray-900">
+                {request.customerSnapshot.name}
+              </p>
+              <p className="text-xs text-gray-500 font-mono mt-0.5">
+                {request.customerSnapshot.phone}
+              </p>
               {request.customerSnapshot.email && (
-                <p className="text-xs text-gray-500 mt-0.5">{request.customerSnapshot.email}</p>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  {request.customerSnapshot.email}
+                </p>
               )}
             </div>
 
@@ -445,7 +517,7 @@ export default function DemandDetailPage({
                 </span>
               ) : (
                 <span className="text-[11px] font-semibold px-2 py-0.5 rounded-full bg-amber-50 text-amber-700 border border-amber-200">
-                  Unassigned Pool
+                  Unassigned
                 </span>
               )}
             </div>
@@ -453,10 +525,16 @@ export default function DemandDetailPage({
             {assignedTailorObj ? (
               <div className="p-3 bg-purple-50/50 rounded-xl border border-purple-100 flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] text-purple-700 font-bold uppercase tracking-wider">Tailor in Charge</p>
-                  <p className="text-sm font-bold text-gray-900 mt-0.5">{assignedTailorObj.name}</p>
+                  <p className="text-[10px] text-purple-700 font-bold uppercase tracking-wider">
+                    Tailor in Charge
+                  </p>
+                  <p className="text-sm font-bold text-gray-900 mt-0.5">
+                    {assignedTailorObj.name}
+                  </p>
                   {assignedTailorObj.phone && (
-                    <p className="text-xs text-gray-500 font-mono mt-0.5">{assignedTailorObj.phone}</p>
+                    <p className="text-xs text-gray-500 font-mono mt-0.5">
+                      {assignedTailorObj.phone}
+                    </p>
                   )}
                 </div>
                 {isCurrentTailorAssigned && (
@@ -467,7 +545,8 @@ export default function DemandDetailPage({
               </div>
             ) : (
               <div className="p-3 bg-gray-50 rounded-xl border border-gray-200 text-xs text-gray-500 leading-relaxed">
-                This bespoke order is currently in the unassigned pool. Assign a tailor to track turnaround times and workshop productivity.
+                This bespoke order is currently in the unassigned pool. Assign a
+                tailor to track turnaround times and workshop productivity.
               </div>
             )}
 
@@ -479,7 +558,9 @@ export default function DemandDetailPage({
                 className="w-full text-xs font-semibold"
                 leftIcon={<Scissors size={14} />}
                 disabled={updateMutation.isPending}
-                onClick={() => updateMutation.mutate({ assignedTailor: vendor.user?._id })}
+                onClick={() =>
+                  updateMutation.mutate({ assignedTailor: vendor.user?._id })
+                }
               >
                 Claim This Bespoke Order
               </Button>
@@ -491,7 +572,9 @@ export default function DemandDetailPage({
                 <button
                   type="button"
                   disabled={updateMutation.isPending}
-                  onClick={() => updateMutation.mutate({ assignedTailor: "unassigned" })}
+                  onClick={() =>
+                    updateMutation.mutate({ assignedTailor: "unassigned" })
+                  }
                   className="text-xs text-gray-400 hover:text-red-600 font-medium transition-colors cursor-pointer"
                 >
                   Release back to workshop pool
@@ -528,11 +611,15 @@ export default function DemandDetailPage({
           {/* Pricing & Balances Card */}
           <div className="bg-white p-5 rounded-2xl border border-gray-200 shadow-sm space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="text-sm font-bold text-gray-900">Financial Summary</h3>
+              <h3 className="text-sm font-bold text-gray-900">
+                Financial Summary
+              </h3>
               <button
                 type="button"
                 onClick={() => {
-                  setAgreedPriceInput(request.agreedPrice || request.estimatedPrice);
+                  setAgreedPriceInput(
+                    request.agreedPrice || request.estimatedPrice,
+                  );
                   setDepositPaidInput(request.depositPaid);
                   setIsEditingPayment(!isEditingPayment);
                 }}
@@ -546,24 +633,41 @@ export default function DemandDetailPage({
             {isEditingPayment ? (
               <div className="space-y-3 pt-2">
                 <div>
-                  <label className="text-xs text-gray-500 font-medium block mb-1">Agreed Price (₦)</label>
+                  <label className="text-xs text-gray-500 font-medium block mb-1">
+                    Agreed Price (₦)
+                  </label>
                   <input
                     type="number"
                     value={agreedPriceInput}
-                    onChange={(e) => setAgreedPriceInput(e.target.value === "" ? "" : Number(e.target.value))}
+                    onChange={(e) =>
+                      setAgreedPriceInput(
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
                     className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-brand-700 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="text-xs text-gray-500 font-medium block mb-1">Deposit Paid (₦)</label>
+                  <label className="text-xs text-gray-500 font-medium block mb-1">
+                    Deposit Paid (₦)
+                  </label>
                   <input
                     type="number"
                     value={depositPaidInput}
-                    onChange={(e) => setDepositPaidInput(e.target.value === "" ? "" : Number(e.target.value))}
+                    onChange={(e) =>
+                      setDepositPaidInput(
+                        e.target.value === "" ? "" : Number(e.target.value),
+                      )
+                    }
                     className="w-full px-3 py-1.5 text-sm border border-gray-200 rounded-lg focus:border-brand-700 focus:outline-none"
                   />
                 </div>
-                <Button variant="primary" size="small" className="w-full" onClick={handleSavePayment}>
+                <Button
+                  variant="primary"
+                  size="small"
+                  className="w-full"
+                  onClick={handleSavePayment}
+                >
                   Update Pricing
                 </Button>
               </div>
@@ -571,15 +675,25 @@ export default function DemandDetailPage({
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between text-gray-600">
                   <span>Agreed Price:</span>
-                  <span className="font-bold text-gray-900">{formatCurrency(targetPrice)}</span>
+                  <span className="font-bold text-gray-900">
+                    {formatCurrency(targetPrice)}
+                  </span>
                 </div>
                 <div className="flex justify-between text-gray-600">
                   <span>Deposit Collected:</span>
-                  <span className="font-bold text-emerald-700">{formatCurrency(request.depositPaid || 0)}</span>
+                  <span className="font-bold text-emerald-700">
+                    {formatCurrency(request.depositPaid || 0)}
+                  </span>
                 </div>
                 <div className="flex justify-between pt-2 border-t border-gray-100 text-base font-bold">
                   <span>Balance Due:</span>
-                  <span className={request.balanceOwed > 0 ? "text-amber-700" : "text-gray-900"}>
+                  <span
+                    className={
+                      request.balanceOwed > 0
+                        ? "text-amber-700"
+                        : "text-gray-900"
+                    }
+                  >
                     {formatCurrency(request.balanceOwed)}
                   </span>
                 </div>
@@ -671,4 +785,3 @@ export default function DemandDetailPage({
     </div>
   );
 }
-

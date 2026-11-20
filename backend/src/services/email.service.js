@@ -344,11 +344,94 @@ export const sendNewOrderNotificationEmail = async (vendorEmail, {
   paymentReference = "",
   status = "pending",
   notes = "",
-  source = "Storefront",
+  source = "storefront",
+  isStorefront,
 }) => {
   const shortOrderId = orderNumber || String(orderId).slice(-6).toUpperCase();
   const formattedTotal = `₦${Number(totalAmount || 0).toLocaleString("en-NG")}`;
-  const subject = `🛍️ New Order #${shortOrderId} received — ${formattedTotal} (${customerName})`;
+
+  const normKey = String(source || "dashboard").toLowerCase().replace(/[\s-]+/g, "_");
+  const isOnlineStore = isStorefront !== undefined
+    ? Boolean(isStorefront)
+    : normKey === "storefront" || normKey === "online_storefront";
+
+  const SOURCE_CONFIG = {
+    storefront: {
+      label: "Online Storefront",
+      badge: "🛍️ New Storefront Order",
+      badgeBg: "#e8f5e9",
+      badgeColor: "#0D6B31",
+      heading: "You've received a new online order!",
+      intro: `<strong>${customerName}</strong> just placed an order on your online storefront. Here are the order and delivery details:`,
+      subject: `🛍️ New Storefront Order #${shortOrderId} received — ${formattedTotal} (${customerName})`,
+      textPrefix: "New Storefront Order",
+    },
+    dm: {
+      label: "Instagram DM",
+      badge: "💬 New Order • Instagram DM",
+      badgeBg: "#fdf2f8",
+      badgeColor: "#be185d",
+      heading: `New Order Recorded: #${shortOrderId}`,
+      intro: `A new order for <strong>${customerName}</strong> via <strong>Instagram DM</strong> has been recorded in your workspace:`,
+      subject: `💬 New Order #${shortOrderId} Recorded — ${formattedTotal} (${customerName} via Instagram DM)`,
+      textPrefix: "New Order (Instagram DM)",
+    },
+    whatsapp: {
+      label: "WhatsApp",
+      badge: "💬 New Order • WhatsApp",
+      badgeBg: "#f0fdf4",
+      badgeColor: "#15803d",
+      heading: `New Order Recorded: #${shortOrderId}`,
+      intro: `A new order for <strong>${customerName}</strong> via <strong>WhatsApp</strong> has been recorded in your workspace:`,
+      subject: `💬 New Order #${shortOrderId} Recorded — ${formattedTotal} (${customerName} via WhatsApp)`,
+      textPrefix: "New Order (WhatsApp)",
+    },
+    walk_in: {
+      label: "Walk-in Store",
+      badge: "🏬 New Walk-In Order",
+      badgeBg: "#eff6ff",
+      badgeColor: "#1d4ed8",
+      heading: `New Walk-In Order: #${shortOrderId}`,
+      intro: `A new walk-in boutique order for <strong>${customerName}</strong> has been recorded in your workspace:`,
+      subject: `🏬 New Walk-In Order #${shortOrderId} — ${formattedTotal} (${customerName})`,
+      textPrefix: "New Walk-In Order",
+    },
+    call: {
+      label: "Phone Call",
+      badge: "📞 New Order • Phone Call",
+      badgeBg: "#fefce8",
+      badgeColor: "#a16207",
+      heading: `New Order Recorded: #${shortOrderId}`,
+      intro: `A new phone order for <strong>${customerName}</strong> has been recorded in your workspace:`,
+      subject: `📞 New Order #${shortOrderId} Recorded — ${formattedTotal} (${customerName} via Phone Call)`,
+      textPrefix: "New Order (Phone Call)",
+    },
+    dashboard: {
+      label: "Manual Dashboard Entry",
+      badge: "📋 New Order Recorded",
+      badgeBg: "#f3f4f6",
+      badgeColor: "#374151",
+      heading: `New Order Recorded: #${shortOrderId}`,
+      intro: `A new order for <strong>${customerName}</strong> has been recorded in your dashboard:`,
+      subject: `📋 New Order #${shortOrderId} Recorded — ${formattedTotal} (${customerName})`,
+      textPrefix: "New Order (Dashboard)",
+    },
+  };
+
+  const channel = isOnlineStore
+    ? SOURCE_CONFIG.storefront
+    : (SOURCE_CONFIG[normKey] || {
+        label: source || "Dashboard",
+        badge: `📋 New Order • ${source || "Manual Entry"}`,
+        badgeBg: "#f3f4f6",
+        badgeColor: "#374151",
+        heading: `New Order Recorded: #${shortOrderId}`,
+        intro: `A new order for <strong>${customerName}</strong> has been recorded in your workspace:`,
+        subject: `📋 New Order #${shortOrderId} Recorded — ${formattedTotal} (${customerName})`,
+        textPrefix: `New Order (${source || "Manual"})`,
+      });
+
+  const subject = channel.subject;
   const dashboardOrderUrl = `${process.env.FRONTEND_URL || "http://localhost:3000"}/dashboard/orders/${orderId}`;
 
   // Build items rows
@@ -378,19 +461,27 @@ export const sendNewOrderNotificationEmail = async (vendorEmail, {
   const cleanPhone = customerPhone ? customerPhone.replace(/\D/g, "") : "";
   const waLink = cleanPhone ? `https://wa.me/${cleanPhone.startsWith("0") ? `234${cleanPhone.slice(1)}` : cleanPhone}` : "";
 
+  const PAYMENT_LABELS = {
+    paystack: "Paystack Online (Paid)",
+    bank_transfer: "Bank Transfer",
+    cash: "Cash Payment",
+    whatsapp: "WhatsApp / Direct Bank Transfer",
+  };
+  const paymentMethodLabel = PAYMENT_LABELS[paymentMethod] || (paymentMethod ? String(paymentMethod).toUpperCase() : (isOnlineStore ? "WhatsApp / Direct Bank Transfer" : "Not specified / Direct Settlement"));
+
   const html = `
     <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; max-width: 620px; margin: auto; padding: 28px; border: 1px solid #e5e7eb; border-radius: 14px; background-color: #ffffff; color: #111827;">
       <div style="border-bottom: 2px solid #0D6B31; padding-bottom: 16px; margin-bottom: 24px;">
-        <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: #0D6B31; background: #e8f5e9; padding: 4px 10px; border-radius: 4px; margin-bottom: 8px;">New Storefront Order</span>
-        <h2 style="color: #111827; margin: 0; font-size: 24px; font-weight: 700;">You've received a new order!</h2>
-        <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">Order <strong>#${shortOrderId}</strong> via ${source}</p>
+        <span style="display: inline-block; font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.08em; color: ${channel.badgeColor}; background: ${channel.badgeBg}; padding: 4px 10px; border-radius: 4px; margin-bottom: 8px;">${channel.badge}</span>
+        <h2 style="color: #111827; margin: 0; font-size: 22px; font-weight: 700;">${channel.heading}</h2>
+        <p style="color: #6b7280; margin: 6px 0 0 0; font-size: 14px;">Order <strong>#${shortOrderId}</strong> • Channel: <strong>${channel.label}</strong></p>
       </div>
 
       <p style="font-size: 15px; line-height: 1.5; color: #374151;">
         Hello <strong>${vendorName}</strong>,
       </p>
       <p style="font-size: 15px; line-height: 1.5; color: #374151;">
-        <strong>${customerName}</strong> just placed an order on your storefront. Here are the order and delivery details:
+        ${channel.intro}
       </p>
 
       <!-- Customer & Delivery Box -->
@@ -400,7 +491,11 @@ export const sendNewOrderNotificationEmail = async (vendorEmail, {
         </h3>
         <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
           <tr>
-            <td style="padding: 5px 0; color: #6b7280; width: 35%;">Customer Name:</td>
+            <td style="padding: 5px 0; color: #6b7280; width: 35%;">Order Channel:</td>
+            <td style="padding: 5px 0; font-weight: 600; color: #111827;">${channel.label}</td>
+          </tr>
+          <tr>
+            <td style="padding: 5px 0; color: #6b7280;">Customer Name:</td>
             <td style="padding: 5px 0; font-weight: 600; color: #111827;">${customerName}</td>
           </tr>
           <tr>
@@ -429,8 +524,8 @@ export const sendNewOrderNotificationEmail = async (vendorEmail, {
           ` : ""}
           <tr>
             <td style="padding: 5px 0; color: #6b7280;">Payment Method:</td>
-            <td style="padding: 5px 0; font-weight: 600; color: ${paymentMethod === 'paystack' ? '#0D6B31' : '#b45309'}; text-transform: uppercase;">
-              ${paymentMethod === 'paystack' ? 'Paystack Online (Paid)' : 'WhatsApp / Bank Transfer'}
+            <td style="padding: 5px 0; font-weight: 600; color: ${paymentMethod === 'paystack' ? '#0D6B31' : '#111827'};">
+              ${paymentMethodLabel}
             </td>
           </tr>
           ${paymentReference ? `
@@ -520,7 +615,7 @@ export const sendNewOrderNotificationEmail = async (vendorEmail, {
     </div>
   `;
 
-  const text = `New Storefront Order #${shortOrderId} received from ${customerName} (${customerPhone}) for ${formattedTotal}.\nDelivery: ${formattedAddress}\nView order: ${dashboardOrderUrl}`;
+  const text = `${channel.textPrefix} #${shortOrderId} received from ${customerName} (${customerPhone || "No phone"}) for ${formattedTotal}.\nChannel: ${channel.label}\nDelivery: ${formattedAddress}\nView order: ${dashboardOrderUrl}`;
   return sendEmail({ to: vendorEmail, subject, html, text });
 };
 
